@@ -29,13 +29,13 @@
         </developer>
     </developers>
     <scm>
-        <connection>scm:git:git@github.com:94fzb/simplewebserver.git</connection>
-        <developerConnection>scm:git:git@github.com:94fzb/simplewebserver.git</developerConnection>
-        <url>git@github.com:94fzb/simplewebserver.git</url>
+        <connection>scm:git:git@github.com:hibegin/simplewebserver.git</connection>
+        <developerConnection>scm:git:git@github.com:hibegin/simplewebserver.git</developerConnection>
+        <url>git@github.com:hibegin/simplewebserver.git</url>
     </scm>
     <issueManagement>
         <system>Github Issue</system>
-        <url>http://github.com/94fzb/simplewebserver</url>
+        <url>http://github.com/hibegin/simplewebserver</url>
     </issueManagement>
     <licenses>
         <license>
