@@ -6,6 +6,7 @@
     <artifactId>simplewebserver</artifactId>
     <version>0.0.9-SNAPSHOT</version>
     <packaging>jar</packaging>
+    <url>http://github.com/hibegin/simplewebserver</url>
 
     <name>SimpleWebServer</name>
     <description>Simple, flexible, less dependent, more extended. Less memory footprint, can quickly build Web project.
