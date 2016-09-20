@@ -82,11 +82,11 @@ public class SimpleWebServer implements ISocketServer {
         if (selector == null) {
             return;
         }
-        LOGGER.info("SimplerWebServer is run versionStr -> " + ServerInfo.getVersion());
+        LOGGER.info(ServerInfo.getName() + " is run versionStr -> " + ServerInfo.getVersion());
         try {
             EnvKit.savePid(PathUtil.getRootPath() + "/sim.pid");
         } catch (Throwable e) {
-            LOGGER.log(Level.WARNING, "save Pid error", e);
+            LOGGER.log(Level.WARNING, "save pid error", e);
         }
         while (true) {
             try {
@@ -193,7 +193,7 @@ public class SimpleWebServer implements ISocketServer {
         serverChannel.configureBlocking(false);
         selector = Selector.open();
         serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-        LOGGER.info("SimplerWebServer listening on port -> " + port);
+        LOGGER.info(ServerInfo.getName() + " listening on port -> " + port);
     }
 
     private ResponseConfig getDefaultResponseConfig() {
