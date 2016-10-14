@@ -1,14 +1,19 @@
 package com.hibegin.http.server.util;
 
+import com.hibegin.common.util.LoggerUtil;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ServerInfo {
 
+    private static final Logger LOGGER = LoggerUtil.getLogger(FreeMarkerUtil.class);
     private static String name;
     private static String version;
     private static Date time;
@@ -27,7 +32,7 @@ public class ServerInfo {
                     time = new SimpleDateFormat("yyyy-MM-dd hh:mm").parse(properties.get("server.buildTime").toString());
                 }
             } catch (IOException | ParseException e) {
-                e.printStackTrace();
+                LOGGER.log(Level.SEVERE, "", e);
             }
         }
         if (name == null) {

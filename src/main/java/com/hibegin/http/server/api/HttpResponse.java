@@ -5,6 +5,7 @@ import com.hibegin.http.server.web.cookie.Cookie;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.util.Map;
 
 public interface HttpResponse {
 
@@ -37,4 +38,6 @@ public interface HttpResponse {
     void write(InputStream inputStream, int code);
 
     void send(ByteArrayOutputStream outputStream, boolean close);
+
+    Map<String, String> getHeader();
 }

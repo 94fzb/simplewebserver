@@ -1,14 +1,18 @@
 package com.hibegin.http.server.config;
 
+import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.util.PathUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ConfigKit {
 
+    private static final Logger LOGGER = LoggerUtil.getLogger(ConfigKit.class);
     private static Properties prop;
 
     static {
@@ -19,7 +23,7 @@ public class ConfigKit {
                 prop.load(new FileInputStream(file));
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         }
     }
 
@@ -45,6 +49,10 @@ public class ConfigKit {
             return Integer.parseInt(port.toString());
         }
         return 6443;
+    }
+
+    public static boolean contains(String key) {
+        return prop.get(key) != null;
     }
 
     public static Object get(String key, Object defaultValue) {

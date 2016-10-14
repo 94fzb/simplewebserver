@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 
 public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
-    private static Logger LOGGER = LoggerUtil.getLogger(PlainReadWriteSelectorHandler.class);
+    private static final Logger LOGGER = LoggerUtil.getLogger(PlainReadWriteSelectorHandler.class);
 
     static private int requestBBSize = 4096;
     protected ByteBuffer requestBB;

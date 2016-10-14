@@ -4,10 +4,11 @@ import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ServerConfig;
-import com.hibegin.http.server.web.cookie.Cookie;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
-import com.hibegin.http.server.web.session.HttpSession;
 import com.hibegin.http.server.util.PathUtil;
+import com.hibegin.http.server.web.cookie.Cookie;
+import com.hibegin.http.server.web.session.HttpSession;
+import com.hibegin.http.server.web.session.SessionUtil;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
@@ -17,6 +18,7 @@ import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -79,14 +81,44 @@ public class SimpleHttpRequest implements HttpRequest {
 
     @Override
     public Cookie[] getCookies() {
+        if (cookies == null) {
+            dealWithCookie(false);
+        }
         return cookies;
     }
 
     @Override
     public HttpSession getSession() {
+        if (session == null) {
+            dealWithCookie(true);
+        }
         return session;
     }
 
+    private void dealWithCookie(boolean create) {
+        if (!requestConfig.isDisableCookie()) {
+            String cookieHeader = header.get("Cookie");
+            if (cookieHeader != null) {
+                cookies = Cookie.saxToCookie(cookieHeader);
+                String jsessionid = Cookie.getJSessionId(cookieHeader);
+                if (jsessionid != null) {
+                    session = SessionUtil.getSessionById(jsessionid);
+                }
+            }
+            if (create && session == null) {
+                cookies = new Cookie[cookies.length + 1];
+                Cookie cookie = new Cookie(true);
+                String jsessionid = UUID.randomUUID().toString();
+                cookie.setName(Cookie.JSESSIONID);
+                cookie.setPath("/");
+                cookie.setValue(jsessionid);
+                cookies[cookies.length - 1] = cookie;
+                session = new HttpSession(jsessionid);
+                SessionUtil.sessionMap.put(jsessionid, session);
+                LOGGER.info("create a cookie " + cookie.toString());
+            }
+        }
+    }
 
     @Override
     public String getParaToStr(String key) {
@@ -94,7 +126,7 @@ public class SimpleHttpRequest implements HttpRequest {
             try {
                 return URLDecoder.decode(paramMap.get(key)[0], "UTF-8");
             } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
+                LOGGER.log(Level.SEVERE, "", e);
             }
         }
         return null;

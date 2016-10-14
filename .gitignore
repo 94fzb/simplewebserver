@@ -1,7 +1,7 @@
 /bin
 
 .idea
-**/logs
+**/log
 *.pid
 *.jar
 *.iml

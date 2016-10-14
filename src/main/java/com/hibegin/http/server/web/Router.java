@@ -9,7 +9,10 @@ public class Router {
 
     private Map<String, Method> routerMap = new HashMap<String, Method>();
 
-    public void addMapper(String urlPath, Class clazz) {
+    public void addMapper(String urlPath, Class<? extends Controller> clazz) {
+        if (urlPath.equals("/")) {
+            urlPath = "";
+        }
         Method[] methods = clazz.getDeclaredMethods();
         for (Method method : methods) {
             if (method.getModifiers() == Modifier.PUBLIC) {
@@ -17,9 +20,9 @@ public class Router {
             }
         }
         try {
-            getRouterMap().put(urlPath, clazz.getClass().getMethod("index"));
+            getRouterMap().put(urlPath + "/", clazz.getMethod("index"));
         } catch (NoSuchMethodException | SecurityException e) {
-            //e.printStackTrace();
+            //LOGGER.log(Level.SEVERE, "", e);
         }
     }
 
@@ -31,7 +34,18 @@ public class Router {
         return routerMap;
     }
 
-    public void setRouterMap(Map<String, Method> routerMap) {
-        this.routerMap = routerMap;
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        if (routerMap.size() > 0) {
+            sb.append("\r\n=========== Router Info ===========");
+        }
+        for (Map.Entry<String, Method> entry : routerMap.entrySet()) {
+            sb.append("\r\n").append(entry.getKey()).append(" -> ").append(entry.getValue());
+        }
+        if (routerMap.size() > 0) {
+            sb.append("\r\n===================================");
+        }
+        return sb.toString();
     }
 }

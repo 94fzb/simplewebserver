@@ -16,22 +16,17 @@ import java.util.logging.SimpleFormatter;
 public class LoggerUtil {
 
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-
     private static final String LOG_FOLDER_NAME = "log";
-
     private static final String LOG_FILE_SUFFIX = ".log";
-
     private static FileHandler fileHandler;
-
-    private static Logger LOGGER;
+    private static final Logger LOGGER = LoggerUtil.getLogger(LoggerUtil.class);
 
     static {
         try {
             fileHandler = new FileHandler(getLogFilePath(), true);
             fileHandler.setFormatter(new SimpleFormatter());
-            LOGGER = LoggerUtil.getLogger(LoggerUtil.class);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         }
     }
 
@@ -52,14 +47,15 @@ public class LoggerUtil {
     }
 
     private synchronized static String getLogFilePath() {
-        StringBuffer logFilePath = new StringBuffer();
+        StringBuilder logFilePath = new StringBuilder();
         logFilePath.append(PathUtil.getRootPath());
         logFilePath.append(File.separatorChar);
         logFilePath.append(LOG_FOLDER_NAME);
 
         File file = new File(logFilePath.toString());
-        if (!file.exists())
+        if (!file.exists()) {
             file.mkdir();
+        }
 
         logFilePath.append(File.separatorChar);
         logFilePath.append(sdf.format(new Date()));
@@ -71,7 +67,7 @@ public class LoggerUtil {
     /**
      * 记录完善的异常日志信息(包括堆栈信息)
      *
-     * @param e
+     * @param e Exception
      */
     public static String recordStackTraceMsg(Exception e) {
         StringWriter stringWriter = new StringWriter();

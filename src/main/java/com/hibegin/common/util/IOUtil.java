@@ -1,8 +1,12 @@
 package com.hibegin.common.util;
 
 import java.io.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class IOUtil {
+
+    private static final Logger LOGGER = LoggerUtil.getLogger(IOUtil.class);
 
     public static byte[] getByteByInputStream(InputStream in) {
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -13,12 +17,12 @@ public class IOUtil {
                 bout.write(tempByte, 0, length);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         } finally {
             try {
                 in.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                LOGGER.log(Level.SEVERE, "", e);
             }
         }
         return bout.toByteArray();
@@ -38,7 +42,7 @@ public class IOUtil {
             out.write(bytes);
             out.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         }
     }
 }

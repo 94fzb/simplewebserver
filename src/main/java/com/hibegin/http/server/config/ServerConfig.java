@@ -91,7 +91,7 @@ public class ServerConfig {
             }
 
         } catch (InstantiationException | IllegalAccessException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         }
         return null;
     }
@@ -100,10 +100,9 @@ public class ServerConfig {
         return interceptors;
     }
 
-    public void addInterceptor(Class interceptor) {
+    public void addInterceptor(Class<? extends Interceptor> interceptor) {
         try {
-
-            if (interceptor.newInstance() instanceof Interceptor) {
+            if (interceptor.newInstance() != null) {
                 synchronized (interceptors) {
                     boolean flag = false;
                     for (Class<Interceptor> inter : interceptors) {
@@ -112,14 +111,14 @@ public class ServerConfig {
                         }
                     }
                     if (!flag) {
-                        interceptors.add(interceptor);
+                        interceptors.add((Class<Interceptor>) interceptor);
                     }
                 }
             } else {
                 LOGGER.log(Level.SEVERE, "the class " + interceptor.getCanonicalName() + " not implements Interceptor");
             }
         } catch (InstantiationException | IllegalAccessException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         }
     }
 

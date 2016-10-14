@@ -30,7 +30,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -45,26 +46,30 @@ public class SimpleWebServer implements ISocketServer {
     private RequestConfig requestConfig;
     private ResponseConfig responseConfig;
     private ServerContext serverContext = new ServerContext();
+    private List<HttpRequestHandler> httpRequestHandlerList = new ArrayList<>();
 
     public SimpleWebServer() {
         this(null, null, null);
+
     }
 
     public SimpleWebServer(ServerConfig serverConfig, RequestConfig requestConfig, ResponseConfig responseConfig) {
         if (requestConfig == null) {
             requestConfig = new RequestConfig();
         }
+        if (responseConfig == null) {
+            responseConfig = new ResponseConfig();
+        }
+        this.requestConfig = requestConfig;
+        this.responseConfig = responseConfig;
         if (serverConfig == null) {
             serverConfig = new ServerConfig();
             serverConfig.setDisableCookie(Boolean.valueOf(ConfigKit.get("server.disableCookie", requestConfig.isDisableCookie()).toString()));
         }
-        if (responseConfig == null) {
-            responseConfig = new ResponseConfig();
-        }
         this.serverConfig = serverConfig;
-        this.requestConfig = requestConfig;
-        this.responseConfig = responseConfig;
-        if (serverConfig.getTimeOut() == 0) {
+        this.requestConfig = getDefaultRequestConfig();
+        this.responseConfig = getDefaultResponseConfig();
+        if (serverConfig.getTimeOut() == 0 && ConfigKit.contains("server.timeout")) {
             serverConfig.setTimeOut(Integer.parseInt(ConfigKit.get("server.timeout", 60).toString()));
         }
         if (serverConfig.getPort() == 0) {
@@ -83,6 +88,7 @@ public class SimpleWebServer implements ISocketServer {
             return;
         }
         LOGGER.info(ServerInfo.getName() + " is run versionStr -> " + ServerInfo.getVersion());
+        LOGGER.log(Level.INFO, serverConfig.getRouter().toString());
         try {
             EnvKit.savePid(PathUtil.getRootPath() + "/sim.pid");
         } catch (Throwable e) {
@@ -92,13 +98,11 @@ public class SimpleWebServer implements ISocketServer {
             try {
                 selector.select();
                 Set<SelectionKey> keys = selector.selectedKeys();
-                Iterator<SelectionKey> iter = keys.iterator();
 
-                while (iter.hasNext()) {
-                    SelectionKey key = iter.next();
-                    SocketChannel channel;
+                for (SelectionKey key : keys) {
+                    SocketChannel channel = null;
                     if (!key.isValid() || !key.channel().isOpen()) {
-                        continue;
+                        LOGGER.log(Level.WARNING, "error key" + key);
                     } else if (key.isAcceptable()) {
                         ServerSocketChannel server = (ServerSocketChannel) key.channel();
                         try {
@@ -108,10 +112,12 @@ public class SimpleWebServer implements ISocketServer {
                                 channel.register(selector, SelectionKey.OP_READ);
                             }
                         } catch (IOException e) {
-                            LOGGER.log(Level.FINE, "accept connnect error", e);
-                            server.socket().close();
+                            LOGGER.log(Level.SEVERE, "accept connect error", e);
+                            if (channel != null) {
+                                key.cancel();
+                                channel.close();
+                            }
                         }
-
                     } else if (key.isReadable()) {
                         channel = (SocketChannel) key.channel();
                         if (channel != null && channel.isOpen()) {
@@ -121,7 +127,7 @@ public class SimpleWebServer implements ISocketServer {
                             try {
                                 if (codec == null) {
                                     handler = getReadWriteSelectorHandlerInstance(channel, key);
-                                    codec = new HttpRequestDecoderImpl(socketAddress, getDefaultRequestConfig(), serverContext, handler);
+                                    codec = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
                                     serverContext.getHttpDeCoderMap().put(channel, codec);
                                 } else {
                                     handler = codec.getRequest().getHandler();
@@ -132,9 +138,13 @@ public class SimpleWebServer implements ISocketServer {
                                 if (!codec.doDecode(bytes)) {
                                     continue;
                                 }
-                                serverConfig.getExecutor().execute(new HttpRequestHandler(codec, key, serverConfig, getDefaultResponseConfig(), serverContext));
+                                HttpRequestHandler requestHandler = new HttpRequestHandler(codec, serverConfig, responseConfig, serverContext);
+                                serverConfig.getExecutor().execute(requestHandler);
+                                if (isOpenConnectTimeout()) {
+                                    httpRequestHandlerList.add(requestHandler);
+                                }
                                 if (codec.getRequest().getMethod() != HttpMethod.CONNECT) {
-                                    codec = new HttpRequestDecoderImpl(socketAddress, getDefaultRequestConfig(), serverContext, handler);
+                                    codec = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
                                     serverContext.getHttpDeCoderMap().put(channel, codec);
                                 }
                             } catch (EOFException e) {
@@ -147,10 +157,9 @@ public class SimpleWebServer implements ISocketServer {
                             }
                         }
                     }
-                    iter.remove();
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (Throwable e) {
+                LOGGER.log(Level.SEVERE, "", e);
             }
         }
     }
@@ -183,7 +192,7 @@ public class SimpleWebServer implements ISocketServer {
         try {
             create(serverConfig.getPort());
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         }
     }
 
@@ -194,6 +203,40 @@ public class SimpleWebServer implements ISocketServer {
         selector = Selector.open();
         serverChannel.register(selector, SelectionKey.OP_ACCEPT);
         LOGGER.info(ServerInfo.getName() + " listening on port -> " + port);
+        //timeout
+        if (isOpenConnectTimeout()) {
+            final ServerConfig finalServerConfig = serverConfig;
+            Thread checkCloseThread = new Thread() {
+                @Override
+                public void run() {
+                    while (true) {
+                        List<HttpRequestHandler> removeHttpRequestList = new ArrayList<>();
+                        for (HttpRequestHandler handler : httpRequestHandlerList) {
+                            if (handler.getRequest().getHandler().getChannel().socket().isClosed()) {
+                                removeHttpRequestList.add(handler);
+                            }
+                            if (System.currentTimeMillis() - handler.getRequest().getCreateTime() > finalServerConfig.getTimeOut() * 1000) {
+                                handler.getResponse().renderCode(504);
+                                removeHttpRequestList.add(handler);
+                            }
+                        }
+                        for (HttpRequestHandler handler : removeHttpRequestList) {
+                            httpRequestHandlerList.remove(handler);
+                        }
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            LOGGER.log(Level.SEVERE, "", e);
+                        }
+                    }
+                }
+            };
+            checkCloseThread.start();
+        }
+    }
+
+    private boolean isOpenConnectTimeout() {
+        return serverConfig.getTimeOut() > 0;
     }
 
     private ResponseConfig getDefaultResponseConfig() {

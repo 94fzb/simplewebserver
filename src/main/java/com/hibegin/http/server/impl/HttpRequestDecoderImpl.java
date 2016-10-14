@@ -3,14 +3,12 @@ package com.hibegin.http.server.impl;
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.config.ConfigKit;
 import com.hibegin.http.server.config.RequestConfig;
-import com.hibegin.http.server.web.cookie.Cookie;
 import com.hibegin.http.server.execption.ContentLengthTooLargeException;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
-import com.hibegin.http.server.web.session.HttpSession;
-import com.hibegin.http.server.web.session.SessionUtil;
 import com.hibegin.http.server.util.PathUtil;
 
 import java.io.*;
@@ -20,6 +18,7 @@ import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
@@ -76,11 +75,10 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         if (request.method == HttpMethod.GET || request.method == HttpMethod.CONNECT) {
             wrapperParamStrToMap(request.queryStr);
             flag = true;
-        }
-        // 存在2种情况
-        // 1,POST 提交的数据一次性读取完成。
-        // 2,POST 提交的数据一次性读取不完。
-        else if (request.method == HttpMethod.POST || request.method == HttpMethod.DELETE || request.method == HttpMethod.PUT) {
+        } else if (request.method == HttpMethod.POST || request.method == HttpMethod.DELETE || request.method == HttpMethod.PUT) {
+            // 存在2种情况
+            // 1,POST 提交的数据一次性读取完成。
+            // 2,POST 提交的数据一次性读取不完。
             wrapperParamStrToMap(request.queryStr);
             if (request.header.get("Content-Length") != null) {
                 Integer dateLength = Integer.parseInt(request.header.get("Content-Length"));
@@ -99,20 +97,16 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             } else {
                 flag = true;
             }
-
-        }
-        if (!request.requestConfig.isDisableCookie()) {
-            // deal with cookie
-            dealWithCookie();
         }
         return flag;
     }
 
     private void parseHttpProtocolHeader(String[] headerArr, String pHeader) throws Exception {
+        String[] protocolHeaderArr = pHeader.split(" ");
         try {
-            request.method = HttpMethod.valueOf(pHeader.split(" ")[0]);
+            request.method = HttpMethod.valueOf(protocolHeaderArr[0]);
         } catch (IllegalArgumentException e) {
-            String msg = "unSupport method " + pHeader.split(" ")[0];
+            String msg = "unSupport method " + protocolHeaderArr[0];
             LOGGER.warning(msg);
             throw new Exception(msg);
         }
@@ -120,7 +114,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         for (int i = 1; i < headerArr.length; i++) {
             dealRequestHeaderString(headerArr[i]);
         }
-        String tUrl = request.uri = pHeader.split(" ")[1];
+        String tUrl = request.uri = protocolHeaderArr[1];
         // just for some proxy-client
         if (tUrl.startsWith(request.scheme + "://")) {
             tUrl = tUrl.substring((request.scheme + "://").length());
@@ -147,38 +141,6 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         }
     }
 
-    private void dealWithCookie() {
-        boolean createCookie = true;
-        if (request.header.get("Cookie") != null) {
-            request.cookies = Cookie.saxToCookie(request.header.get("Cookie"));
-            String jsessionid = Cookie.getJSessionId(request.header.get("Cookie"));
-            if (jsessionid == null) {
-                Cookie[] tCookies = new Cookie[request.cookies.length + 1];
-                // copy cookie
-                System.arraycopy(request.cookies, 0, tCookies, 0, request.cookies.length);
-                request.cookies = tCookies;
-            } else {
-                request.session = SessionUtil.getSessionById(jsessionid);
-                if (request.session != null) {
-                    createCookie = false;
-                }
-            }
-        }
-        if (createCookie) {
-            if (request.cookies == null) {
-                request.cookies = new Cookie[1];
-            }
-            Cookie cookie = new Cookie(true);
-            String jsessionid = UUID.randomUUID().toString();
-            cookie.setName(Cookie.JSESSIONID);
-            cookie.setPath("/");
-            cookie.setValue(jsessionid);
-            request.cookies[request.cookies.length - 1] = cookie;
-            request.session = new HttpSession(jsessionid);
-            SessionUtil.sessionMap.put(jsessionid, request.session);
-            LOGGER.info("create a Cookie " + cookie.toString());
-        }
-    }
 
     public void wrapperParamStrToMap(String paramStr) {
         request.paramMap = new HashMap<>();
@@ -213,20 +175,20 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 if (!request.dataBuffer.hasRemaining()) {
                     BufferedReader bin = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(request.dataBuffer.array())));
                     //ByteArrayOutputStream bout=new ByteArrayOutputStream(d);
-                    StringBuilder sb2 = new StringBuilder();
+                    StringBuilder sb = new StringBuilder();
                     try {
                         String headerStr;
                         while ((headerStr = bin.readLine()) != null && !"".equals(headerStr)) {
-                            sb2.append(headerStr).append(CRLF);
+                            sb.append(headerStr).append(CRLF);
                             dealRequestHeaderString(headerStr);
                         }
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        LOGGER.log(Level.SEVERE, "", e);
                     } finally {
                         try {
                             bin.close();
                         } catch (IOException e) {
-                            e.printStackTrace();
+                            LOGGER.log(Level.SEVERE, "", e);
                         }
                     }
 
@@ -241,8 +203,8 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                     }
                     File file = new File(PathUtil.getTempPath() + fileName);
                     request.files.put(inputName, file);
-                    int length1 = sb2.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
-                    int length2 = sb2.toString().getBytes().length + 2;
+                    int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
+                    int length2 = sb.toString().getBytes().length + 2;
                     int dataLength = Integer.parseInt(request.header.get("Content-Length")) - length1 - length2 - split.getBytes().length;
                     IOUtil.writeBytesToFile(BytesUtil.subBytes(request.dataBuffer.array(), length2, dataLength), file);
                     request.paramMap = new HashMap<>();
@@ -257,7 +219,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     }
 
     @Override
-    public SimpleHttpRequest getRequest() {
+    public HttpRequest getRequest() {
         return request;
     }
 }

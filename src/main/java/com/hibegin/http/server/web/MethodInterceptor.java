@@ -2,8 +2,8 @@ package com.hibegin.http.server.web;
 
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.api.HttpRequest;
-import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.api.HttpResponse;
+import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.util.MimeTypeUtil;
 
 import java.io.File;
@@ -29,6 +29,8 @@ public class MethodInterceptor implements Interceptor {
                         response.addHeader("Content-Type", MimeTypeUtil.getMimeStrByExt(path.substring(path.lastIndexOf(".") + 1)));
                     }
                     response.write(inputStream);
+                } else {
+                    response.renderCode(404);
                 }
                 next = false;
                 break;
@@ -36,8 +38,8 @@ public class MethodInterceptor implements Interceptor {
         }
 
         if (next) {
-            // 在请求路径中存在了. 认为其为文件
             File file = new File(request.getRealPath() + request.getUri());
+            // 在请求路径中存在了. 认为其为文件
             if (file.exists() && !file.isDirectory() || request.getUri().contains(".")) {
                 response.writeFile(file);
                 return false;
@@ -48,10 +50,6 @@ public class MethodInterceptor implements Interceptor {
                 method = router.getMethod(request.getUri().substring(0, request.getUri().indexOf("-")));
             } else {
                 method = router.getMethod(request.getUri());
-                if (method == null) {
-                    String index = request.getUri().substring(0, request.getUri().lastIndexOf("/") + 1) + "index";
-                    method = router.getMethod(index);
-                }
             }
             if (method == null) {
                 if (request.getUri().endsWith("/")) {

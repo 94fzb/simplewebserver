@@ -4,14 +4,14 @@ import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.api.HttpRequest;
-import com.hibegin.http.server.config.ResponseConfig;
-import com.hibegin.http.server.io.ChunkedOutputStream;
 import com.hibegin.http.server.api.HttpResponse;
-import com.hibegin.http.server.util.*;
-import com.hibegin.http.server.web.cookie.Cookie;
+import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.execption.InternalException;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
+import com.hibegin.http.server.io.ChunkedOutputStream;
 import com.hibegin.http.server.io.GzipCompressingInputStream;
+import com.hibegin.http.server.util.*;
+import com.hibegin.http.server.web.cookie.Cookie;
 import flexjson.JSONSerializer;
 
 import java.io.*;
@@ -28,7 +28,7 @@ import java.util.zip.GZIPOutputStream;
 public class SimpleHttpResponse implements HttpResponse {
 
     private static final String CRLF = "\r\n";
-    private static Logger LOGGER = LoggerUtil.getLogger(SimpleHttpResponse.class);
+    private static final Logger LOGGER = LoggerUtil.getLogger(SimpleHttpResponse.class);
     private Map<String, String> header = new HashMap<String, String>();
     private HttpRequest request;
     private List<Cookie> cookieList = new ArrayList<Cookie>();
@@ -48,14 +48,6 @@ public class SimpleHttpResponse implements HttpResponse {
         keepAlive = request.getHeader("Connection") != null && "keep-alive".equalsIgnoreCase(request.getHeader("Connection"));
         if (keepAlive) {
             getHeader().put("Connection", "keep-alive");
-        }
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if (cookie.isCreate()) {
-                    cookieList.add(cookie);
-                }
-            }
         }
     }
 
@@ -95,7 +87,7 @@ public class SimpleHttpResponse implements HttpResponse {
                 }
 
             } catch (IOException e) {
-                e.printStackTrace();
+                LOGGER.log(Level.SEVERE, "", e);
             }
         } else {
             renderByStatusCode(404);
@@ -108,10 +100,11 @@ public class SimpleHttpResponse implements HttpResponse {
             ByteBuffer byteBuffer = ByteBuffer.allocate(b.length);
             byteBuffer.put(b);
             handler.handleWrite(byteBuffer);
-            outputStream.write(b);
             if (close) {
                 handler.close();
             }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "send error", e);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "send error", e);
             throw new InternalException("send error", e);
@@ -134,7 +127,7 @@ public class SimpleHttpResponse implements HttpResponse {
         try {
             renderByMimeType("json", new JSONSerializer().deepSerialize(json).getBytes(responseConfig.getCharSet()));
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         }
     }
 
@@ -164,6 +157,14 @@ public class SimpleHttpResponse implements HttpResponse {
         }
         //deal cookie
         if (!responseConfig.isDisableCookie()) {
+            Cookie[] cookies = request.getCookies();
+            if (cookies != null) {
+                for (Cookie cookie : cookies) {
+                    if (cookie != null && cookie.isCreate()) {
+                        cookieList.add(cookie);
+                    }
+                }
+            }
             for (Cookie cookie : cookieList) {
                 sb.append("Set-Cookie: ").append(cookie).append(CRLF);
             }
@@ -238,7 +239,7 @@ public class SimpleHttpResponse implements HttpResponse {
         try {
             renderByMimeType("html", htmlContent.getBytes(responseConfig.getCharSet()));
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         }
     }
 
@@ -249,29 +250,8 @@ public class SimpleHttpResponse implements HttpResponse {
             fout.write(wrapperData(200, body));
             send(fout);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         }
-    }
-
-    private byte[] warpperToChunkedByte(byte[] data) {
-        ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        ChunkedOutputStream out = new ChunkedOutputStream(bout);
-        try {
-            int block = 128;
-            int blockCount = data.length / block;
-            for (int i = 0; i < blockCount; i++) {
-                out.write(BytesUtil.subBytes(data, i * block, block));
-            }
-            int last = data.length % block;
-            if (last != 0) {
-                out.write(BytesUtil.subBytes(data, blockCount * block, last));
-            }
-            out.close();
-            return bout.toByteArray();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return new byte[0];
     }
 
     @Override
@@ -287,7 +267,7 @@ public class SimpleHttpResponse implements HttpResponse {
             fout.write(wrapperData(302, new byte[0]));
             send(fout);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         }
     }
 
@@ -338,13 +318,13 @@ public class SimpleHttpResponse implements HttpResponse {
                 send(tmpOut);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         } finally {
             if (inputStream != null) {
                 try {
                     inputStream.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    LOGGER.log(Level.SEVERE, "", e);
                 }
             }
         }
@@ -360,7 +340,7 @@ public class SimpleHttpResponse implements HttpResponse {
         try {
             renderByMimeType("text", text.getBytes(responseConfig.getCharSet()));
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         }
     }
 }

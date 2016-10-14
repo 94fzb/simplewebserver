@@ -5,6 +5,7 @@ import com.hibegin.http.server.config.AbstractServerConfig;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
+import com.hibegin.http.server.web.MethodInterceptor;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -30,6 +31,9 @@ public class WebServerBuilder {
         SimpleWebServer socketServer;
         if (serverConfig == null) {
             serverConfig = new ServerConfig();
+        }
+        if (serverConfig.getInterceptors().isEmpty()) {
+            serverConfig.addInterceptor(MethodInterceptor.class);
         }
         if (serverConfig.isSsl()) {
             socketServer = new SimpleHttpsWebServer(serverConfig, requestConfig, responseConfig);

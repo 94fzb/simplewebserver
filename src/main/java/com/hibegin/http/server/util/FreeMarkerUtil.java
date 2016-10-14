@@ -1,5 +1,6 @@
 package com.hibegin.http.server.util;
 
+import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.web.session.HttpSession;
 import freemarker.template.Configuration;
@@ -9,9 +10,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class FreeMarkerUtil {
 
+    private static final Logger LOGGER = LoggerUtil.getLogger(FreeMarkerUtil.class);
     private static Configuration cfg = new Configuration(Configuration.VERSION_2_3_23);
 
     public static String renderToFM(String name, HttpRequest httpRequest) {
@@ -29,7 +33,7 @@ public class FreeMarkerUtil {
             writer.close();
             return new String(out.toByteArray());
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         }
         return StringsUtil.getHtmlStrByStatusCode(404);
     }

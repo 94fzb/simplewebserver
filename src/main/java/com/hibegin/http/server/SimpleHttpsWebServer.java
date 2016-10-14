@@ -1,5 +1,6 @@
 package com.hibegin.http.server;
 
+import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.config.ConfigKit;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
@@ -7,15 +8,19 @@ import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
 import com.hibegin.http.server.handler.SSLChannelFactory;
 import com.hibegin.http.server.handler.SSLReadWriteSelectorHandler;
-import com.hibegin.http.server.util.*;
+import com.hibegin.http.server.util.PathUtil;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class SimpleHttpsWebServer extends SimpleWebServer {
+
+    private static final Logger LOGGER = LoggerUtil.getLogger(SimpleHttpsWebServer.class);
 
     private SSLContext sslContext;
 
@@ -30,7 +35,7 @@ public class SimpleHttpsWebServer extends SimpleWebServer {
         try {
             sslContext = SSLChannelFactory.getSSLContext(file, password);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         }
     }
 
@@ -44,7 +49,7 @@ public class SimpleHttpsWebServer extends SimpleWebServer {
         try {
             super.create(ConfigKit.getHttpsServerPort());
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "", e);
         }
     }
 }
