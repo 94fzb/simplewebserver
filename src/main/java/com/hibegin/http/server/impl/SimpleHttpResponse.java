@@ -202,8 +202,8 @@ public class SimpleHttpResponse implements HttpResponse {
                 header.put("Content-Type", "text/html");
                 fout.write(wrapperData(errorCode, StringsUtil.getHtmlStrByStatusCode(errorCode).getBytes()));
                 send(fout);
-            } catch (IOException e1) {
-                e1.printStackTrace();
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, "", e);
             }
         } else if (errorCode >= 300 && errorCode < 400) {
             ByteArrayOutputStream fout = new ByteArrayOutputStream();
@@ -213,8 +213,8 @@ public class SimpleHttpResponse implements HttpResponse {
                 }
                 fout.write(wrapperData(errorCode, new byte[]{}));
                 send(fout);
-            } catch (IOException e1) {
-                e1.printStackTrace();
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, "", e);
             }
         }
     }

@@ -153,6 +153,7 @@ public class SimpleWebServer implements ISocketServer {
                             } catch (ContentLengthTooLargeException e) {
                                 handleException(key, codec, handler, 413);
                             } catch (Exception e) {
+                                LOGGER.log(Level.SEVERE, "error", e);
                                 handleException(key, codec, handler, 500);
                             }
                         }

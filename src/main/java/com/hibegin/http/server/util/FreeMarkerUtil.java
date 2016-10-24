@@ -26,8 +26,8 @@ public class FreeMarkerUtil {
             HttpSession httpSession = httpRequest.getSession();
             if (httpSession != null) {
                 httpRequest.getAttr().put("session", httpSession);
-                httpRequest.getAttr().put("request", httpRequest);
             }
+            httpRequest.getAttr().put("request", httpRequest);
             temp.process(httpRequest.getAttr(), writer);
             writer.flush();
             writer.close();
