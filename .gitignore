@@ -16,3 +16,4 @@
 pom.xml.releaseBackup
 release.properties
 pom.xml.next
+src/main/resources/ServerInfo.properties
