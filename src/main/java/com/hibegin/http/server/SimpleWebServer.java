@@ -31,6 +31,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -98,8 +99,10 @@ public class SimpleWebServer implements ISocketServer {
             try {
                 selector.select();
                 Set<SelectionKey> keys = selector.selectedKeys();
+                Iterator<SelectionKey> iterator = keys.iterator();
 
-                for (SelectionKey key : keys) {
+                while (iterator.hasNext()) {
+                    SelectionKey key = iterator.next();
                     SocketChannel channel = null;
                     if (!key.isValid() || !key.channel().isOpen()) {
                         LOGGER.log(Level.WARNING, "error key" + key);
@@ -159,6 +162,7 @@ public class SimpleWebServer implements ISocketServer {
                         }
                     }
                 }
+                iterator.remove();
             } catch (Throwable e) {
                 LOGGER.log(Level.SEVERE, "", e);
             }
