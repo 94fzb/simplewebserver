@@ -23,6 +23,7 @@ public class ServerConfig {
     private int port;
     private boolean disableCookie;
     private int timeOut;
+    private String welcomeFile = "index.html";
     private Executor executor = Executors.newFixedThreadPool(10);
     private Router router = new Router();
 
@@ -123,11 +124,26 @@ public class ServerConfig {
     }
 
     public void addStaticResourceMapper(String path, String locationPath) {
-        staticResourceMapper.put(path, locationPath);
+        String newPath = path;
+        if (!path.endsWith("/")) {
+            newPath = path + "/";
+        }
+        String newLocationPath = locationPath;
+        if (!newLocationPath.endsWith("/")) {
+            newLocationPath = newLocationPath + "/";
+        }
+        staticResourceMapper.put(newPath, newLocationPath);
     }
 
     public Map<String, String> getStaticResourceMapper() {
         return staticResourceMapper;
     }
 
+    public String getWelcomeFile() {
+        return welcomeFile;
+    }
+
+    public void setWelcomeFile(String welcomeFile) {
+        this.welcomeFile = welcomeFile;
+    }
 }

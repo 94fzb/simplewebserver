@@ -77,6 +77,7 @@ public class SimpleWebServer implements ISocketServer {
             serverConfig.setPort(ConfigKit.getServerPort());
         }
         serverContext.setServerConfig(serverConfig);
+        serverContext.init();
     }
 
     public ReadWriteSelectorHandler getReadWriteSelectorHandlerInstance(SocketChannel channel, SelectionKey key) throws IOException {
@@ -141,7 +142,7 @@ public class SimpleWebServer implements ISocketServer {
                                 if (!codec.doDecode(bytes)) {
                                     continue;
                                 }
-                                HttpRequestHandler requestHandler = new HttpRequestHandler(codec, serverConfig, responseConfig, serverContext);
+                                HttpRequestHandler requestHandler = new HttpRequestHandler(codec, responseConfig, serverContext);
                                 serverConfig.getExecutor().execute(requestHandler);
                                 if (isOpenConnectTimeout()) {
                                     httpRequestHandlerList.add(requestHandler);

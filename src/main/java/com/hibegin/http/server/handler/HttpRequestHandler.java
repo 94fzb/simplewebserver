@@ -6,13 +6,11 @@ import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.config.ResponseConfig;
-import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.impl.ServerContext;
 import com.hibegin.http.server.impl.SimpleHttpResponse;
 
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,16 +19,14 @@ public class HttpRequestHandler extends Thread {
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpRequestHandler.class);
 
     private HttpRequest request;
-    private ServerConfig serverConfig;
     private ServerContext serverContext;
 
     private HttpResponse response;
     private SocketChannel socketChannel;
 
-    public HttpRequestHandler(HttpRequestDeCoder codec, ServerConfig serverConfig, ResponseConfig responseConfig, ServerContext serverContext) {
+    public HttpRequestHandler(HttpRequestDeCoder codec, ResponseConfig responseConfig, ServerContext serverContext) {
         this.serverContext = serverContext;
         this.request = codec.getRequest();
-        this.serverConfig = serverConfig;
         this.response = new SimpleHttpResponse(codec.getRequest(), responseConfig);
         this.socketChannel = codec.getRequest().getHandler().getChannel();
     }
@@ -38,9 +34,8 @@ public class HttpRequestHandler extends Thread {
     @Override
     public void run() {
         try {
-            List<Class<Interceptor>> interceptors = serverConfig.getInterceptors();
-            for (Class<Interceptor> interceptor : interceptors) {
-                if (!interceptor.newInstance().doInterceptor(request, response)) {
+            for (Interceptor interceptor : serverContext.getInterceptors()) {
+                if (!interceptor.doInterceptor(request, response)) {
                     break;
                 }
             }

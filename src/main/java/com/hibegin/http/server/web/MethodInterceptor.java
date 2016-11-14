@@ -23,6 +23,9 @@ public class MethodInterceptor implements Interceptor {
         for (Map.Entry<String, String> entry : request.getServerConfig().getStaticResourceMapper().entrySet()) {
             if (request.getUri().startsWith(entry.getKey())) {
                 String path = request.getUri().substring(entry.getKey().length());
+                if (request.getUri().endsWith("/")) {
+                    path += request.getServerConfig().getWelcomeFile();
+                }
                 InputStream inputStream = MethodInterceptor.class.getResourceAsStream(entry.getValue() + path);
                 if (inputStream != null) {
                     if (path.contains(".")) {
@@ -53,7 +56,7 @@ public class MethodInterceptor implements Interceptor {
             }
             if (method == null) {
                 if (request.getUri().endsWith("/")) {
-                    response.renderHtml(request.getUri() + "index.html");
+                    response.renderHtml(request.getUri() + request.getServerConfig().getWelcomeFile());
                 } else {
                     response.renderCode(404);
                 }

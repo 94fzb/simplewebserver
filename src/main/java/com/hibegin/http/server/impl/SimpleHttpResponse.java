@@ -209,7 +209,7 @@ public class SimpleHttpResponse implements HttpResponse {
             ByteArrayOutputStream fout = new ByteArrayOutputStream();
             try {
                 if (!header.containsKey("Location")) {
-                    header.put("Location", "http://" + request.getHeader("Host") + "/" + request.getUri() + "index.html");
+                    header.put("Location", "http://" + request.getHeader("Host") + "/" + request.getUri() + request.getServerConfig().getWelcomeFile());
                 }
                 fout.write(wrapperData(errorCode, new byte[]{}));
                 send(fout);
