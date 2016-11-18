@@ -1,11 +1,9 @@
 ﻿#基于NIO的web服务器
 ------------
 
-> 简易，灵活，更少的依赖，更多的扩展。更少的内存占用，能快速搭建Web项目。可快速运行在嵌入式, Android 设备上
+> 简易，灵活，更少的依赖，更多的扩展。更少的内存占用.能快速搭建Web项目。可快速运行在嵌入式, Android 设备上
 
 ------------
-##应用场景
-
 
 ##基本功能
 
@@ -48,6 +46,13 @@ public class DemoController extends Controller{
 
 ##Changelog
 
+V0.1(2016-11-19)
+
+* 变更Cookie的生成机制，及使用request.getSession()，后才添加用于标示会话的Cookie
+* 添加请求超时的设置参数
+* 修复staticMapper会暴露静态的列表
+* 变更Interceptor为单例
+
 V0.0.10(2016-09-17)
 
 * 添加到中央仓库
@@ -81,7 +86,7 @@ V0.0.1(2015-02-24)
 <dependency>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.0.10</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
