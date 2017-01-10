@@ -124,50 +124,55 @@ public class SimpleWebServer implements ISocketServer {
                         }
                     } else if (key.isReadable()) {
                         channel = (SocketChannel) key.channel();
-                        if (channel != null && channel.isOpen()) {
-                            HttpRequestDeCoder codec = serverContext.getHttpDeCoderMap().get(channel);
-                            ReadWriteSelectorHandler handler = null;
-                            SocketAddress socketAddress = channel.socket().getRemoteSocketAddress();
-                            try {
-                                if (codec == null) {
-                                    handler = getReadWriteSelectorHandlerInstance(channel, key);
-                                    codec = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
-                                    serverContext.getHttpDeCoderMap().put(channel, codec);
-                                } else {
-                                    handler = codec.getRequest().getHandler();
-                                }
-                                ByteBuffer byteBuffer = handler.handleRead();
-                                byte[] bytes = BytesUtil.subBytes(byteBuffer.array(), 0, byteBuffer.array().length - byteBuffer.remaining());
-                                // 数据完整时, 跳过当前循环等待下一个请求
-                                if (!codec.doDecode(bytes)) {
-                                    continue;
-                                }
-                                HttpRequestHandler requestHandler = new HttpRequestHandler(codec, responseConfig, serverContext);
-                                serverConfig.getExecutor().execute(requestHandler);
-                                if (isOpenConnectTimeout()) {
-                                    httpRequestHandlerList.add(requestHandler);
-                                }
-                                if (codec.getRequest().getMethod() != HttpMethod.CONNECT) {
-                                    codec = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
-                                    serverContext.getHttpDeCoderMap().put(channel, codec);
-                                }
-                            } catch (EOFException e) {
-                                //do nothing
-                                handleException(key, codec, null, 500);
-                            } catch (ContentLengthTooLargeException e) {
-                                handleException(key, codec, handler, 413);
-                            } catch (Exception e) {
-                                LOGGER.log(Level.SEVERE, "error", e);
-                                handleException(key, codec, handler, 500);
-                            }
-                        }
+                        if (!handleRequest(key, channel)) continue;
                     }
+                    iterator.remove();
                 }
-                iterator.remove();
             } catch (Throwable e) {
                 LOGGER.log(Level.SEVERE, "", e);
             }
         }
+    }
+
+    private boolean handleRequest(SelectionKey key, SocketChannel channel) {
+        if (channel != null && channel.isOpen()) {
+            HttpRequestDeCoder codec = serverContext.getHttpDeCoderMap().get(channel);
+            ReadWriteSelectorHandler handler = null;
+            SocketAddress socketAddress = channel.socket().getRemoteSocketAddress();
+            try {
+                if (codec == null) {
+                    handler = getReadWriteSelectorHandlerInstance(channel, key);
+                    codec = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
+                    serverContext.getHttpDeCoderMap().put(channel, codec);
+                } else {
+                    handler = codec.getRequest().getHandler();
+                }
+                ByteBuffer byteBuffer = handler.handleRead();
+                byte[] bytes = BytesUtil.subBytes(byteBuffer.array(), 0, byteBuffer.array().length - byteBuffer.remaining());
+                // 数据完整时, 跳过当前循环等待下一个请求
+                if (!codec.doDecode(bytes)) {
+                    return false;
+                }
+                HttpRequestHandler requestHandler = new HttpRequestHandler(codec, responseConfig, serverContext);
+                serverConfig.getExecutor().execute(requestHandler);
+                if (isOpenConnectTimeout()) {
+                    httpRequestHandlerList.add(requestHandler);
+                }
+                if (codec.getRequest().getMethod() != HttpMethod.CONNECT) {
+                    codec = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
+                    serverContext.getHttpDeCoderMap().put(channel, codec);
+                }
+            } catch (EOFException e) {
+                //do nothing
+                handleException(key, codec, null, 500);
+            } catch (ContentLengthTooLargeException e) {
+                handleException(key, codec, handler, 413);
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "error", e);
+                handleException(key, codec, handler, 500);
+            }
+        }
+        return true;
     }
 
     private void handleException(SelectionKey key, HttpRequestDeCoder codec, ReadWriteSelectorHandler handler, int errorCode) {
