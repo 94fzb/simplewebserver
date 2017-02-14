@@ -24,7 +24,7 @@ import java.util.logging.Logger;
 public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
 
     protected static final String CRLF = "\r\n";
-    protected static final String split = CRLF + CRLF;
+    protected static final String SPLIT = CRLF + CRLF;
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpRequestDecoderImpl.class);
     private SimpleHttpRequest request;
 
@@ -48,10 +48,9 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         boolean flag = false;
         if (request.dataBuffer == null) {
             request.headerSb.append(new String(data));
-            if (request.headerSb.toString().contains(split)) {
+            if (request.headerSb.toString().contains(SPLIT)) {
                 String fullData = request.headerSb.toString();
-                String httpHeader = fullData.substring(0, fullData.indexOf(split));
-                request.headerSb = new StringBuilder(httpHeader);
+                String httpHeader = fullData.substring(0, fullData.indexOf(SPLIT));
                 String headerArr[] = httpHeader.split(CRLF);
                 String pHeader = headerArr[0];
                 if (!"".equals(pHeader.split(" ")[0])) {
@@ -88,7 +87,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                             + ConfigKit.getMaxUploadSize());
                 }
                 request.dataBuffer = ByteBuffer.allocate(dateLength);
-                int headerLength = httpHeader.getBytes().length + split.getBytes().length;
+                int headerLength = httpHeader.getBytes().length + SPLIT.getBytes().length;
                 byte[] remain = BytesUtil.subBytes(data, headerLength, data.length - headerLength);
                 request.dataBuffer.put(remain);
                 flag = !request.dataBuffer.hasRemaining();
@@ -206,10 +205,9 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                     request.files.put(inputName, file);
                     int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
                     int length2 = sb.toString().getBytes().length + 2;
-                    int dataLength = Integer.parseInt(request.header.get("Content-Length")) - length1 - length2 - split.getBytes().length;
+                    int dataLength = Integer.parseInt(request.header.get("Content-Length")) - length1 - length2 - SPLIT.getBytes().length;
                     IOUtil.writeBytesToFile(BytesUtil.subBytes(request.dataBuffer.array(), length2, dataLength), file);
                     request.paramMap = new HashMap<>();
-
                 }
             } else {
                 wrapperParamStrToMap(new String(request.dataBuffer.array()));

@@ -229,9 +229,14 @@ public class SimpleHttpRequest implements HttpRequest {
             buffer.put(bytes);
             return buffer;
         } else {
-            ByteBuffer buffer = ByteBuffer.allocate(bytes.length + dataBuffer.array().length);
-            buffer.put(bytes);
-            buffer.put(dataBuffer.array());
+            String httpText = new String(bytes);
+            byte[] headerBytes = httpText.substring(0, httpText.indexOf(HttpRequestDecoderImpl.SPLIT)).getBytes();
+            byte[] dataBytes = dataBuffer.array();
+            byte[] splitBytes = HttpRequestDecoderImpl.SPLIT.getBytes();
+            ByteBuffer buffer = ByteBuffer.allocate(headerBytes.length + splitBytes.length + dataBytes.length);
+            buffer.put(headerBytes);
+            buffer.put(splitBytes);
+            buffer.put(dataBytes);
             return buffer;
         }
     }
