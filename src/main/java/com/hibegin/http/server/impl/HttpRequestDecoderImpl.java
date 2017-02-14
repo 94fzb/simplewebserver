@@ -51,6 +51,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             if (request.headerSb.toString().contains(split)) {
                 String fullData = request.headerSb.toString();
                 String httpHeader = fullData.substring(0, fullData.indexOf(split));
+                request.headerSb = new StringBuilder(httpHeader);
                 String headerArr[] = httpHeader.split(CRLF);
                 String pHeader = headerArr[0];
                 if (!"".equals(pHeader.split(" ")[0])) {
