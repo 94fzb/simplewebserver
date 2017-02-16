@@ -22,13 +22,13 @@ public class HttpRequestHandler extends Thread {
     private ServerContext serverContext;
 
     private HttpResponse response;
-    private SocketChannel socketChannel;
+    private SocketChannel channel;
 
     public HttpRequestHandler(HttpRequestDeCoder codec, ResponseConfig responseConfig, ServerContext serverContext) {
         this.serverContext = serverContext;
         this.request = codec.getRequest();
         this.response = new SimpleHttpResponse(codec.getRequest(), responseConfig);
-        this.socketChannel = codec.getRequest().getHandler().getChannel();
+        this.channel = codec.getRequest().getHandler().getChannel();
     }
 
     @Override
@@ -47,7 +47,7 @@ public class HttpRequestHandler extends Thread {
                 keepAlive = response.getHeader().get("Connection") != null && !"close".equalsIgnoreCase(response.getHeader().get("Connection"));
             }
             if (!keepAlive) {
-                Socket socket = socketChannel.socket();
+                Socket socket = channel.socket();
                 // 渲染错误页面
                 if (!socket.isClosed()) {
                     LOGGER.log(Level.WARNING, "forget close stream " + socket.toString());
@@ -55,7 +55,7 @@ public class HttpRequestHandler extends Thread {
                 }
             }
             LOGGER.info(request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
-            serverContext.getHttpDeCoderMap().remove(socketChannel);
+            serverContext.getHttpDeCoderMap().remove(channel);
         }
     }
 

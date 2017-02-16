@@ -8,6 +8,7 @@ import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.config.ConfigKit;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.execption.ContentLengthTooLargeException;
+import com.hibegin.http.server.execption.UnSupportMethodException;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
 import com.hibegin.http.server.util.PathUtil;
 
@@ -58,6 +59,8 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                     parseHttpProtocolHeader(headerArr, pHeader);
                     flag = parseHttpMethod(data, httpHeader);
                 }
+            } else {
+                checkHttpMethod();
             }
         } else {
             request.dataBuffer.put(data);
@@ -67,6 +70,21 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             }
         }
         return flag;
+    }
+
+    private void checkHttpMethod() throws UnSupportMethodException {
+        boolean check = false;
+        for (HttpMethod httpMethod : HttpMethod.values()) {
+            if (request.headerSb.length() > httpMethod.name().length()) {
+                String tHttpMethod = request.headerSb.substring(0, httpMethod.name().length());
+                if (tHttpMethod.equals(httpMethod.name())) {
+                    check = true;
+                }
+            }
+        }
+        if (!check) {
+            throw new UnSupportMethodException("");
+        }
     }
 
     private boolean parseHttpMethod(byte[] data, String httpHeader) {
@@ -103,13 +121,8 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
 
     private void parseHttpProtocolHeader(String[] headerArr, String pHeader) throws Exception {
         String[] protocolHeaderArr = pHeader.split(" ");
-        try {
-            request.method = HttpMethod.valueOf(protocolHeaderArr[0]);
-        } catch (IllegalArgumentException e) {
-            String msg = "unSupport method " + protocolHeaderArr[0];
-            LOGGER.warning(msg);
-            throw new Exception(msg);
-        }
+        checkHttpMethod();
+        request.method = HttpMethod.valueOf(protocolHeaderArr[0]);
         // 先得到请求头信息
         for (int i = 1; i < headerArr.length; i++) {
             dealRequestHeaderString(headerArr[i]);

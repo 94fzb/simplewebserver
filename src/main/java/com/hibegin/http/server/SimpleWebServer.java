@@ -11,6 +11,7 @@ import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.execption.ContentLengthTooLargeException;
+import com.hibegin.http.server.execption.UnSupportMethodException;
 import com.hibegin.http.server.handler.HttpRequestHandler;
 import com.hibegin.http.server.handler.PlainReadWriteSelectorHandler;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
@@ -149,13 +150,13 @@ public class SimpleWebServer implements ISocketServer {
                 }
                 ByteBuffer byteBuffer = handler.handleRead();
                 byte[] bytes = BytesUtil.subBytes(byteBuffer.array(), 0, byteBuffer.array().length - byteBuffer.remaining());
-                // 数据完整时, 跳过当前循环等待下一个请求
+                // 数据不完整时, 跳过当前循环等待下一个请求
                 if (!codec.doDecode(bytes)) {
                     return false;
                 }
                 HttpRequestHandler requestHandler = new HttpRequestHandler(codec, responseConfig, serverContext);
                 serverConfig.getExecutor().execute(requestHandler);
-                if (isOpenConnectTimeout()) {
+                if (enableConnectTimeout()) {
                     httpRequestHandlerList.add(requestHandler);
                 }
                 if (codec.getRequest().getMethod() != HttpMethod.CONNECT) {
@@ -164,9 +165,11 @@ public class SimpleWebServer implements ISocketServer {
                 }
             } catch (EOFException e) {
                 //do nothing
-                handleException(key, codec, null, 500);
+                handleException(key, codec, null, 400);
             } catch (ContentLengthTooLargeException e) {
                 handleException(key, codec, handler, 413);
+            } catch (UnSupportMethodException e) {
+                handleException(key, codec, handler, 400);
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "error", e);
                 handleException(key, codec, handler, 500);
@@ -215,7 +218,7 @@ public class SimpleWebServer implements ISocketServer {
         serverChannel.register(selector, SelectionKey.OP_ACCEPT);
         LOGGER.info(ServerInfo.getName() + " listening on port -> " + port);
         //timeout
-        if (isOpenConnectTimeout()) {
+        if (enableConnectTimeout()) {
             final ServerConfig finalServerConfig = serverConfig;
             Thread checkCloseThread = new Thread() {
                 @Override
@@ -246,7 +249,7 @@ public class SimpleWebServer implements ISocketServer {
         }
     }
 
-    private boolean isOpenConnectTimeout() {
+    private boolean enableConnectTimeout() {
         return serverConfig.getTimeOut() > 0;
     }
 
