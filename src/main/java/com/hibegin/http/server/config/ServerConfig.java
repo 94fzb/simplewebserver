@@ -4,6 +4,7 @@ import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.web.Router;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +18,7 @@ public class ServerConfig {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(ServerConfig.class);
     private final Map<String, String> staticResourceMapper = new ConcurrentHashMap<>();
-    private final List<Class<Interceptor>> interceptors = new ArrayList<>();
+    private final List<Class<? extends Interceptor>> interceptors = new ArrayList<>();
     private boolean isSsl;
     private String host = "0.0.0.0";
     private int port;
@@ -97,30 +98,35 @@ public class ServerConfig {
         return null;
     }
 
-    public List<Class<Interceptor>> getInterceptors() {
+    public List<Class<? extends Interceptor>> getInterceptors() {
         return interceptors;
     }
 
     public void addInterceptor(Class<? extends Interceptor> interceptor) {
-        try {
-            if (interceptor.newInstance() != null) {
-                synchronized (interceptors) {
-                    boolean flag = false;
-                    for (Class<Interceptor> inter : interceptors) {
-                        if (interceptor.toString().equals(inter.toString())) {
-                            flag = true;
-                        }
-                    }
-                    if (!flag) {
-                        interceptors.add((Class<Interceptor>) interceptor);
+        if (hasNoParameterPublicConstructor(interceptor)) {
+            synchronized (interceptors) {
+                boolean flag = false;
+                for (Class<? extends Interceptor> inter : interceptors) {
+                    if (interceptor.toString().equals(inter.toString())) {
+                        flag = true;
                     }
                 }
-            } else {
-                LOGGER.log(Level.SEVERE, "the class " + interceptor.getCanonicalName() + " not implements Interceptor");
+                if (!flag) {
+                    interceptors.add(interceptor);
+                }
             }
-        } catch (InstantiationException | IllegalAccessException e) {
-            LOGGER.log(Level.SEVERE, "", e);
+        } else {
+            LOGGER.log(Level.SEVERE, "the class " + interceptor.getCanonicalName() + " not implements Interceptor");
         }
+    }
+
+    private boolean hasNoParameterPublicConstructor(Class<?> clazz) {
+        for (Constructor<?> constructor : clazz.getConstructors()) {
+            if (constructor.getParameterTypes().length == 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void addStaticResourceMapper(String path, String locationPath) {

@@ -45,9 +45,10 @@ public class ServerContext {
         if (!init) {
             init = true;
             interceptors = new ArrayList<>();
-            for (Class<Interceptor> interceptorClazz : serverConfig.getInterceptors()) {
+            for (Class<? extends Interceptor> interceptorClazz : serverConfig.getInterceptors()) {
                 try {
-                    interceptors.add(interceptorClazz.newInstance());
+                    Interceptor interceptor = interceptorClazz.newInstance();
+                    interceptors.add(interceptor);
                 } catch (InstantiationException | IllegalAccessException e) {
                     LOGGER.log(Level.SEVERE, "init interceptor error", e);
                 }
