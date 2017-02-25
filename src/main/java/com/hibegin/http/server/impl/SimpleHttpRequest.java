@@ -106,7 +106,11 @@ public class SimpleHttpRequest implements HttpRequest {
                 }
             }
             if (create && session == null) {
-                cookies = new Cookie[cookies.length + 1];
+                if (cookies == null) {
+                    cookies = new Cookie[1];
+                } else {
+                    cookies = new Cookie[cookies.length + 1];
+                }
                 Cookie cookie = new Cookie(true);
                 String jsessionid = UUID.randomUUID().toString();
                 cookie.setName(Cookie.JSESSIONID);
