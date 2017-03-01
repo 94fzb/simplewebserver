@@ -155,10 +155,10 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     }
 
 
-    public void wrapperParamStrToMap(String paramStr) {
+    private void wrapperParamStrToMap(String paramStr) {
         request.paramMap = new HashMap<>();
         if (paramStr != null) {
-            Map<String, Set<String>> tempParam = new HashMap<>();
+            Map<String, List<String>> tempParam = new HashMap<>();
             String args[] = paramStr.split("&");
             for (String string : args) {
                 int idx = string.indexOf("=");
@@ -168,14 +168,14 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                     if (tempParam.containsKey(key)) {
                         tempParam.get(key).add(value);
                     } else {
-                        Set<String> tmpSet = new TreeSet<>();
-                        tmpSet.add(value);
-                        tempParam.put(key, tmpSet);
+                        List<String> paramValues = new ArrayList<>();
+                        paramValues.add(value);
+                        tempParam.put(key, paramValues);
                     }
                 }
             }
-            for (Entry<String, Set<String>> ent : tempParam.entrySet()) {
-                request.paramMap.put(ent.getKey(), ent.getValue().toArray(new String[ent.getValue().size()]));
+            for (Entry<String, List<String>> entry : tempParam.entrySet()) {
+                request.paramMap.put(entry.getKey(), entry.getValue().toArray(new String[entry.getValue().size()]));
             }
         }
     }
