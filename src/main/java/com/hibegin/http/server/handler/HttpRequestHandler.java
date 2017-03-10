@@ -6,6 +6,7 @@ import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.config.ResponseConfig;
+import com.hibegin.http.server.impl.HttpMethod;
 import com.hibegin.http.server.impl.ServerContext;
 import com.hibegin.http.server.impl.SimpleHttpResponse;
 
@@ -42,20 +43,22 @@ public class HttpRequestHandler extends Thread {
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "dispose error ", e);
         } finally {
-            boolean keepAlive = request.getHeader("Connection") != null && "keep-alive".equalsIgnoreCase(request.getHeader("Connection"));
-            if (keepAlive) {
-                keepAlive = response.getHeader().get("Connection") != null && !"close".equalsIgnoreCase(response.getHeader().get("Connection"));
-            }
-            if (!keepAlive) {
-                Socket socket = channel.socket();
-                // 渲染错误页面
-                if (!socket.isClosed()) {
-                    LOGGER.log(Level.WARNING, "forget close stream " + socket.toString());
-                    response.renderCode(404);
+            if (request.getMethod() != HttpMethod.CONNECT) {
+                boolean keepAlive = request.getHeader("Connection") != null && "keep-alive".equalsIgnoreCase(request.getHeader("Connection"));
+                if (keepAlive) {
+                    keepAlive = response.getHeader().get("Connection") != null && !"close".equalsIgnoreCase(response.getHeader().get("Connection"));
                 }
+                if (!keepAlive) {
+                    Socket socket = channel.socket();
+                    // 渲染错误页面
+                    if (!socket.isClosed()) {
+                        LOGGER.log(Level.WARNING, "forget close stream " + socket.toString());
+                        response.renderCode(404);
+                    }
+                }
+                LOGGER.info(request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
+                serverContext.getHttpDeCoderMap().remove(channel);
             }
-            LOGGER.info(request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
-            serverContext.getHttpDeCoderMap().remove(channel);
         }
     }
 
