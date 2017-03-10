@@ -14,7 +14,6 @@ import com.hibegin.http.server.util.PathUtil;
 
 import java.io.*;
 import java.net.SocketAddress;
-import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -123,16 +122,17 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         String[] protocolHeaderArr = pHeader.split(" ");
         checkHttpMethod();
         request.method = HttpMethod.valueOf(protocolHeaderArr[0]);
-        // 先得到请求头信息
-        for (int i = 1; i < headerArr.length; i++) {
-            dealRequestHeaderString(headerArr[i]);
-        }
         String tUrl = request.uri = protocolHeaderArr[1];
         // just for some proxy-client
         if (tUrl.startsWith(request.scheme + "://")) {
             tUrl = tUrl.substring((request.scheme + "://").length());
-            request.header.put("Host", tUrl.substring(0, tUrl.indexOf("/")));
-            tUrl = tUrl.substring(tUrl.indexOf("/"));
+            if (tUrl.contains("/")) {
+                request.header.put("Host", tUrl.substring(0, tUrl.indexOf("/")));
+                tUrl = tUrl.substring(tUrl.indexOf("/"));
+            } else {
+                request.header.put("Host", tUrl);
+                tUrl = "/";
+            }
         }
         if (tUrl.contains("?")) {
             request.uri = tUrl.substring(0, tUrl.indexOf("?"));
@@ -140,11 +140,9 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         } else {
             request.uri = tUrl;
         }
-        if (request.uri.contains("/")) {
-            request.uri = URLDecoder.decode(request.uri.substring(request.uri.indexOf("/")), "UTF-8");
-        } else {
-            request.getHeaderMap().put("Host", request.uri);
-            request.uri = "/";
+        // 先得到请求头信息
+        for (int i = 1; i < headerArr.length; i++) {
+            dealRequestHeaderString(headerArr[i]);
         }
     }
 
