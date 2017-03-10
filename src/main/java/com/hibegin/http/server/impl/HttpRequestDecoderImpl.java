@@ -14,6 +14,7 @@ import com.hibegin.http.server.util.PathUtil;
 
 import java.io.*;
 import java.net.SocketAddress;
+import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -139,6 +140,12 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             request.queryStr = tUrl.substring(tUrl.indexOf("?") + 1);
         } else {
             request.uri = tUrl;
+        }
+        if (request.uri.contains("/")) {
+            request.uri = URLDecoder.decode(request.uri.substring(request.uri.indexOf("/")), "UTF-8");
+        } else {
+            request.getHeaderMap().put("Host", request.uri);
+            request.uri = "/";
         }
         // 先得到请求头信息
         for (int i = 1; i < headerArr.length; i++) {
