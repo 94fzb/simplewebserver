@@ -105,10 +105,10 @@ public class SimpleWebServer implements ISocketServer {
         }
         while (true) {
             try {
-                if (checkRequestListenerThread == null || !checkRequestListenerThread.isAlive()) {
+                if (checkRequestListenerThread == null || checkRequestListenerThread.isInterrupted()) {
                     tryStartRequestListenerCheckThread();
                 }
-                if (checkCloseTimeoutRequestThread == null || !checkCloseTimeoutRequestThread.isAlive()) {
+                if (checkCloseTimeoutRequestThread == null || checkCloseTimeoutRequestThread.isInterrupted()) {
                     tryCheckConnectTimeoutRequest();
                 }
                 selector.select();
