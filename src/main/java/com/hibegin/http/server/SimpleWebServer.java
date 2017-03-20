@@ -4,6 +4,7 @@ import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
+import com.hibegin.http.server.api.HttpRequestListener;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.ISocketServer;
 import com.hibegin.http.server.config.ConfigKit;
@@ -35,6 +36,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -48,11 +52,13 @@ public class SimpleWebServer implements ISocketServer {
     private RequestConfig requestConfig;
     private ResponseConfig responseConfig;
     private ServerContext serverContext = new ServerContext();
-    private List<HttpRequestHandler> httpRequestHandlerList = new ArrayList<>();
+    private List<HttpRequestHandler> timeoutCheckRequestHandlerList = new ArrayList<>();
+    private List<HttpRequestHandler> requestListenerCheckRequestHandlerList = new ArrayList<>();
+    private Thread checkRequestListenerThread;
+    private Thread checkCloseTimeoutRequestThread;
 
     public SimpleWebServer() {
         this(null, null, null);
-
     }
 
     public SimpleWebServer(ServerConfig serverConfig, RequestConfig requestConfig, ResponseConfig responseConfig) {
@@ -99,6 +105,12 @@ public class SimpleWebServer implements ISocketServer {
         }
         while (true) {
             try {
+                if (checkRequestListenerThread == null || !checkRequestListenerThread.isAlive()) {
+                    tryStartRequestListenerCheckThread();
+                }
+                if (checkCloseTimeoutRequestThread == null || !checkCloseTimeoutRequestThread.isAlive()) {
+                    tryCheckConnectTimeoutRequest();
+                }
                 selector.select();
                 Set<SelectionKey> keys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = keys.iterator();
@@ -155,10 +167,13 @@ public class SimpleWebServer implements ISocketServer {
                     return false;
                 }
                 HttpRequestHandler requestHandler = new HttpRequestHandler(codec, responseConfig, serverContext);
-                serverConfig.getExecutor().execute(requestHandler);
                 if (enableConnectTimeout()) {
-                    httpRequestHandlerList.add(requestHandler);
+                    timeoutCheckRequestHandlerList.add(requestHandler);
                 }
+                if (enableRequestListener()) {
+                    requestListenerCheckRequestHandlerList.add(requestHandler);
+                }
+                serverConfig.getExecutor().execute(requestHandler);
                 if (codec.getRequest().getMethod() != HttpMethod.CONNECT) {
                     codec = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
                     serverContext.getHttpDeCoderMap().put(channel, codec);
@@ -211,42 +226,70 @@ public class SimpleWebServer implements ISocketServer {
     }
 
     public void create(int port) throws IOException {
-        ServerSocketChannel serverChannel = ServerSocketChannel.open();
+        final ServerSocketChannel serverChannel = ServerSocketChannel.open();
         serverChannel.socket().bind(new InetSocketAddress(serverConfig.getHost(), port));
         serverChannel.configureBlocking(false);
         selector = Selector.open();
         serverChannel.register(selector, SelectionKey.OP_ACCEPT);
         LOGGER.info(ServerInfo.getName() + " listening on port -> " + port);
         //timeout
+        tryCheckConnectTimeoutRequest();
+    }
+
+    private void tryCheckConnectTimeoutRequest() {
         if (enableConnectTimeout()) {
+            ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
             final ServerConfig finalServerConfig = serverConfig;
-            Thread checkCloseThread = new Thread() {
+            checkCloseTimeoutRequestThread =new Thread() {
                 @Override
                 public void run() {
-                    while (true) {
-                        List<HttpRequestHandler> removeHttpRequestList = new ArrayList<>();
-                        for (HttpRequestHandler handler : httpRequestHandlerList) {
-                            if (handler.getRequest().getHandler().getChannel().socket().isClosed()) {
-                                removeHttpRequestList.add(handler);
-                            }
-                            if (System.currentTimeMillis() - handler.getRequest().getCreateTime() > finalServerConfig.getTimeOut() * 1000) {
-                                handler.getResponse().renderCode(504);
-                                removeHttpRequestList.add(handler);
-                            }
+                    Thread.currentThread().setName("Call-Request-Timeout-Listener");
+                    List<HttpRequestHandler> removeHttpRequestList = new ArrayList<>();
+                    for (HttpRequestHandler handler : timeoutCheckRequestHandlerList) {
+                        if (handler.getRequest().getHandler().getChannel().socket().isClosed()) {
+                            removeHttpRequestList.add(handler);
                         }
-                        for (HttpRequestHandler handler : removeHttpRequestList) {
-                            httpRequestHandlerList.remove(handler);
+                        if (System.currentTimeMillis() - handler.getRequest().getCreateTime() > finalServerConfig.getTimeOut() * 1000) {
+                            handler.getResponse().renderCode(504);
+                            removeHttpRequestList.add(handler);
                         }
-                        try {
-                            Thread.sleep(100);
-                        } catch (InterruptedException e) {
-                            LOGGER.log(Level.SEVERE, "", e);
-                        }
+                    }
+                    for (HttpRequestHandler handler : removeHttpRequestList) {
+                        timeoutCheckRequestHandlerList.remove(handler);
                     }
                 }
             };
-            checkCloseThread.start();
+            scheduledExecutorService.scheduleWithFixedDelay(checkRequestListenerThread, 1, 1, TimeUnit.SECONDS);
         }
+    }
+
+    private void tryStartRequestListenerCheckThread() {
+        if (enableRequestListener()) {
+            ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+            checkRequestListenerThread = new Thread() {
+                @Override
+                public void run() {
+                    Thread.currentThread().setName("Call-Close-Request-Listener");
+                    List<HttpRequestHandler> removeHttpRequestList = new ArrayList<>();
+                    for (HttpRequestHandler handler : requestListenerCheckRequestHandlerList) {
+                        if (handler.getRequest().getHandler().getChannel().socket().isClosed()) {
+                            removeHttpRequestList.add(handler);
+                        }
+                    }
+                    for (HttpRequestHandler handler : removeHttpRequestList) {
+                        for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
+                            requestListener.destroy(handler.getRequest(), handler.getResponse());
+                        }
+                        requestListenerCheckRequestHandlerList.remove(handler);
+                    }
+                }
+            };
+            scheduledExecutorService.scheduleWithFixedDelay(checkRequestListenerThread, 1, 1, TimeUnit.SECONDS);
+        }
+    }
+
+    private boolean enableRequestListener() {
+        return !serverContext.getServerConfig().getHttpRequestListenerList().isEmpty();
     }
 
     private boolean enableConnectTimeout() {

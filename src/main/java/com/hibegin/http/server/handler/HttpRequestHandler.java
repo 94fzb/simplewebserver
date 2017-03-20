@@ -1,10 +1,7 @@
 package com.hibegin.http.server.handler;
 
 import com.hibegin.common.util.LoggerUtil;
-import com.hibegin.http.server.api.HttpRequest;
-import com.hibegin.http.server.api.HttpRequestDeCoder;
-import com.hibegin.http.server.api.HttpResponse;
-import com.hibegin.http.server.api.Interceptor;
+import com.hibegin.http.server.api.*;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.impl.HttpMethod;
 import com.hibegin.http.server.impl.ServerContext;
@@ -29,6 +26,11 @@ public class HttpRequestHandler extends Thread {
         this.serverContext = serverContext;
         this.request = codec.getRequest();
         this.response = new SimpleHttpResponse(codec.getRequest(), responseConfig);
+        if(!serverContext.getServerConfig().getHttpRequestListenerList().isEmpty()){
+            for(HttpRequestListener httpRequestListener:serverContext.getServerConfig().getHttpRequestListenerList()){
+                httpRequestListener.create(request,response);
+            }
+        }
         this.channel = codec.getRequest().getHandler().getChannel();
     }
 

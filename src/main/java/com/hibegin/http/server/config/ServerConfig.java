@@ -1,6 +1,7 @@
 package com.hibegin.http.server.config;
 
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.server.api.HttpRequestListener;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.web.Router;
 
@@ -27,6 +28,7 @@ public class ServerConfig {
     private String welcomeFile = "index.html";
     private Executor executor = Executors.newFixedThreadPool(10);
     private Router router = new Router();
+    private List<HttpRequestListener> httpRequestListenerList = new ArrayList<>();
 
     public boolean isSsl() {
         return isSsl;
@@ -151,5 +153,13 @@ public class ServerConfig {
 
     public void setWelcomeFile(String welcomeFile) {
         this.welcomeFile = welcomeFile;
+    }
+
+    public void addReqeustListener(HttpRequestListener httpRequestListener){
+        httpRequestListenerList.add(httpRequestListener);
+    }
+
+    public List<HttpRequestListener> getHttpRequestListenerList() {
+        return httpRequestListenerList;
     }
 }
