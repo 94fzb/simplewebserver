@@ -4,6 +4,7 @@ import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.api.HttpRequest;
+import com.hibegin.http.server.api.HttpRequestListener;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.execption.InternalException;
@@ -113,6 +114,11 @@ public class SimpleHttpResponse implements HttpResponse {
                 outputStream.close();
             } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, "outputStream close exception ", e);
+            }
+            if (close) {
+                for (HttpRequestListener requestListener : request.getServerContext().getServerConfig().getHttpRequestListenerList()) {
+                    requestListener.destroy(request, this);
+                }
             }
         }
     }
