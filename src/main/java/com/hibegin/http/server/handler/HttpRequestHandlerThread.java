@@ -60,6 +60,9 @@ public class HttpRequestHandlerThread extends Thread {
                 }
                 LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
                 serverContext.getHttpDeCoderMap().remove(channel);
+                for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
+                    requestListener.destroy(request, response);
+                }
             }
         }
     }
