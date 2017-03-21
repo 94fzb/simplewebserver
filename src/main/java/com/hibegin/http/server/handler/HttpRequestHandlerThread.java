@@ -12,9 +12,9 @@ import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class HttpRequestHandler extends Thread {
+public class HttpRequestHandlerThread extends Thread {
 
-    private static final Logger LOGGER = LoggerUtil.getLogger(HttpRequestHandler.class);
+    private static final Logger LOGGER = LoggerUtil.getLogger(HttpRequestHandlerThread.class);
 
     private HttpRequest request;
     private ServerContext serverContext;
@@ -22,7 +22,7 @@ public class HttpRequestHandler extends Thread {
     private HttpResponse response;
     private SocketChannel channel;
 
-    public HttpRequestHandler(HttpRequestDeCoder codec, ResponseConfig responseConfig, ServerContext serverContext) {
+    public HttpRequestHandlerThread(HttpRequestDeCoder codec, ResponseConfig responseConfig, ServerContext serverContext) {
         this.serverContext = serverContext;
         this.request = codec.getRequest();
         this.response = new SimpleHttpResponse(codec.getRequest(), responseConfig);

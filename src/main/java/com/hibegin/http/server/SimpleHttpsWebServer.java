@@ -45,11 +45,7 @@ public class SimpleHttpsWebServer extends SimpleWebServer {
     }
 
     @Override
-    public void create() {
-        try {
-            super.create(ConfigKit.getHttpsServerPort());
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "", e);
-        }
+    public boolean create() {
+        return super.create(ConfigKit.getHttpsServerPort());
     }
 }

@@ -122,7 +122,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     private void parseHttpProtocolHeader(String[] headerArr, String pHeader) throws Exception {
         String[] protocolHeaderArr = pHeader.split(" ");
         checkHttpMethod();
-        request.method = HttpMethod.valueOf(protocolHeaderArr[0]);
+        request.method = HttpMethod.valueOf(protocolHeaderArr[0].toUpperCase());
         String tUrl = request.uri = protocolHeaderArr[1];
         // just for some proxy-client
         if (tUrl.startsWith(request.scheme + "://")) {

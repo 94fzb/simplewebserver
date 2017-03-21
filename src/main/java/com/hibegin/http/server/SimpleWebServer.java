@@ -13,7 +13,7 @@ import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.execption.ContentLengthTooLargeException;
 import com.hibegin.http.server.execption.UnSupportMethodException;
-import com.hibegin.http.server.handler.HttpRequestHandler;
+import com.hibegin.http.server.handler.HttpRequestHandlerThread;
 import com.hibegin.http.server.handler.PlainReadWriteSelectorHandler;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
 import com.hibegin.http.server.impl.HttpMethod;
@@ -33,7 +33,8 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -47,10 +48,10 @@ public class SimpleWebServer implements ISocketServer {
     private RequestConfig requestConfig;
     private ResponseConfig responseConfig;
     private ServerContext serverContext = new ServerContext();
-    private List<HttpRequestHandler> timeoutCheckRequestHandlerList = new CopyOnWriteArrayList<>();
+    private List<HttpRequestHandlerThread> timeoutCheckRequestHandlerList = new CopyOnWriteArrayList<>();
     private Thread checkCloseTimeoutRequestThread;
     private Thread checkRequestListenerThread;
-    private Map<SocketChannel, List<HttpRequestHandler>> channelSetMap = new ConcurrentHashMap<>();
+    private Map<SocketChannel, HttpRequestHandlerThread> channelSetMap = new ConcurrentHashMap<>();
 
     public SimpleWebServer() {
         this(null, null, null);
@@ -147,7 +148,7 @@ public class SimpleWebServer implements ISocketServer {
         if (channel != null && channel.isOpen()) {
             HttpRequestDeCoder codec = serverContext.getHttpDeCoderMap().get(channel);
             SocketAddress socketAddress = channel.socket().getRemoteSocketAddress();
-            HttpRequestHandler requestHandler = null;
+            HttpRequestHandlerThread requestHandlerThread = null;
             try {
                 ReadWriteSelectorHandler handler;
                 if (codec == null) {
@@ -157,9 +158,9 @@ public class SimpleWebServer implements ISocketServer {
                 } else {
                     handler = codec.getRequest().getHandler();
                 }
-                requestHandler = new HttpRequestHandler(codec, responseConfig, serverContext);
+                requestHandlerThread = new HttpRequestHandlerThread(codec, responseConfig, serverContext);
                 if (enableConnectTimeout()) {
-                    timeoutCheckRequestHandlerList.add(requestHandler);
+                    timeoutCheckRequestHandlerList.add(requestHandlerThread);
                 }
                 // 数据不完整时, 跳过当前循环等待下一个请求
                 boolean exception = false;
@@ -171,30 +172,29 @@ public class SimpleWebServer implements ISocketServer {
                     }
                 } catch (EOFException e) {
                     //do nothing
-                    handleException(key, codec, new HttpRequestHandler(codec, responseConfig, serverContext), 400);
+                    handleException(key, codec, new HttpRequestHandlerThread(codec, responseConfig, serverContext), 400);
                     exception = true;
                 } catch (UnSupportMethodException e) {
                     LOGGER.log(Level.INFO, "", e);
-                    handleException(key, codec, new HttpRequestHandler(codec, responseConfig, serverContext), 400);
+                    handleException(key, codec, new HttpRequestHandlerThread(codec, responseConfig, serverContext), 400);
                     exception = true;
                 } catch (ContentLengthTooLargeException e) {
-                    handleException(key, codec, requestHandler, 413);
+                    handleException(key, codec, requestHandlerThread, 413);
                     exception = true;
                 } catch (Exception e) {
-                    handleException(key, codec, requestHandler, 500);
+                    handleException(key, codec, requestHandlerThread, 500);
                     exception = true;
                 }
                 if (channel.isConnected() && !exception) {
-                    //处理正常解析的请求
                     if (enableRequestListener()) {
-                        List<HttpRequestHandler> httpRequestHandlers = channelSetMap.get(channel);
-                        if (httpRequestHandlers == null) {
-                            httpRequestHandlers = new CopyOnWriteArrayList<>();
-                            channelSetMap.put(channel, httpRequestHandlers);
+                        //清除老的请求
+                        HttpRequestHandlerThread oldHttpRequestHandlerThread = channelSetMap.get(channel);
+                        if (oldHttpRequestHandlerThread != null) {
+                            clearSingleRequestListener(oldHttpRequestHandlerThread);
                         }
-                        httpRequestHandlers.add(requestHandler);
                     }
-                    serverConfig.getExecutor().execute(requestHandler);
+                    serverConfig.getExecutor().execute(requestHandlerThread);
+                    channelSetMap.put(channel, requestHandlerThread);
                     if (codec.getRequest().getMethod() != HttpMethod.CONNECT) {
                         codec = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
                         serverContext.getHttpDeCoderMap().put(channel, codec);
@@ -202,20 +202,20 @@ public class SimpleWebServer implements ISocketServer {
                 }
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "error", e);
-                handleException(key, codec, requestHandler, 500);
+                handleException(key, codec, requestHandlerThread, 500);
             }
         }
         return true;
     }
 
-    private void handleException(SelectionKey key, HttpRequestDeCoder codec, HttpRequestHandler httpRequestHandler, int errorCode) {
+    private void handleException(SelectionKey key, HttpRequestDeCoder codec, HttpRequestHandlerThread httpRequestHandlerThread, int errorCode) {
         try {
-            if (httpRequestHandler != null && codec != null && codec.getRequest() != null) {
-                if (!httpRequestHandler.getRequest().getHandler().getChannel().socket().isClosed()) {
+            if (httpRequestHandlerThread != null && codec != null && codec.getRequest() != null) {
+                if (!httpRequestHandlerThread.getRequest().getHandler().getChannel().socket().isClosed()) {
                     HttpResponse response = new SimpleHttpResponse(codec.getRequest(), getDefaultResponseConfig());
                     response.renderCode(errorCode);
                 } else {
-                    callRequestListener(httpRequestHandler);
+                    callRequestListener(httpRequestHandlerThread);
                 }
             }
         } catch (Exception e) {
@@ -236,75 +236,94 @@ public class SimpleWebServer implements ISocketServer {
     }
 
     @Override
-    public void create() {
-        try {
-            create(serverConfig.getPort());
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "", e);
-        }
+    public boolean create() {
+        return create(serverConfig.getPort());
     }
 
-    public void create(int port) throws IOException {
-        final ServerSocketChannel serverChannel = ServerSocketChannel.open();
-        serverChannel.socket().bind(new InetSocketAddress(serverConfig.getHost(), port));
-        serverChannel.configureBlocking(false);
-        selector = Selector.open();
-        serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-        LOGGER.info(ServerInfo.getName() + " listening on port -> " + port);
+    public boolean create(int port) {
+        try {
+            final ServerSocketChannel serverChannel = ServerSocketChannel.open();
+            serverChannel.socket().bind(new InetSocketAddress(serverConfig.getHost(), port));
+            serverChannel.configureBlocking(false);
+            selector = Selector.open();
+            serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+            LOGGER.info(ServerInfo.getName() + " listening on port -> " + port);
+            return true;
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "", e);
+            return false;
+        }
     }
 
     private void tryCheckConnectTimeoutRequest() {
         if (enableConnectTimeout()) {
-            ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
             final ServerConfig finalServerConfig = serverConfig;
             checkCloseTimeoutRequestThread = new Thread() {
                 @Override
                 public void run() {
                     Thread.currentThread().setName("Call-Request-Timeout-Listener");
-                    List<HttpRequestHandler> removeHttpRequestList = new ArrayList<>();
-                    for (HttpRequestHandler handler : timeoutCheckRequestHandlerList) {
-                        if (handler.getRequest().getHandler().getChannel().socket().isClosed()) {
-                            removeHttpRequestList.add(handler);
+                    try {
+                        while (!isInterrupted()) {
+                            List<HttpRequestHandlerThread> removeHttpRequestList = new ArrayList<>();
+                            for (HttpRequestHandlerThread handler : timeoutCheckRequestHandlerList) {
+                                if (handler.getRequest().getHandler().getChannel().socket().isClosed()) {
+                                    removeHttpRequestList.add(handler);
+                                }
+                                if (System.currentTimeMillis() - handler.getRequest().getCreateTime() > finalServerConfig.getTimeOut() * 1000) {
+                                    handler.getResponse().renderCode(504);
+                                    removeHttpRequestList.add(handler);
+                                }
+                            }
+                            timeoutCheckRequestHandlerList.removeAll(removeHttpRequestList);
+                            Thread.sleep(1000);
                         }
-                        if (System.currentTimeMillis() - handler.getRequest().getCreateTime() > finalServerConfig.getTimeOut() * 1000) {
-                            handler.getResponse().renderCode(504);
-                            removeHttpRequestList.add(handler);
-                        }
+                    } catch (InterruptedException e) {
+                        LOGGER.log(Level.SEVERE, "", e);
                     }
-                    timeoutCheckRequestHandlerList.removeAll(removeHttpRequestList);
                 }
             };
-            scheduledExecutorService.scheduleWithFixedDelay(checkRequestListenerThread, 0, 100, TimeUnit.MICROSECONDS);
+            checkRequestListenerThread.start();
         }
     }
 
     private void tryStartRequestListenerCheckThread() {
         if (enableRequestListener()) {
-            ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
             checkRequestListenerThread = new Thread() {
                 @Override
                 public void run() {
                     Thread.currentThread().setName("Call-Close-Request-Listener");
-                    clearRequestListener();
+                    try {
+                        while (isInterrupted()) {
+                            clearRequestListener();
+                            Thread.sleep(1000);
+                        }
+                    } catch (InterruptedException e) {
+                        LOGGER.log(Level.SEVERE, "", e);
+                    }
                 }
             };
-            scheduledExecutorService.scheduleWithFixedDelay(checkRequestListenerThread, 0, 100, TimeUnit.MICROSECONDS);
+            checkRequestListenerThread.start();
         }
+    }
+
+    private void clearSingleRequestListener(HttpRequestHandlerThread httpRequestHandlerThread) {
+        for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
+            requestListener.destroy(httpRequestHandlerThread.getRequest(), httpRequestHandlerThread.getResponse());
+        }
+        httpRequestHandlerThread.interrupt();
     }
 
     private void clearRequestListener() {
         if (enableRequestListener()) {
-            Map<SocketChannel, List<HttpRequestHandler>> removeHttpRequestList = new HashMap<>();
-            for (Map.Entry<SocketChannel, List<HttpRequestHandler>> entry : channelSetMap.entrySet()) {
+            Map<SocketChannel, HttpRequestHandlerThread> removeHttpRequestList = new HashMap<>();
+            for (Map.Entry<SocketChannel, HttpRequestHandlerThread> entry : channelSetMap.entrySet()) {
                 if (entry.getKey().socket().isClosed()) {
                     removeHttpRequestList.put(entry.getKey(), entry.getValue());
                 }
             }
-            for (Map.Entry<SocketChannel, List<HttpRequestHandler>> entry : removeHttpRequestList.entrySet()) {
+            for (Map.Entry<SocketChannel, HttpRequestHandlerThread> entry : removeHttpRequestList.entrySet()) {
                 for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
-                    for (HttpRequestHandler httpRequestHandler : entry.getValue()) {
-                        requestListener.destroy(httpRequestHandler.getRequest(), httpRequestHandler.getResponse());
-                    }
+                    requestListener.destroy(entry.getValue().getRequest(), entry.getValue().getResponse());
                 }
                 channelSetMap.remove(entry.getKey());
             }
@@ -315,9 +334,9 @@ public class SimpleWebServer implements ISocketServer {
         return !serverContext.getServerConfig().getHttpRequestListenerList().isEmpty();
     }
 
-    private void callRequestListener(HttpRequestHandler httpRequestHandler) {
+    private void callRequestListener(HttpRequestHandlerThread httpRequestHandlerThread) {
         for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
-            requestListener.destroy(httpRequestHandler.getRequest(), httpRequestHandler.getResponse());
+            requestListener.destroy(httpRequestHandlerThread.getRequest(), httpRequestHandlerThread.getResponse());
         }
     }
 

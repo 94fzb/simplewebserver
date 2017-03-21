@@ -6,6 +6,6 @@ public interface ISocketServer {
 
     void destroy();
 
-    void create();
+    boolean create();
 
 }

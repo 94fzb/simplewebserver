@@ -5,10 +5,9 @@ import com.hibegin.http.server.config.AbstractServerConfig;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
+import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.MethodInterceptor;
 
-import java.io.IOException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class WebServerBuilder {
@@ -21,6 +20,8 @@ public class WebServerBuilder {
 
     private ServerConfig serverConfig;
 
+    private SimpleWebServer socketServer;
+
     private WebServerBuilder(Builder builder) {
         this.serverConfig = builder.serverConfig;
         this.responseConfig = builder.responseConfig;
@@ -28,7 +29,12 @@ public class WebServerBuilder {
     }
 
     public void start() {
-        SimpleWebServer socketServer;
+        if (create()) {
+            socketServer.listener();
+        }
+    }
+
+    private boolean create() {
         if (serverConfig == null) {
             serverConfig = new ServerConfig();
         }
@@ -40,26 +46,27 @@ public class WebServerBuilder {
         } else {
             socketServer = new SimpleWebServer(serverConfig, requestConfig, responseConfig);
         }
+        boolean createSuccess;
         if (serverConfig.getPort() != 0) {
-            try {
-                socketServer.create(serverConfig.getPort());
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "create server error", e);
-            }
+            createSuccess = socketServer.create(serverConfig.getPort());
         } else {
-            socketServer.create();
+            createSuccess = socketServer.create();
         }
-        socketServer.listener();
+        return createSuccess;
     }
 
-    public void startWithThread() {
-        final WebServerBuilder builder = this;
-        new Thread() {
-            @Override
-            public void run() {
-                builder.start();
-            }
-        }.start();
+    public boolean startWithThread() {
+        boolean created = create();
+        if (created) {
+            new Thread() {
+                @Override
+                public void run() {
+                    Thread.currentThread().setName(ServerInfo.getName() + "-Main-Thread");
+                    WebServerBuilder.this.socketServer.listener();
+                }
+            }.start();
+        }
+        return created;
     }
 
     public static class Builder {
