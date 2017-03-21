@@ -115,11 +115,6 @@ public class SimpleHttpResponse implements HttpResponse {
             } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, "outputStream close exception ", e);
             }
-            if (close) {
-                for (HttpRequestListener requestListener : request.getServerContext().getServerConfig().getHttpRequestListenerList()) {
-                    requestListener.destroy(request, this);
-                }
-            }
         }
     }
 

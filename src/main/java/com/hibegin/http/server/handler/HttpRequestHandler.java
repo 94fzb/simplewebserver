@@ -26,17 +26,17 @@ public class HttpRequestHandler extends Thread {
         this.serverContext = serverContext;
         this.request = codec.getRequest();
         this.response = new SimpleHttpResponse(codec.getRequest(), responseConfig);
-        if(!serverContext.getServerConfig().getHttpRequestListenerList().isEmpty()){
-            for(HttpRequestListener httpRequestListener:serverContext.getServerConfig().getHttpRequestListenerList()){
-                httpRequestListener.create(request,response);
-            }
-        }
         this.channel = codec.getRequest().getHandler().getChannel();
     }
 
     @Override
     public void run() {
         try {
+            if (!serverContext.getServerConfig().getHttpRequestListenerList().isEmpty()) {
+                for (HttpRequestListener httpRequestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
+                    httpRequestListener.create(request, response);
+                }
+            }
             for (Interceptor interceptor : serverContext.getInterceptors()) {
                 if (!interceptor.doInterceptor(request, response)) {
                     break;
@@ -58,7 +58,7 @@ public class HttpRequestHandler extends Thread {
                         response.renderCode(404);
                     }
                 }
-                LOGGER.info(request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
+                LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
                 serverContext.getHttpDeCoderMap().remove(channel);
             }
         }

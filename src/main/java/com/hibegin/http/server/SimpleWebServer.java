@@ -32,14 +32,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -55,6 +49,8 @@ public class SimpleWebServer implements ISocketServer {
     private ServerContext serverContext = new ServerContext();
     private List<HttpRequestHandler> timeoutCheckRequestHandlerList = new CopyOnWriteArrayList<>();
     private Thread checkCloseTimeoutRequestThread;
+    private Thread checkRequestListenerThread;
+    private Map<SocketChannel, List<HttpRequestHandler>> channelSetMap = new ConcurrentHashMap<>();
 
     public SimpleWebServer() {
         this(null, null, null);
@@ -107,6 +103,10 @@ public class SimpleWebServer implements ISocketServer {
                 if (checkCloseTimeoutRequestThread == null || checkCloseTimeoutRequestThread.isInterrupted()) {
                     tryCheckConnectTimeoutRequest();
                 }
+                if (checkRequestListenerThread == null || checkRequestListenerThread.isInterrupted()) {
+                    tryStartRequestListenerCheckThread();
+                }
+                clearRequestListener();
                 selector.select();
                 Set<SelectionKey> keys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = keys.iterator();
@@ -115,7 +115,7 @@ public class SimpleWebServer implements ISocketServer {
                     SelectionKey key = iterator.next();
                     SocketChannel channel = null;
                     if (!key.isValid() || !key.channel().isOpen()) {
-                        LOGGER.log(Level.WARNING, "error key" + key);
+                        LOGGER.log(Level.WARNING, "error key " + key);
                     } else if (key.isAcceptable()) {
                         ServerSocketChannel server = (ServerSocketChannel) key.channel();
                         try {
@@ -162,6 +162,7 @@ public class SimpleWebServer implements ISocketServer {
                     timeoutCheckRequestHandlerList.add(requestHandler);
                 }
                 // 数据不完整时, 跳过当前循环等待下一个请求
+                boolean exception = false;
                 try {
                     ByteBuffer byteBuffer = handler.handleRead();
                     byte[] bytes = BytesUtil.subBytes(byteBuffer.array(), 0, byteBuffer.array().length - byteBuffer.remaining());
@@ -171,19 +172,33 @@ public class SimpleWebServer implements ISocketServer {
                 } catch (EOFException e) {
                     //do nothing
                     handleException(key, codec, new HttpRequestHandler(codec, responseConfig, serverContext), 400);
+                    exception = true;
                 } catch (UnSupportMethodException e) {
                     LOGGER.log(Level.INFO, "", e);
                     handleException(key, codec, new HttpRequestHandler(codec, responseConfig, serverContext), 400);
+                    exception = true;
                 } catch (ContentLengthTooLargeException e) {
                     handleException(key, codec, requestHandler, 413);
+                    exception = true;
                 } catch (Exception e) {
                     handleException(key, codec, requestHandler, 500);
+                    exception = true;
                 }
-                //处理正常解析的请求
-                serverConfig.getExecutor().execute(requestHandler);
-                if (codec.getRequest().getMethod() != HttpMethod.CONNECT) {
-                    codec = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
-                    serverContext.getHttpDeCoderMap().put(channel, codec);
+                if (channel.isConnected() && !exception) {
+                    //处理正常解析的请求
+                    if (enableRequestListener()) {
+                        List<HttpRequestHandler> httpRequestHandlers = channelSetMap.get(channel);
+                        if (httpRequestHandlers == null) {
+                            httpRequestHandlers = new CopyOnWriteArrayList<>();
+                            channelSetMap.put(channel, httpRequestHandlers);
+                        }
+                        httpRequestHandlers.add(requestHandler);
+                    }
+                    serverConfig.getExecutor().execute(requestHandler);
+                    if (codec.getRequest().getMethod() != HttpMethod.CONNECT) {
+                        codec = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
+                        serverContext.getHttpDeCoderMap().put(channel, codec);
+                    }
                 }
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "error", e);
@@ -259,8 +274,45 @@ public class SimpleWebServer implements ISocketServer {
                     timeoutCheckRequestHandlerList.removeAll(removeHttpRequestList);
                 }
             };
-            scheduledExecutorService.scheduleWithFixedDelay(checkCloseTimeoutRequestThread, 1, 1, TimeUnit.SECONDS);
+            scheduledExecutorService.scheduleWithFixedDelay(checkRequestListenerThread, 0, 100, TimeUnit.MICROSECONDS);
         }
+    }
+
+    private void tryStartRequestListenerCheckThread() {
+        if (enableRequestListener()) {
+            ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+            checkRequestListenerThread = new Thread() {
+                @Override
+                public void run() {
+                    Thread.currentThread().setName("Call-Close-Request-Listener");
+                    clearRequestListener();
+                }
+            };
+            scheduledExecutorService.scheduleWithFixedDelay(checkRequestListenerThread, 0, 100, TimeUnit.MICROSECONDS);
+        }
+    }
+
+    private void clearRequestListener() {
+        if (enableRequestListener()) {
+            Map<SocketChannel, List<HttpRequestHandler>> removeHttpRequestList = new HashMap<>();
+            for (Map.Entry<SocketChannel, List<HttpRequestHandler>> entry : channelSetMap.entrySet()) {
+                if (entry.getKey().socket().isClosed()) {
+                    removeHttpRequestList.put(entry.getKey(), entry.getValue());
+                }
+            }
+            for (Map.Entry<SocketChannel, List<HttpRequestHandler>> entry : removeHttpRequestList.entrySet()) {
+                for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
+                    for (HttpRequestHandler httpRequestHandler : entry.getValue()) {
+                        requestListener.destroy(httpRequestHandler.getRequest(), httpRequestHandler.getResponse());
+                    }
+                }
+                channelSetMap.remove(entry.getKey());
+            }
+        }
+    }
+
+    private boolean enableRequestListener() {
+        return !serverContext.getServerConfig().getHttpRequestListenerList().isEmpty();
     }
 
     private void callRequestListener(HttpRequestHandler httpRequestHandler) {
