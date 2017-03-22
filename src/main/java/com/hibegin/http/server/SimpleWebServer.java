@@ -13,6 +13,7 @@ import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.execption.ContentLengthTooLargeException;
 import com.hibegin.http.server.execption.UnSupportMethodException;
+import com.hibegin.http.server.handler.CheckRequestListenerThread;
 import com.hibegin.http.server.handler.HttpRequestHandlerThread;
 import com.hibegin.http.server.handler.PlainReadWriteSelectorHandler;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
@@ -32,8 +33,10 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -49,9 +52,8 @@ public class SimpleWebServer implements ISocketServer {
     private ResponseConfig responseConfig;
     private ServerContext serverContext = new ServerContext();
     private List<HttpRequestHandlerThread> timeoutCheckRequestHandlerList = new CopyOnWriteArrayList<>();
-    private Thread checkCloseTimeoutRequestThread;
-    private Thread checkRequestListenerThread;
-    private Map<SocketChannel, HttpRequestHandlerThread> channelSetMap = new ConcurrentHashMap<>();
+    private Thread checkCloseTimeoutRequestThread = new Thread();
+    private CheckRequestListenerThread checkRequestListenerThread = new CheckRequestListenerThread("Call-Request-Listener-Thread");
 
     public SimpleWebServer() {
         this(null, null, null);
@@ -81,6 +83,9 @@ public class SimpleWebServer implements ISocketServer {
         }
         serverContext.setServerConfig(serverConfig);
         serverContext.init();
+        if (enableRequestListener()) {
+            checkRequestListenerThread.start();
+        }
     }
 
     public ReadWriteSelectorHandler getReadWriteSelectorHandlerInstance(SocketChannel channel, SelectionKey key) throws IOException {
@@ -104,10 +109,6 @@ public class SimpleWebServer implements ISocketServer {
                 if (checkCloseTimeoutRequestThread == null || checkCloseTimeoutRequestThread.isInterrupted()) {
                     tryCheckConnectTimeoutRequest();
                 }
-                if (checkRequestListenerThread == null || checkRequestListenerThread.isInterrupted()) {
-                    tryStartRequestListenerCheckThread();
-                }
-                clearRequestListener();
                 selector.select();
                 Set<SelectionKey> keys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = keys.iterator();
@@ -188,12 +189,12 @@ public class SimpleWebServer implements ISocketServer {
                 if (channel.isConnected() && !exception) {
                     if (enableRequestListener()) {
                         //清除老的请求
-                        HttpRequestHandlerThread oldHttpRequestHandlerThread = channelSetMap.get(channel);
+                        HttpRequestHandlerThread oldHttpRequestHandlerThread = checkRequestListenerThread.getChannelHttpRequestHandlerThreadMap().get(channel);
                         if (oldHttpRequestHandlerThread != null) {
                             oldHttpRequestHandlerThread.interrupt();
                         }
+                        checkRequestListenerThread.getChannelHttpRequestHandlerThreadMap().put(channel, requestHandlerThread);
                     }
-                    channelSetMap.put(channel, requestHandlerThread);
                     serverConfig.getExecutor().execute(requestHandlerThread);
                     if (codec.getRequest().getMethod() != HttpMethod.CONNECT) {
                         codec = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
@@ -284,41 +285,6 @@ public class SimpleWebServer implements ISocketServer {
                 }
             };
             checkRequestListenerThread.start();
-        }
-    }
-
-    private void tryStartRequestListenerCheckThread() {
-        if (enableRequestListener()) {
-            checkRequestListenerThread = new Thread() {
-                @Override
-                public void run() {
-                    Thread.currentThread().setName("Call-Close-Request-Listener");
-                    try {
-                        while (isInterrupted()) {
-                            clearRequestListener();
-                            Thread.sleep(1000);
-                        }
-                    } catch (InterruptedException e) {
-                        LOGGER.log(Level.SEVERE, "", e);
-                    }
-                }
-            };
-            checkRequestListenerThread.start();
-        }
-    }
-
-    private void clearRequestListener() {
-        if (enableRequestListener()) {
-            Map<SocketChannel, HttpRequestHandlerThread> removeHttpRequestList = new HashMap<>();
-            for (Map.Entry<SocketChannel, HttpRequestHandlerThread> entry : channelSetMap.entrySet()) {
-                if (entry.getKey().socket().isClosed() || !entry.getKey().isConnected()) {
-                    removeHttpRequestList.put(entry.getKey(), entry.getValue());
-                }
-            }
-            for (Map.Entry<SocketChannel, HttpRequestHandlerThread> entry : removeHttpRequestList.entrySet()) {
-                entry.getValue().interrupt();
-                channelSetMap.remove(entry.getKey());
-            }
         }
     }
 
