@@ -82,10 +82,6 @@ public class SimpleWebServer implements ISocketServer {
             serverConfig.setPort(ConfigKit.getServerPort());
         }
         serverContext.setServerConfig(serverConfig);
-        serverContext.init();
-        if (enableRequestListener()) {
-            checkRequestListenerThread.start();
-        }
     }
 
     public ReadWriteSelectorHandler getReadWriteSelectorHandlerInstance(SocketChannel channel, SelectionKey key) throws IOException {
@@ -97,6 +93,14 @@ public class SimpleWebServer implements ISocketServer {
         if (selector == null) {
             return;
         }
+        //开始初始化一些配置
+        serverContext.init();
+        if (enableRequestListener()) {
+            checkRequestListenerThread.start();
+        }
+        if (checkCloseTimeoutRequestThread == null || checkCloseTimeoutRequestThread.isInterrupted()) {
+            tryCheckConnectTimeoutRequest();
+        }
         LOGGER.info(ServerInfo.getName() + " is run versionStr -> " + ServerInfo.getVersion());
         LOGGER.log(Level.INFO, serverConfig.getRouter().toString());
         try {
@@ -106,9 +110,7 @@ public class SimpleWebServer implements ISocketServer {
         }
         while (true) {
             try {
-                if (checkCloseTimeoutRequestThread == null || checkCloseTimeoutRequestThread.isInterrupted()) {
-                    tryCheckConnectTimeoutRequest();
-                }
+
                 selector.select();
                 Set<SelectionKey> keys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = keys.iterator();
