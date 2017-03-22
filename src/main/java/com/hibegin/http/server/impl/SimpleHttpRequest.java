@@ -16,10 +16,10 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -40,7 +40,7 @@ public class SimpleHttpRequest implements HttpRequest {
     protected RequestConfig requestConfig;
     protected StringBuilder headerSb = new StringBuilder();
     private ServerContext serverContext;
-    private Map<String, Object> attr = new ConcurrentHashMap<>();
+    private Map<String, Object> attr = Collections.synchronizedMap(new HashMap<String, Object>());
     private ReadWriteSelectorHandler handler;
     private long createTime;
 

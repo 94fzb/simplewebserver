@@ -1,13 +1,14 @@
 package com.hibegin.http.server.web.session;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class HttpSession {
 
     private String sessionId;
 
-    private Map<String, Object> attrMap = new ConcurrentHashMap<String, Object>();
+    private Map<String, Object> attrMap = Collections.synchronizedMap(new HashMap<String, Object>());
 
     public HttpSession(String sessionID) {
         this.sessionId = sessionID;

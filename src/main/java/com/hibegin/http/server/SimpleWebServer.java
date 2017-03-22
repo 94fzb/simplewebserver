@@ -186,15 +186,17 @@ public class SimpleWebServer implements ISocketServer {
                     exception = true;
                 }
                 if (channel.isConnected() && !exception) {
-                    if (enableRequestListener()) {
-                        //清除老的请求
-                        HttpRequestHandlerThread oldHttpRequestHandlerThread = channelSetMap.get(channel);
-                        if (oldHttpRequestHandlerThread != null) {
-                            clearSingleRequestListener(oldHttpRequestHandlerThread);
+                    if (codec.getRequest().getMethod() != HttpMethod.CONNECT) {
+                        if (enableRequestListener()) {
+                            //清除老的请求
+                            HttpRequestHandlerThread oldHttpRequestHandlerThread = channelSetMap.get(channel);
+                            if (oldHttpRequestHandlerThread != null) {
+                                clearSingleRequestListener(oldHttpRequestHandlerThread);
+                            }
                         }
+                        channelSetMap.put(channel, requestHandlerThread);
                     }
                     serverConfig.getExecutor().execute(requestHandlerThread);
-                    channelSetMap.put(channel, requestHandlerThread);
                     if (codec.getRequest().getMethod() != HttpMethod.CONNECT) {
                         codec = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
                         serverContext.getHttpDeCoderMap().put(channel, codec);
