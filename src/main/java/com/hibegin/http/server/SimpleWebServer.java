@@ -186,16 +186,14 @@ public class SimpleWebServer implements ISocketServer {
                     exception = true;
                 }
                 if (channel.isConnected() && !exception) {
-                    if (codec.getRequest().getMethod() != HttpMethod.CONNECT) {
-                        if (enableRequestListener()) {
-                            //清除老的请求
-                            HttpRequestHandlerThread oldHttpRequestHandlerThread = channelSetMap.get(channel);
-                            if (oldHttpRequestHandlerThread != null) {
-                                clearSingleRequestListener(oldHttpRequestHandlerThread);
-                            }
+                    if (enableRequestListener()) {
+                        //清除老的请求
+                        HttpRequestHandlerThread oldHttpRequestHandlerThread = channelSetMap.get(channel);
+                        if (oldHttpRequestHandlerThread != null) {
+                            oldHttpRequestHandlerThread.interrupt();
                         }
-                        channelSetMap.put(channel, requestHandlerThread);
                     }
+                    channelSetMap.put(channel, requestHandlerThread);
                     serverConfig.getExecutor().execute(requestHandlerThread);
                     if (codec.getRequest().getMethod() != HttpMethod.CONNECT) {
                         codec = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
@@ -270,10 +268,11 @@ public class SimpleWebServer implements ISocketServer {
                             for (HttpRequestHandlerThread handler : timeoutCheckRequestHandlerList) {
                                 if (handler.getRequest().getHandler().getChannel().socket().isClosed()) {
                                     removeHttpRequestList.add(handler);
-                                }
-                                if (System.currentTimeMillis() - handler.getRequest().getCreateTime() > finalServerConfig.getTimeOut() * 1000) {
-                                    handler.getResponse().renderCode(504);
-                                    removeHttpRequestList.add(handler);
+                                } else {
+                                    if (System.currentTimeMillis() - handler.getRequest().getCreateTime() > finalServerConfig.getTimeOut() * 1000) {
+                                        handler.getResponse().renderCode(504);
+                                        removeHttpRequestList.add(handler);
+                                    }
                                 }
                             }
                             timeoutCheckRequestHandlerList.removeAll(removeHttpRequestList);
@@ -308,25 +307,16 @@ public class SimpleWebServer implements ISocketServer {
         }
     }
 
-    private void clearSingleRequestListener(HttpRequestHandlerThread httpRequestHandlerThread) {
-        for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
-            requestListener.destroy(httpRequestHandlerThread.getRequest(), httpRequestHandlerThread.getResponse());
-        }
-        httpRequestHandlerThread.interrupt();
-    }
-
     private void clearRequestListener() {
         if (enableRequestListener()) {
             Map<SocketChannel, HttpRequestHandlerThread> removeHttpRequestList = new HashMap<>();
             for (Map.Entry<SocketChannel, HttpRequestHandlerThread> entry : channelSetMap.entrySet()) {
-                if (entry.getKey().socket().isClosed()) {
+                if (entry.getKey().socket().isClosed() || !entry.getKey().isConnected()) {
                     removeHttpRequestList.put(entry.getKey(), entry.getValue());
                 }
             }
             for (Map.Entry<SocketChannel, HttpRequestHandlerThread> entry : removeHttpRequestList.entrySet()) {
-                for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
-                    requestListener.destroy(entry.getValue().getRequest(), entry.getValue().getResponse());
-                }
+                entry.getValue().interrupt();
                 channelSetMap.remove(entry.getKey());
             }
         }
