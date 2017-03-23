@@ -22,12 +22,10 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
     private int currentReadSize;
     private ByteBuffer all = ByteBuffer.allocate(0);
 
-    public PlainReadWriteSelectorHandler(SocketChannel sc, SelectionKey selectionKey, boolean blocking)
-            throws IOException {
+    public PlainReadWriteSelectorHandler(SocketChannel sc, SelectionKey selectionKey) {
         this.sc = sc;
         this.selectionKey = selectionKey;
-        sc.configureBlocking(blocking);
-        requestBB = ByteBuffer.allocate(requestBBSize);
+        this.requestBB = ByteBuffer.allocate(requestBBSize);
     }
 
     @Override
@@ -40,13 +38,6 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
             }
         }
     }
-
-
-    /*
-     * All of the inbound request data lives here until we determine
-     * that we've read everything, then we pass that data back to the
-     * caller.
-     */
 
     @Override
     public ByteBuffer handleRead() throws IOException {
@@ -69,10 +60,6 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
         throw new EOFException();
     }
 
-    /*
-     * Return a ByteBuffer with "remaining" space to work.  If you have to
-     * reallocate the ByteBuffer, copy the existing info into the new buffer.
-     */
     protected void resizeRequestBB(int remaining) {
         if (requestBB.remaining() < remaining) {
             // Expand buffer for large request

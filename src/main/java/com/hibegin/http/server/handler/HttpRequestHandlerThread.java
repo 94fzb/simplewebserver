@@ -1,11 +1,12 @@
 package com.hibegin.http.server.handler;
 
 import com.hibegin.common.util.LoggerUtil;
-import com.hibegin.http.server.api.*;
-import com.hibegin.http.server.config.ResponseConfig;
+import com.hibegin.http.server.api.HttpRequest;
+import com.hibegin.http.server.api.HttpRequestListener;
+import com.hibegin.http.server.api.HttpResponse;
+import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.impl.HttpMethod;
 import com.hibegin.http.server.impl.ServerContext;
-import com.hibegin.http.server.impl.SimpleHttpResponse;
 
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
@@ -22,11 +23,11 @@ public class HttpRequestHandlerThread extends Thread {
     private HttpResponse response;
     private SocketChannel channel;
 
-    public HttpRequestHandlerThread(HttpRequestDeCoder codec, ResponseConfig responseConfig, ServerContext serverContext) {
+    public HttpRequestHandlerThread(HttpRequest request, HttpResponse response, ServerContext serverContext) {
         this.serverContext = serverContext;
-        this.request = codec.getRequest();
-        this.response = new SimpleHttpResponse(codec.getRequest(), responseConfig);
-        this.channel = codec.getRequest().getHandler().getChannel();
+        this.request = request;
+        this.response = response;
+        this.channel = request.getHandler().getChannel();
     }
 
     @Override
@@ -58,7 +59,6 @@ public class HttpRequestHandlerThread extends Thread {
                         response.renderCode(404);
                     }
                 }
-                LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
                 serverContext.getHttpDeCoderMap().remove(channel);
                 close();
             }
@@ -76,9 +76,14 @@ public class HttpRequestHandlerThread extends Thread {
     @Override
     public void interrupt() {
         close();
+        super.interrupt();
     }
 
     private void close() {
+        LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
+        if (channel.socket().isClosed()) {
+            serverContext.getHttpDeCoderMap().remove(channel);
+        }
         for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
             requestListener.destroy(this.getRequest(), this.getResponse());
         }

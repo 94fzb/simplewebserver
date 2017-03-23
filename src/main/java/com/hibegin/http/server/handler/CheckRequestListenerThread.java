@@ -24,6 +24,7 @@ public class CheckRequestListenerThread extends Thread {
         try {
             while (true) {
                 clearRequestListener();
+                System.out.println("Running... " + channelHttpRequestHandlerThreadMap.size());
                 Thread.sleep(1000);
             }
         } catch (InterruptedException e) {

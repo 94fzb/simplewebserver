@@ -41,7 +41,7 @@ public class SimpleHttpsWebServer extends SimpleWebServer {
 
     @Override
     public ReadWriteSelectorHandler getReadWriteSelectorHandlerInstance(SocketChannel channel, SelectionKey key) throws IOException {
-        return new SSLReadWriteSelectorHandler(channel, key, false, sslContext);
+        return new SSLReadWriteSelectorHandler(channel, key, sslContext);
     }
 
     @Override

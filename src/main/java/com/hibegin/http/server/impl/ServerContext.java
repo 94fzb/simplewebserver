@@ -2,6 +2,7 @@ package com.hibegin.http.server.impl;
 
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
+import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.config.ServerConfig;
 
@@ -23,9 +24,9 @@ public class ServerContext {
 
     private ServerConfig serverConfig;
 
-    private Map<Channel, HttpRequestDeCoder> httpDeCoderMap = new ConcurrentHashMap<>();
+    private Map<Channel, Map.Entry<HttpRequestDeCoder, HttpResponse>> httpDeCoderMap = new ConcurrentHashMap<>();
 
-    public Map<Channel, HttpRequestDeCoder> getHttpDeCoderMap() {
+    public Map<Channel, Map.Entry<HttpRequestDeCoder, HttpResponse>> getHttpDeCoderMap() {
         return httpDeCoderMap;
     }
 

@@ -33,10 +33,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -60,32 +57,32 @@ public class SimpleWebServer implements ISocketServer {
     }
 
     public SimpleWebServer(ServerConfig serverConfig, RequestConfig requestConfig, ResponseConfig responseConfig) {
-        if (requestConfig == null) {
-            requestConfig = new RequestConfig();
-        }
-        if (responseConfig == null) {
-            responseConfig = new ResponseConfig();
-        }
-        this.requestConfig = requestConfig;
-        this.responseConfig = responseConfig;
         if (serverConfig == null) {
             serverConfig = new ServerConfig();
             serverConfig.setDisableCookie(Boolean.valueOf(ConfigKit.get("server.disableCookie", requestConfig.isDisableCookie()).toString()));
         }
-        this.serverConfig = serverConfig;
-        this.requestConfig = getDefaultRequestConfig();
-        this.responseConfig = getDefaultResponseConfig();
         if (serverConfig.getTimeOut() == 0 && ConfigKit.contains("server.timeout")) {
             serverConfig.setTimeOut(Integer.parseInt(ConfigKit.get("server.timeout", 60).toString()));
         }
         if (serverConfig.getPort() == 0) {
             serverConfig.setPort(ConfigKit.getServerPort());
         }
+        this.serverConfig = serverConfig;
+        if (requestConfig == null) {
+            this.requestConfig = getDefaultRequestConfig();
+        } else {
+            this.requestConfig = requestConfig;
+        }
+        if (responseConfig == null) {
+            this.responseConfig = getDefaultResponseConfig();
+        } else {
+            this.responseConfig = getDefaultResponseConfig();
+        }
         serverContext.setServerConfig(serverConfig);
     }
 
     public ReadWriteSelectorHandler getReadWriteSelectorHandlerInstance(SocketChannel channel, SelectionKey key) throws IOException {
-        return new PlainReadWriteSelectorHandler(channel, key, false);
+        return new PlainReadWriteSelectorHandler(channel, key);
     }
 
     @Override
@@ -110,7 +107,6 @@ public class SimpleWebServer implements ISocketServer {
         }
         while (true) {
             try {
-
                 selector.select();
                 Set<SelectionKey> keys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = keys.iterator();
@@ -147,65 +143,60 @@ public class SimpleWebServer implements ISocketServer {
         }
     }
 
-    private boolean handleRequest(SelectionKey key, SocketChannel channel) {
+    private boolean handleRequest(SelectionKey key, SocketChannel channel) throws IOException {
         if (channel != null && channel.isOpen()) {
-            HttpRequestDeCoder codec = serverContext.getHttpDeCoderMap().get(channel);
+            Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = serverContext.getHttpDeCoderMap().get(channel);
             SocketAddress socketAddress = channel.socket().getRemoteSocketAddress();
             HttpRequestHandlerThread requestHandlerThread = null;
+            ReadWriteSelectorHandler handler;
+            if (codecEntry == null) {
+                handler = getReadWriteSelectorHandlerInstance(channel, key);
+                HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
+                codecEntry = new AbstractMap.SimpleEntry<HttpRequestDeCoder, HttpResponse>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig));
+                serverContext.getHttpDeCoderMap().put(channel, codecEntry);
+            } else {
+                handler = codecEntry.getKey().getRequest().getHandler();
+            }
+            // 数据不完整时, 跳过当前循环等待下一个请求
+            boolean exception = false;
             try {
-                ReadWriteSelectorHandler handler;
-                if (codec == null) {
-                    handler = getReadWriteSelectorHandlerInstance(channel, key);
-                    codec = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
-                    serverContext.getHttpDeCoderMap().put(channel, codec);
-                } else {
-                    handler = codec.getRequest().getHandler();
+                ByteBuffer byteBuffer = handler.handleRead();
+                byte[] bytes = BytesUtil.subBytes(byteBuffer.array(), 0, byteBuffer.array().length - byteBuffer.remaining());
+                if (!codecEntry.getKey().doDecode(bytes)) {
+                    return false;
                 }
-                requestHandlerThread = new HttpRequestHandlerThread(codec, responseConfig, serverContext);
+                requestHandlerThread = new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue(), serverContext);
                 if (enableConnectTimeout()) {
                     timeoutCheckRequestHandlerList.add(requestHandlerThread);
                 }
-                // 数据不完整时, 跳过当前循环等待下一个请求
-                boolean exception = false;
-                try {
-                    ByteBuffer byteBuffer = handler.handleRead();
-                    byte[] bytes = BytesUtil.subBytes(byteBuffer.array(), 0, byteBuffer.array().length - byteBuffer.remaining());
-                    if (!codec.doDecode(bytes)) {
-                        return false;
-                    }
-                } catch (EOFException e) {
-                    //do nothing
-                    handleException(key, codec, new HttpRequestHandlerThread(codec, responseConfig, serverContext), 400);
-                    exception = true;
-                } catch (UnSupportMethodException e) {
-                    LOGGER.log(Level.INFO, "", e);
-                    handleException(key, codec, new HttpRequestHandlerThread(codec, responseConfig, serverContext), 400);
-                    exception = true;
-                } catch (ContentLengthTooLargeException e) {
-                    handleException(key, codec, requestHandlerThread, 413);
-                    exception = true;
-                } catch (Exception e) {
-                    handleException(key, codec, requestHandlerThread, 500);
-                    exception = true;
-                }
-                if (channel.isConnected() && !exception) {
-                    if (enableRequestListener()) {
-                        //清除老的请求
-                        HttpRequestHandlerThread oldHttpRequestHandlerThread = checkRequestListenerThread.getChannelHttpRequestHandlerThreadMap().get(channel);
-                        if (oldHttpRequestHandlerThread != null) {
-                            oldHttpRequestHandlerThread.interrupt();
-                        }
-                        checkRequestListenerThread.getChannelHttpRequestHandlerThreadMap().put(channel, requestHandlerThread);
-                    }
-                    serverConfig.getExecutor().execute(requestHandlerThread);
-                    if (codec.getRequest().getMethod() != HttpMethod.CONNECT) {
-                        codec = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
-                        serverContext.getHttpDeCoderMap().put(channel, codec);
-                    }
-                }
+            } catch (EOFException e) {
+                //do nothing
+                handleException(key, codecEntry.getKey(), null, 400);
+                exception = true;
+            } catch (UnSupportMethodException e) {
+                LOGGER.log(Level.INFO, "", e);
+                handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue(), serverContext), 400);
+                exception = true;
+            } catch (ContentLengthTooLargeException e) {
+                handleException(key, codecEntry.getKey(), requestHandlerThread, 413);
+                exception = true;
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "error", e);
-                handleException(key, codec, requestHandlerThread, 500);
+                handleException(key, codecEntry.getKey(), requestHandlerThread, 500);
+                exception = true;
+            }
+            if (channel.isConnected() && !exception) {
+                if (enableRequestListener()) {
+                    //清除老的请求
+                    HttpRequestHandlerThread oldHttpRequestHandlerThread = checkRequestListenerThread.getChannelHttpRequestHandlerThreadMap().get(channel);
+                    if (oldHttpRequestHandlerThread != null) {
+                        oldHttpRequestHandlerThread.interrupt();
+                    }
+                    checkRequestListenerThread.getChannelHttpRequestHandlerThreadMap().put(channel, requestHandlerThread);
+                }
+                serverConfig.getExecutor().execute(requestHandlerThread);
+                if (codecEntry.getKey().getRequest().getMethod() != HttpMethod.CONNECT) {
+                    serverContext.getHttpDeCoderMap().remove(channel);
+                }
             }
         }
         return true;
@@ -215,8 +206,7 @@ public class SimpleWebServer implements ISocketServer {
         try {
             if (httpRequestHandlerThread != null && codec != null && codec.getRequest() != null) {
                 if (!httpRequestHandlerThread.getRequest().getHandler().getChannel().socket().isClosed()) {
-                    HttpResponse response = new SimpleHttpResponse(codec.getRequest(), getDefaultResponseConfig());
-                    response.renderCode(errorCode);
+                    httpRequestHandlerThread.getResponse().renderCode(errorCode);
                 } else {
                     callRequestListener(httpRequestHandlerThread);
                 }
@@ -307,7 +297,11 @@ public class SimpleWebServer implements ISocketServer {
     private ResponseConfig getDefaultResponseConfig() {
         ResponseConfig config = new ResponseConfig();
         config.setCharSet("UTF-8");
-        config.setIsGzip(responseConfig.isGzip());
+        if (responseConfig == null) {
+            config.setIsGzip(false);
+        } else {
+            config.setIsGzip(responseConfig.isGzip());
+        }
         config.setDisableCookie(serverConfig.isDisableCookie());
         return config;
     }
