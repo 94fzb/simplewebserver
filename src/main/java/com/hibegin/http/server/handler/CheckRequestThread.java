@@ -9,14 +9,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class CheckRequestListenerThread extends Thread {
+public class CheckRequestThread extends Thread {
 
-    private static final Logger LOGGER = LoggerUtil.getLogger(CheckRequestListenerThread.class);
+    private static final Logger LOGGER = LoggerUtil.getLogger(CheckRequestThread.class);
 
     private Map<SocketChannel, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
 
-    public CheckRequestListenerThread(String name) {
+    private int requestTimeout = 0;
+
+    public CheckRequestThread(String name, int requestTimeout) {
         super(name);
+        this.requestTimeout = requestTimeout;
     }
 
     @Override
@@ -24,7 +27,7 @@ public class CheckRequestListenerThread extends Thread {
         try {
             while (true) {
                 clearRequestListener();
-                System.out.println("Running... " + channelHttpRequestHandlerThreadMap.size());
+                //LOGGER.log(Level.INFO, "Running... " + channelHttpRequestHandlerThreadMap.size());
                 Thread.sleep(1000);
             }
         } catch (InterruptedException e) {
@@ -37,6 +40,12 @@ public class CheckRequestListenerThread extends Thread {
         for (Map.Entry<SocketChannel, HttpRequestHandlerThread> entry : channelHttpRequestHandlerThreadMap.entrySet()) {
             if (entry.getKey().socket().isClosed() || !entry.getKey().isConnected()) {
                 removeHttpRequestList.put(entry.getKey(), entry.getValue());
+            }
+            if (requestTimeout > 0) {
+                if (System.currentTimeMillis() - entry.getValue().getRequest().getCreateTime() > requestTimeout * 1000) {
+                    entry.getValue().getResponse().renderCode(504);
+                    removeHttpRequestList.put(entry.getKey(), entry.getValue());
+                }
             }
         }
         for (Map.Entry<SocketChannel, HttpRequestHandlerThread> entry : removeHttpRequestList.entrySet()) {
