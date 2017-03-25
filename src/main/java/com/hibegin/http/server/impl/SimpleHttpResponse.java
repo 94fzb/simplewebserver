@@ -4,11 +4,9 @@ import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.api.HttpRequest;
-import com.hibegin.http.server.api.HttpRequestListener;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.execption.InternalException;
-import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
 import com.hibegin.http.server.io.ChunkedOutputStream;
 import com.hibegin.http.server.io.GzipCompressingInputStream;
 import com.hibegin.http.server.util.*;
@@ -33,23 +31,11 @@ public class SimpleHttpResponse implements HttpResponse {
     private Map<String, String> header = new HashMap<String, String>();
     private HttpRequest request;
     private List<Cookie> cookieList = new ArrayList<Cookie>();
-    private ReadWriteSelectorHandler handler;
     private ResponseConfig responseConfig;
-    private boolean keepAlive;
 
     public SimpleHttpResponse(HttpRequest request, ResponseConfig responseConfig) {
-        header.put("Server", ServerInfo.getName() + "/" + ServerInfo.getVersion());
-        this.handler = request.getHandler();
         this.request = request;
         this.responseConfig = responseConfig;
-        if (responseConfig.isGzip()) {
-            header.put("Content-Encoding", "gzip");
-        }
-
-        keepAlive = request.getHeader("Connection") != null && "keep-alive".equalsIgnoreCase(request.getHeader("Connection"));
-        if (keepAlive) {
-            getHeader().put("Connection", "keep-alive");
-        }
     }
 
     @Override
@@ -84,7 +70,7 @@ public class SimpleHttpResponse implements HttpResponse {
                         send(bout, false);
                     }
                     fileInputStream.close();
-                    handler.close();
+                    request.getHandler().close();
                 }
 
             } catch (IOException e) {
@@ -100,9 +86,9 @@ public class SimpleHttpResponse implements HttpResponse {
             byte[] b = outputStream.toByteArray();
             ByteBuffer byteBuffer = ByteBuffer.allocate(b.length);
             byteBuffer.put(b);
-            handler.handleWrite(byteBuffer);
+            request.getHandler().handleWrite(byteBuffer);
             if (close) {
-                handler.close();
+                request.getHandler().close();
             }
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "send error", e);
@@ -153,6 +139,15 @@ public class SimpleHttpResponse implements HttpResponse {
     private byte[] wrapperBaseResponseHeader(int statusCode) {
         StringBuilder sb = new StringBuilder();
         sb.append("HTTP/1.1 ").append(statusCode).append(" ").append(StatusCodeUtil.getStatusCode(statusCode)).append(CRLF);
+        if (responseConfig.isGzip()) {
+            header.put("Content-Encoding", "gzip");
+        }
+
+        header.put("Server", ServerInfo.getName() + "/" + ServerInfo.getVersion());
+        boolean keepAlive = request.getHeader("Connection") != null && "keep-alive".equalsIgnoreCase(request.getHeader("Connection"));
+        if (keepAlive) {
+            getHeader().put("Connection", "keep-alive");
+        }
         for (Entry<String, String> he : header.entrySet()) {
             sb.append(he.getKey()).append(": ").append(he.getValue()).append(CRLF);
         }
@@ -210,7 +205,7 @@ public class SimpleHttpResponse implements HttpResponse {
             ByteArrayOutputStream fout = new ByteArrayOutputStream();
             try {
                 if (!header.containsKey("Location")) {
-                    header.put("Location", "http://" + request.getHeader("Host") + "/" + request.getUri() + request.getServerConfig().getWelcomeFile());
+                    header.put("Location", request.getScheme() + "://" + request.getHeader("Host") + "/" + request.getUri() + request.getServerConfig().getWelcomeFile());
                 }
                 fout.write(wrapperData(errorCode, new byte[]{}));
                 send(fout);

@@ -16,10 +16,8 @@ import java.util.logging.Logger;
 
 public class ServerContext {
 
-    private boolean init;
-
     private static final Logger LOGGER = LoggerUtil.getLogger(ServerContext.class);
-
+    private boolean init;
     private List<Interceptor> interceptors;
 
     private ServerConfig serverConfig;

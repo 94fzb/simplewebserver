@@ -54,11 +54,11 @@ import java.util.logging.Logger;
 
 /**
  * A helper class which performs I/O using the SSLEngine API.
- *
+ * <p>
  * Each connection has a SocketChannel and a SSLEngine that is
  * used through the lifetime of the Channel.  We allocate byte buffers
  * for use as the outbound and inbound network buffers.
- *
+ * <p>
  * <PRE>
  * Application Data
  * src      requestBB
@@ -78,24 +78,24 @@ import java.util.logging.Logger;
  * outNetBB     inNetBB
  * Net data
  * </PRE>
- *
+ * <p>
  * These buffers handle all of the intermediary data for the SSL
  * connection.  To make things easy, we'll require outNetBB be
  * completely flushed before trying to wrap any more data, but we
  * could certainly remove that restriction by using larger buffers.
- *
+ * <p>
  * There are many, many ways to handle compute and I/O strategies.
  * What follows is a relatively simple one.  The reader is encouraged
  * to develop the strategy that best fits the application.
- *
+ * <p>
  * In most of the non-blocking operations in this class, we let the
  * Selector tell us when we're ready to attempt an I/O operation (by the
  * application repeatedly calling our methods).  Another option would be
  * to attempt the operation and return from the method when no forward
  * progress can be made.
- *
+ * <p>
  * There's lots of room for enhancements and improvement in this example.
- *
+ * <p>
  * We're checking for SSL/TLS end-of-stream truncation attacks via
  * sslEngine.closeInbound().  When you reach the end of a input stream
  * via a read() returning -1 or an IOException, we call

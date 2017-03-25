@@ -128,7 +128,7 @@ public class SimpleHttpRequest implements HttpRequest {
     public String getParaToStr(String key) {
         if (paramMap.get(key) != null) {
             try {
-                return URLDecoder.decode(paramMap.get(key)[0], "UTF-8");
+                return URLDecoder.decode(paramMap.get(key)[0], requestConfig.getCharSet());
             } catch (UnsupportedEncodingException e) {
                 LOGGER.log(Level.SEVERE, "", e);
             }

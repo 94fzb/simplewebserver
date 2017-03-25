@@ -15,7 +15,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(PlainReadWriteSelectorHandler.class);
 
-    static private int requestBBSize = 4096;
+    private static int INIT_BYTE_BUFFER_SIZE = 4096;
     protected ByteBuffer requestBB;
     protected SocketChannel sc;
     protected SelectionKey selectionKey;
@@ -25,7 +25,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
     public PlainReadWriteSelectorHandler(SocketChannel sc, SelectionKey selectionKey) {
         this.sc = sc;
         this.selectionKey = selectionKey;
-        this.requestBB = ByteBuffer.allocate(requestBBSize);
+        this.requestBB = ByteBuffer.allocate(INIT_BYTE_BUFFER_SIZE);
     }
 
     @Override
@@ -41,14 +41,11 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     @Override
     public ByteBuffer handleRead() throws IOException {
-        ByteBuffer byteBuffer = ByteBuffer.allocate(requestBBSize);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(requestBB.capacity());
         int length = sc.read(byteBuffer);
         resizeRequestBB(length);
         if (length != -1) {
-            int t = 0;
-            if (all != null) {
-                t = all.array().length;
-            }
+            int t = all.array().length;
             ByteBuffer buffer = ByteBuffer.allocate(length + t);
             buffer.put(all.array());
             buffer.put(BytesUtil.subBytes(byteBuffer.array(), 0, length));

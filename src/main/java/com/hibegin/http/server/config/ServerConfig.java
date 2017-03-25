@@ -155,7 +155,7 @@ public class ServerConfig {
         this.welcomeFile = welcomeFile;
     }
 
-    public void addReqeustListener(HttpRequestListener httpRequestListener){
+    public void addReqeustListener(HttpRequestListener httpRequestListener) {
         httpRequestListenerList.add(httpRequestListener);
     }
 
