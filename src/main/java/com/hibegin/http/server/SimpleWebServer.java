@@ -91,7 +91,7 @@ public class SimpleWebServer implements ISocketServer {
         }
         //开始初始化一些配置
         serverContext.init();
-        checkRequestThread = new CheckRequestThread("Check-Request-Thread", serverConfig.getTimeOut());
+        checkRequestThread = new CheckRequestThread("Check-Request-Thread", serverConfig.getTimeOut(), serverContext);
         checkRequestThread.start();
         LOGGER.info(ServerInfo.getName() + " is run versionStr -> " + ServerInfo.getVersion());
         LOGGER.log(Level.INFO, serverConfig.getRouter().toString());

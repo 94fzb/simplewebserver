@@ -187,6 +187,7 @@ public class SimpleHttpResponse implements HttpResponse {
             } catch (IOException e) {
                 throw new InternalException("convertGzipBytes error ", e);
             }
+
         }
         return bytes;
     }

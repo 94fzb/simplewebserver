@@ -6,7 +6,7 @@ import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.config.ServerConfig;
 
-import java.nio.channels.Channel;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -22,9 +22,9 @@ public class ServerContext {
 
     private ServerConfig serverConfig;
 
-    private Map<Channel, Map.Entry<HttpRequestDeCoder, HttpResponse>> httpDeCoderMap = new ConcurrentHashMap<>();
+    private Map<SocketChannel, Map.Entry<HttpRequestDeCoder, HttpResponse>> httpDeCoderMap = new ConcurrentHashMap<>();
 
-    public Map<Channel, Map.Entry<HttpRequestDeCoder, HttpResponse>> getHttpDeCoderMap() {
+    public Map<SocketChannel, Map.Entry<HttpRequestDeCoder, HttpResponse>> getHttpDeCoderMap() {
         return httpDeCoderMap;
     }
 

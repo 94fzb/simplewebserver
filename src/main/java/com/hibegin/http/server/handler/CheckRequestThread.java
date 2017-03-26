@@ -1,6 +1,9 @@
 package com.hibegin.http.server.handler;
 
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.server.api.HttpRequestDeCoder;
+import com.hibegin.http.server.api.HttpResponse;
+import com.hibegin.http.server.impl.ServerContext;
 
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
@@ -14,12 +17,14 @@ public class CheckRequestThread extends Thread {
     private static final Logger LOGGER = LoggerUtil.getLogger(CheckRequestThread.class);
 
     private Map<SocketChannel, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
+    private ServerContext serverContext;
 
     private int requestTimeout = 0;
 
-    public CheckRequestThread(String name, int requestTimeout) {
+    public CheckRequestThread(String name, int requestTimeout, ServerContext serverContext) {
         super(name);
         this.requestTimeout = requestTimeout;
+        this.serverContext = serverContext;
     }
 
     @Override
@@ -27,6 +32,7 @@ public class CheckRequestThread extends Thread {
         try {
             while (true) {
                 clearRequestListener();
+                clearRequestDecode();
                 //LOGGER.log(Level.INFO, "Running... " + channelHttpRequestHandlerThreadMap.size());
                 Thread.sleep(1000);
             }
@@ -51,6 +57,18 @@ public class CheckRequestThread extends Thread {
         for (Map.Entry<SocketChannel, HttpRequestHandlerThread> entry : removeHttpRequestList.entrySet()) {
             entry.getValue().interrupt();
             channelHttpRequestHandlerThreadMap.remove(entry.getKey());
+        }
+    }
+
+    private void clearRequestDecode() {
+        Map<SocketChannel, Map.Entry<HttpRequestDeCoder, HttpResponse>> removeHttpDecodeRequestList = new HashMap<>();
+        for (Map.Entry<SocketChannel, Map.Entry<HttpRequestDeCoder, HttpResponse>> entry : serverContext.getHttpDeCoderMap().entrySet()) {
+            if (entry.getKey().socket().isClosed() || !entry.getKey().isConnected()) {
+                removeHttpDecodeRequestList.put(entry.getKey(), entry.getValue());
+            }
+        }
+        for (Map.Entry<SocketChannel, Map.Entry<HttpRequestDeCoder, HttpResponse>> entryMap : removeHttpDecodeRequestList.entrySet()) {
+            serverContext.getHttpDeCoderMap().remove(entryMap.getKey());
         }
     }
 
