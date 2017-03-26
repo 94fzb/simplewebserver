@@ -24,6 +24,7 @@ import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
 
 import java.io.EOFException;
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -50,6 +51,7 @@ public class SimpleWebServer implements ISocketServer {
     private ResponseConfig responseConfig;
     private ServerContext serverContext = new ServerContext();
     private CheckRequestThread checkRequestThread;
+    private File pidFile;
 
     public SimpleWebServer() {
         this(null, null, null);
@@ -96,7 +98,11 @@ public class SimpleWebServer implements ISocketServer {
         LOGGER.info(ServerInfo.getName() + " is run versionStr -> " + ServerInfo.getVersion());
         LOGGER.log(Level.INFO, serverConfig.getRouter().toString());
         try {
-            EnvKit.savePid(PathUtil.getRootPath() + "/sim.pid");
+            if (pidFile == null) {
+                pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
+            }
+            EnvKit.savePid(pidFile.toString());
+            pidFile.deleteOnExit();
         } catch (Throwable e) {
             LOGGER.log(Level.WARNING, "save pid error", e);
         }
