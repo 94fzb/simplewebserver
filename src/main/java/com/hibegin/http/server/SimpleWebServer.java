@@ -77,7 +77,7 @@ public class SimpleWebServer implements ISocketServer {
         if (responseConfig == null) {
             this.responseConfig = getDefaultResponseConfig();
         } else {
-            this.responseConfig = getDefaultResponseConfig();
+            this.responseConfig = responseConfig;
         }
         serverContext.setServerConfig(serverConfig);
     }
