@@ -33,7 +33,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     public HttpRequestDecoderImpl(SocketAddress socketAddress, RequestConfig requestConfig, ServerContext serverContext, ReadWriteSelectorHandler handler) {
         this.request = new SimpleHttpRequest(System.currentTimeMillis(), handler, serverContext);
         this.request.requestConfig = requestConfig;
-        this.request.ipAddr = socketAddress;
+        this.request.ipAddress = socketAddress;
         if (requestConfig.isSsl()) {
             request.scheme = "https";
         }

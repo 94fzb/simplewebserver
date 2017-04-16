@@ -27,6 +27,7 @@ import java.util.zip.GZIPOutputStream;
 public class SimpleHttpResponse implements HttpResponse {
 
     private static final String CRLF = "\r\n";
+    private static final int RESPONSE_BYTES_BLANK_SIZE = 4096;
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleHttpResponse.class);
     private Map<String, String> header = new HashMap<String, String>();
     private HttpRequest request;
@@ -83,9 +84,9 @@ public class SimpleHttpResponse implements HttpResponse {
 
     public void send(ByteArrayOutputStream outputStream, boolean close) {
         try {
-            byte[] b = outputStream.toByteArray();
-            ByteBuffer byteBuffer = ByteBuffer.allocate(b.length);
-            byteBuffer.put(b);
+            byte[] bytes = outputStream.toByteArray();
+            ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length);
+            byteBuffer.put(bytes);
             request.getHandler().handleWrite(byteBuffer);
             if (close) {
                 request.getHandler().close();
@@ -105,8 +106,8 @@ public class SimpleHttpResponse implements HttpResponse {
     }
 
 
-    private void send(ByteArrayOutputStream fout) {
-        send(fout, true);
+    private void send(ByteArrayOutputStream byteArrayOutputStream) {
+        send(byteArrayOutputStream, true);
     }
 
     @Override
@@ -141,6 +142,7 @@ public class SimpleHttpResponse implements HttpResponse {
         sb.append("HTTP/1.1 ").append(statusCode).append(" ").append(StatusCodeUtil.getStatusCode(statusCode)).append(CRLF);
         if (responseConfig.isGzip()) {
             header.put("Content-Encoding", "gzip");
+            header.remove("Content-Length");
         }
 
         header.put("Server", ServerInfo.getName() + "/" + ServerInfo.getVersion());
@@ -298,7 +300,7 @@ public class SimpleHttpResponse implements HttpResponse {
             byteArrayOutputStream.write(wrapperResponseHeader(code));
             send(byteArrayOutputStream, false);
             if (inputStream != null) {
-                byte[] bytes = new byte[4096];
+                byte[] bytes = new byte[RESPONSE_BYTES_BLANK_SIZE];
                 int length;
                 if (responseConfig.isGzip()) {
                     inputStream = new GzipCompressingInputStream(inputStream);

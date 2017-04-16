@@ -26,15 +26,15 @@ import java.util.logging.Logger;
 public class SimpleHttpRequest implements HttpRequest {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleHttpRequest.class);
-    protected SocketAddress ipAddr;
-    protected Map<String, String> header = new HashMap<String, String>();
+    protected SocketAddress ipAddress;
+    protected Map<String, String> header = new HashMap<>();
     protected Map<String, String[]> paramMap;
     protected String uri;
     protected String queryStr;
     protected HttpMethod method;
     protected Cookie[] cookies;
     protected HttpSession session;
-    protected Map<String, File> files = new HashMap<String, File>();
+    protected Map<String, File> files = new HashMap<>();
     protected ByteBuffer dataBuffer;
     protected String scheme = "http";
     protected RequestConfig requestConfig;
@@ -62,7 +62,7 @@ public class SimpleHttpRequest implements HttpRequest {
 
     @Override
     public String getRemoteHost() {
-        return ((InetSocketAddress) ipAddr).getHostString();
+        return ((InetSocketAddress) ipAddress).getHostString();
     }
 
     public HttpMethod getMethod() {
