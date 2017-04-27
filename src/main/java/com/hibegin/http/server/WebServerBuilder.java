@@ -20,7 +20,7 @@ public class WebServerBuilder {
 
     private ServerConfig serverConfig;
 
-    private SimpleWebServer socketServer;
+    private SimpleWebServer webServer;
 
     private WebServerBuilder(Builder builder) {
         this.serverConfig = builder.serverConfig;
@@ -28,9 +28,14 @@ public class WebServerBuilder {
         this.requestConfig = builder.requestConfig;
     }
 
+    public SimpleWebServer startInBackground() {
+        startWithThread();
+        return webServer;
+    }
+
     public void start() {
         if (create()) {
-            socketServer.listener();
+            webServer.listener();
         }
     }
 
@@ -42,15 +47,15 @@ public class WebServerBuilder {
             serverConfig.addInterceptor(MethodInterceptor.class);
         }
         if (serverConfig.isSsl()) {
-            socketServer = new SimpleHttpsWebServer(serverConfig, requestConfig, responseConfig);
+            webServer = new SimpleHttpsWebServer(serverConfig, requestConfig, responseConfig);
         } else {
-            socketServer = new SimpleWebServer(serverConfig, requestConfig, responseConfig);
+            webServer = new SimpleWebServer(serverConfig, requestConfig, responseConfig);
         }
         boolean createSuccess;
         if (serverConfig.getPort() != 0) {
-            createSuccess = socketServer.create(serverConfig.getPort());
+            createSuccess = webServer.create(serverConfig.getPort());
         } else {
-            createSuccess = socketServer.create();
+            createSuccess = webServer.create();
         }
         return createSuccess;
     }
@@ -62,7 +67,7 @@ public class WebServerBuilder {
                 @Override
                 public void run() {
                     Thread.currentThread().setName(ServerInfo.getName() + "-Main-Thread");
-                    WebServerBuilder.this.socketServer.listener();
+                    WebServerBuilder.this.webServer.listener();
                 }
             }.start();
         }
@@ -107,4 +112,7 @@ public class WebServerBuilder {
         }
     }
 
+    public SimpleWebServer getWebServer() {
+        return webServer;
+    }
 }

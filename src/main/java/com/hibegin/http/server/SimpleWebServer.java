@@ -105,7 +105,7 @@ public class SimpleWebServer implements ISocketServer {
         } catch (Throwable e) {
             LOGGER.log(Level.WARNING, "save pid error", e);
         }
-        while (true) {
+        while (selector.isOpen()) {
             try {
                 //防止检查线程被jvm杀死
                 if (checkRequestThread == null || checkRequestThread.isInterrupted()) {
@@ -224,7 +224,18 @@ public class SimpleWebServer implements ISocketServer {
 
     @Override
     public void destroy() {
-
+        if (selector == null) {
+            return;
+        }
+        try {
+            selector.close();
+            if (checkRequestThread != null) {
+                checkRequestThread.interrupt();
+            }
+            LOGGER.info("close webServer success");
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "close selector error");
+        }
     }
 
     @Override

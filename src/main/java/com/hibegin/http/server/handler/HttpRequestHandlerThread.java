@@ -22,6 +22,7 @@ public class HttpRequestHandlerThread extends Thread {
 
     private HttpResponse response;
     private SocketChannel channel;
+    private boolean interrupted;
 
     public HttpRequestHandlerThread(HttpRequest request, HttpResponse response, ServerContext serverContext) {
         this.serverContext = serverContext;
@@ -75,11 +76,16 @@ public class HttpRequestHandlerThread extends Thread {
 
     @Override
     public void interrupt() {
-        close();
+        synchronized (this) {
+            if (!interrupted) {
+                close();
+            }
+        }
         super.interrupt();
     }
 
     private void close() {
+        interrupted = true;
         LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
         if (channel.socket().isClosed()) {
             serverContext.getHttpDeCoderMap().remove(channel);
