@@ -93,8 +93,7 @@ public class SimpleWebServer implements ISocketServer {
         }
         //开始初始化一些配置
         serverContext.init();
-        checkRequestThread = new CheckRequestThread("Check-Request-Thread", serverConfig.getTimeOut(), serverContext);
-        checkRequestThread.start();
+
         LOGGER.info(ServerInfo.getName() + " is run versionStr -> " + ServerInfo.getVersion());
         LOGGER.log(Level.INFO, serverConfig.getRouter().toString());
         try {
@@ -108,6 +107,11 @@ public class SimpleWebServer implements ISocketServer {
         }
         while (true) {
             try {
+                //防止检查线程被jvm杀死
+                if (checkRequestThread == null || checkRequestThread.isInterrupted()) {
+                    checkRequestThread = new CheckRequestThread("Check-Request-Thread", serverConfig.getTimeOut(), serverContext);
+                    checkRequestThread.start();
+                }
                 selector.select();
                 Set<SelectionKey> keys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = keys.iterator();
