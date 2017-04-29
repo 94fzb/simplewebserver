@@ -113,7 +113,7 @@ public class SimpleHttpResponse implements HttpResponse {
     @Override
     public void renderJson(Object json) {
         try {
-            renderByMimeType("json", new JSONSerializer().deepSerialize(json).getBytes(responseConfig.getCharSet()));
+            renderByMimeType("json", new JSONSerializer().exclude("*.class").deepSerialize(json).getBytes(responseConfig.getCharSet()));
         } catch (UnsupportedEncodingException e) {
             LOGGER.log(Level.SEVERE, "", e);
         }
