@@ -95,7 +95,7 @@ public class SimpleWebServer implements ISocketServer {
         serverContext.init();
 
         LOGGER.info(ServerInfo.getName() + " is run versionStr -> " + ServerInfo.getVersion());
-        LOGGER.log(Level.INFO, serverConfig.getRouter().toString());
+        LOGGER.info(serverConfig.getRouter().toString());
         try {
             if (pidFile == null) {
                 pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
@@ -176,7 +176,7 @@ public class SimpleWebServer implements ISocketServer {
                 handleException(key, codecEntry.getKey(), null, 400);
                 exception = true;
             } catch (UnSupportMethodException e) {
-                LOGGER.log(Level.INFO, "", e);
+                LOGGER.info(e.getMessage());
                 handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue(), serverContext), 400);
                 exception = true;
             } catch (ContentLengthTooLargeException e) {

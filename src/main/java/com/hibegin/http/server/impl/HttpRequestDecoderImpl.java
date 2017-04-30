@@ -210,7 +210,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                         }
                     }
 
-                    LOGGER.info(request.header.toString());
+                    //LOGGER.info(request.header.toString());
 
                     String inputName = request.header.get("Content-Disposition").split(";")[1].split("=")[1].replace("\"", "");
                     String fileName;
