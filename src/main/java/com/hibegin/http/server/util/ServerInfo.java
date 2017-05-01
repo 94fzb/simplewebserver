@@ -39,7 +39,7 @@ public class ServerInfo {
             name = "SimpleWebServer";
         }
         if (version == null) {
-            version = "0.0.x-dev";
+            version = "0.1.3";
         }
         if (time == null) {
             time = new Date();
