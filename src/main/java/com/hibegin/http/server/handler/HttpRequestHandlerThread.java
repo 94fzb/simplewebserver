@@ -22,7 +22,7 @@ public class HttpRequestHandlerThread extends Thread {
 
     private HttpResponse response;
     private SocketChannel channel;
-    private boolean interrupted;
+    private volatile boolean interrupted;
 
     public HttpRequestHandlerThread(HttpRequest request, HttpResponse response, ServerContext serverContext) {
         this.serverContext = serverContext;
@@ -55,13 +55,18 @@ public class HttpRequestHandlerThread extends Thread {
                 if (!keepAlive) {
                     Socket socket = channel.socket();
                     // 渲染错误页面
-                    if (!socket.isClosed()) {
+                    if (!socket.isClosed() || !socket.isConnected()) {
                         LOGGER.log(Level.WARNING, "forget close stream " + socket.toString());
                         response.renderCode(404);
                     }
                 }
                 serverContext.getHttpDeCoderMap().remove(channel);
                 close();
+            } else {
+                Socket socket = channel.socket();
+                if (socket.isClosed() && !socket.isConnected()) {
+                    close();
+                }
             }
         }
     }
@@ -76,22 +81,25 @@ public class HttpRequestHandlerThread extends Thread {
 
     @Override
     public void interrupt() {
-        synchronized (this) {
-            if (!interrupted) {
-                close();
-            }
-        }
         super.interrupt();
+        if (!interrupted) {
+            close();
+        }
     }
 
     private void close() {
         interrupted = true;
-        LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
-        if (channel.socket().isClosed()) {
-            serverContext.getHttpDeCoderMap().remove(channel);
-        }
-        for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
-            requestListener.destroy(this.getRequest(), this.getResponse());
-        }
+        new Thread() {
+            @Override
+            public void run() {
+                LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
+                if (channel.socket().isClosed()) {
+                    serverContext.getHttpDeCoderMap().remove(channel);
+                }
+                for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
+                    requestListener.destroy(getRequest(), getResponse());
+                }
+            }
+        }.start();
     }
 }

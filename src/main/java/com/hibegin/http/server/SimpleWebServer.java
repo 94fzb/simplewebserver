@@ -12,7 +12,7 @@ import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.execption.ContentLengthTooLargeException;
 import com.hibegin.http.server.execption.UnSupportMethodException;
-import com.hibegin.http.server.handler.CheckRequestThread;
+import com.hibegin.http.server.handler.CheckRequestRunnable;
 import com.hibegin.http.server.handler.HttpRequestHandlerThread;
 import com.hibegin.http.server.handler.PlainReadWriteSelectorHandler;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
@@ -38,6 +38,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,15 +48,15 @@ public class SimpleWebServer implements ISocketServer {
 
 
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleWebServer.class);
+    private CheckRequestRunnable checkRequestRunnable;
 
     private Selector selector;
     private ServerConfig serverConfig;
     private RequestConfig requestConfig;
     private ResponseConfig responseConfig;
     private ServerContext serverContext = new ServerContext();
-    private CheckRequestThread checkRequestThread;
     private File pidFile;
-    public static Map<SocketChannel, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
+    private Map<SocketChannel, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
 
     public SimpleWebServer() {
         this(null, null, null);
@@ -107,6 +110,10 @@ public class SimpleWebServer implements ISocketServer {
         } catch (Throwable e) {
             LOGGER.log(Level.WARNING, "save pid error", e);
         }
+        //防止检查线程被jvm杀死
+        ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+        checkRequestRunnable = new CheckRequestRunnable(serverConfig.getTimeOut(), serverContext, channelHttpRequestHandlerThreadMap);
+        scheduledExecutorService.scheduleAtFixedRate(checkRequestRunnable, 0, 100, TimeUnit.MILLISECONDS);
         while (selector.isOpen()) {
             try {
                 selector.select();
@@ -114,14 +121,6 @@ public class SimpleWebServer implements ISocketServer {
                 Iterator<SelectionKey> iterator = keys.iterator();
 
                 while (iterator.hasNext()) {
-                    //防止检查线程被jvm杀死
-                    if (checkRequestThread == null || checkRequestThread.isInterrupted() ||
-                            checkRequestThread.getState() == Thread.State.BLOCKED ||
-                            checkRequestThread.getState() == Thread.State.TERMINATED) {
-                        checkRequestThread = new CheckRequestThread("Check-Request-Thread", serverConfig.getTimeOut(),
-                                serverContext, channelHttpRequestHandlerThreadMap);
-                        checkRequestThread.start();
-                    }
                     SelectionKey key = iterator.next();
                     SocketChannel channel = null;
                     if (!key.isValid() || !key.channel().isOpen()) {
@@ -234,9 +233,6 @@ public class SimpleWebServer implements ISocketServer {
         }
         try {
             selector.close();
-            if (checkRequestThread != null) {
-                checkRequestThread.interrupt();
-            }
             LOGGER.info("close webServer success");
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "close selector error");
@@ -281,5 +277,9 @@ public class SimpleWebServer implements ISocketServer {
         config.setRouter(serverConfig.getRouter());
         config.setIsSsl(serverConfig.isSsl());
         return config;
+    }
+
+    public CheckRequestRunnable getCheckRequestRunnable() {
+        return checkRequestRunnable;
     }
 }
