@@ -22,7 +22,7 @@ public class HttpRequestHandlerThread extends Thread {
 
     private HttpResponse response;
     private SocketChannel channel;
-    private boolean interrupted;
+    private volatile boolean interrupted;
 
     public HttpRequestHandlerThread(HttpRequest request, HttpResponse response, ServerContext serverContext) {
         this.serverContext = serverContext;
@@ -76,22 +76,25 @@ public class HttpRequestHandlerThread extends Thread {
 
     @Override
     public void interrupt() {
-        synchronized (this) {
-            if (!interrupted) {
-                close();
-            }
-        }
         super.interrupt();
+        if (!interrupted) {
+            close();
+        }
     }
 
     private void close() {
         interrupted = true;
-        LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
-        if (channel.socket().isClosed()) {
-            serverContext.getHttpDeCoderMap().remove(channel);
-        }
-        for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
-            requestListener.destroy(this.getRequest(), this.getResponse());
-        }
+        new Thread() {
+            @Override
+            public void run() {
+                //LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
+                if (channel.socket().isClosed()) {
+                    serverContext.getHttpDeCoderMap().remove(channel);
+                }
+                for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
+                    requestListener.destroy(getRequest(), getResponse());
+                }
+            }
+        }.start();
     }
 }
