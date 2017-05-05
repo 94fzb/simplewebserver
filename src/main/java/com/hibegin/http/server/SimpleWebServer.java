@@ -37,6 +37,7 @@ import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -52,6 +53,7 @@ public class SimpleWebServer implements ISocketServer {
     private ServerContext serverContext = new ServerContext();
     private CheckRequestThread checkRequestThread;
     private File pidFile;
+    public static Map<SocketChannel, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
 
     public SimpleWebServer() {
         this(null, null, null);
@@ -107,16 +109,19 @@ public class SimpleWebServer implements ISocketServer {
         }
         while (selector.isOpen()) {
             try {
-                //防止检查线程被jvm杀死
-                if (checkRequestThread == null || checkRequestThread.isInterrupted()) {
-                    checkRequestThread = new CheckRequestThread("Check-Request-Thread", serverConfig.getTimeOut(), serverContext);
-                    checkRequestThread.start();
-                }
                 selector.select();
                 Set<SelectionKey> keys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = keys.iterator();
 
                 while (iterator.hasNext()) {
+                    //防止检查线程被jvm杀死
+                    if (checkRequestThread == null || checkRequestThread.isInterrupted() ||
+                            checkRequestThread.getState() == Thread.State.BLOCKED ||
+                            checkRequestThread.getState() == Thread.State.TERMINATED) {
+                        checkRequestThread = new CheckRequestThread("Check-Request-Thread", serverConfig.getTimeOut(),
+                                serverContext, channelHttpRequestHandlerThreadMap);
+                        checkRequestThread.start();
+                    }
                     SelectionKey key = iterator.next();
                     SocketChannel channel = null;
                     if (!key.isValid() || !key.channel().isOpen()) {
@@ -188,11 +193,11 @@ public class SimpleWebServer implements ISocketServer {
             }
             if (channel.isConnected() && !exception) {
                 //清除老的请求
-                HttpRequestHandlerThread oldHttpRequestHandlerThread = checkRequestThread.getChannelHttpRequestHandlerThreadMap().get(channel);
+                HttpRequestHandlerThread oldHttpRequestHandlerThread = channelHttpRequestHandlerThreadMap.get(channel);
                 if (oldHttpRequestHandlerThread != null) {
                     oldHttpRequestHandlerThread.interrupt();
                 }
-                checkRequestThread.getChannelHttpRequestHandlerThreadMap().put(channel, requestHandlerThread);
+                channelHttpRequestHandlerThreadMap.put(channel, requestHandlerThread);
                 serverConfig.getExecutor().execute(requestHandlerThread);
                 if (codecEntry.getKey().getRequest().getMethod() != HttpMethod.CONNECT) {
                     serverContext.getHttpDeCoderMap().remove(channel);

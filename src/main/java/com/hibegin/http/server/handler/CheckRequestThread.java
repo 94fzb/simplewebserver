@@ -8,7 +8,6 @@ import com.hibegin.http.server.impl.ServerContext;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -16,29 +15,28 @@ public class CheckRequestThread extends Thread {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(CheckRequestThread.class);
 
-    private Map<SocketChannel, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
+    private Map<SocketChannel, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap;
     private ServerContext serverContext;
 
     private int requestTimeout = 0;
 
-    public CheckRequestThread(String name, int requestTimeout, ServerContext serverContext) {
+    public CheckRequestThread(String name, int requestTimeout, ServerContext serverContext, Map<SocketChannel, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap) {
         super(name);
+        this.channelHttpRequestHandlerThreadMap = channelHttpRequestHandlerThreadMap;
         this.requestTimeout = requestTimeout;
         this.serverContext = serverContext;
     }
 
     @Override
     public void run() {
+        LOGGER.log(Level.INFO, "Running... " + channelHttpRequestHandlerThreadMap.size());
         try {
-            while (true) {
-                clearRequestListener();
-                clearRequestDecode();
-                //LOGGER.log(Level.INFO, "Running... " + channelHttpRequestHandlerThreadMap.size());
-                Thread.sleep(1000);
-            }
-        } catch (InterruptedException e) {
-            LOGGER.log(Level.SEVERE, "", e);
+            clearRequestListener();
+            clearRequestDecode();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "e", e);
         }
+        LOGGER.log(Level.INFO, "Running... " + channelHttpRequestHandlerThreadMap.size());
     }
 
     private void clearRequestListener() {
@@ -70,9 +68,5 @@ public class CheckRequestThread extends Thread {
         for (Map.Entry<SocketChannel, Map.Entry<HttpRequestDeCoder, HttpResponse>> entryMap : removeHttpDecodeRequestList.entrySet()) {
             serverContext.getHttpDeCoderMap().remove(entryMap.getKey());
         }
-    }
-
-    public Map<SocketChannel, HttpRequestHandlerThread> getChannelHttpRequestHandlerThreadMap() {
-        return channelHttpRequestHandlerThreadMap;
     }
 }
