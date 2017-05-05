@@ -73,7 +73,7 @@ public class MethodInterceptor implements Interceptor {
                     controller.request = request;
                     controller.response = response;
                 }
-                LOGGER.info("invoke method " + method);
+                //LOGGER.info("invoke method " + method);
                 method.invoke(controller);
             } catch (Exception e) {
                 response.renderCode(500);

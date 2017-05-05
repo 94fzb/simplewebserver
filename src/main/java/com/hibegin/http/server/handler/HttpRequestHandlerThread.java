@@ -55,7 +55,7 @@ public class HttpRequestHandlerThread extends Thread {
                 if (!keepAlive) {
                     Socket socket = channel.socket();
                     // 渲染错误页面
-                    if (!socket.isClosed() || !socket.isConnected()) {
+                    if (!socket.isClosed()) {
                         LOGGER.log(Level.WARNING, "forget close stream " + socket.toString());
                         response.renderCode(404);
                     }
@@ -87,7 +87,7 @@ public class HttpRequestHandlerThread extends Thread {
         new Thread() {
             @Override
             public void run() {
-                LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
+                //LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
                 if (channel.socket().isClosed()) {
                     serverContext.getHttpDeCoderMap().remove(channel);
                 }

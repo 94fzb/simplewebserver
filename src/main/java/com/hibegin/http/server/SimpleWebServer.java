@@ -124,7 +124,7 @@ public class SimpleWebServer implements ISocketServer {
                     SelectionKey key = iterator.next();
                     SocketChannel channel = null;
                     if (!key.isValid() || !key.channel().isOpen()) {
-                        LOGGER.log(Level.WARNING, "error key " + key);
+                        continue;
                     } else if (key.isAcceptable()) {
                         ServerSocketChannel server = (ServerSocketChannel) key.channel();
                         try {
