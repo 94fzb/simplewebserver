@@ -62,11 +62,6 @@ public class HttpRequestHandlerThread extends Thread {
                 }
                 serverContext.getHttpDeCoderMap().remove(channel);
                 close();
-            } else {
-                Socket socket = channel.socket();
-                if (socket.isClosed() && !socket.isConnected()) {
-                    close();
-                }
             }
         }
     }

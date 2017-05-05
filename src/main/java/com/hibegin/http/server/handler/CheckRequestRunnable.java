@@ -30,7 +30,6 @@ public class CheckRequestRunnable implements Runnable {
     @Override
     public void run() {
         lastAccessDate = new Date();
-        LOGGER.log(Level.INFO, "Running... " + channelHttpRequestHandlerThreadMap.size());
         try {
             Set<SocketChannel> removeHttpRequestList = getSocketChannelHttpRequestHandlerThreadMap();
             clearRequestListener(removeHttpRequestList);
@@ -38,7 +37,6 @@ public class CheckRequestRunnable implements Runnable {
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "e", e);
         }
-        LOGGER.log(Level.INFO, "Running... " + channelHttpRequestHandlerThreadMap.size());
     }
 
     private void clearRequestListener(Set<SocketChannel> removeHttpRequestList) {
