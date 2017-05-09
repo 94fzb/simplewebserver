@@ -1,14 +1,16 @@
 package com.hibegin.http.server.handler;
 
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.server.api.HttpRequestDeCoder;
+import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.impl.ServerContext;
 
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,9 +33,8 @@ public class CheckRequestRunnable implements Runnable {
     public void run() {
         lastAccessDate = new Date();
         try {
-            Set<SocketChannel> removeHttpRequestList = getSocketChannelHttpRequestHandlerThreadMap();
-            clearRequestListener(removeHttpRequestList);
-            clearRequestDecode(removeHttpRequestList);
+            clearRequestListener(getClosedRequestChannelSet());
+            clearRequestDecode(getClosedDecodedChannelSet());
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "e", e);
         }
@@ -48,21 +49,32 @@ public class CheckRequestRunnable implements Runnable {
         }
     }
 
-    private Set<SocketChannel> getSocketChannelHttpRequestHandlerThreadMap() {
-        Map<SocketChannel, HttpRequestHandlerThread> removeHttpRequestList = new HashMap<>();
+    private Set<SocketChannel> getClosedRequestChannelSet() {
+        Set<SocketChannel> socketChannels = new CopyOnWriteArraySet<>();
         for (Map.Entry<SocketChannel, HttpRequestHandlerThread> entry : channelHttpRequestHandlerThreadMap.entrySet()) {
             Socket socket = entry.getKey().socket();
             if (socket.isClosed() || !socket.isConnected()) {
-                removeHttpRequestList.put(entry.getKey(), entry.getValue());
+                socketChannels.add(entry.getKey());
             }
             if (requestTimeout > 0) {
                 if (System.currentTimeMillis() - entry.getValue().getRequest().getCreateTime() > requestTimeout * 1000) {
                     entry.getValue().getResponse().renderCode(504);
-                    removeHttpRequestList.put(entry.getKey(), entry.getValue());
+                    socketChannels.add(entry.getKey());
                 }
             }
         }
-        return removeHttpRequestList.keySet();
+        return socketChannels;
+    }
+
+    private Set<SocketChannel> getClosedDecodedChannelSet() {
+        Set<SocketChannel> removeHttpRequestList = new CopyOnWriteArraySet<>();
+        for (Map.Entry<SocketChannel, Map.Entry<HttpRequestDeCoder, HttpResponse>> entry : serverContext.getHttpDeCoderMap().entrySet()) {
+            Socket socket = entry.getKey().socket();
+            if (socket.isClosed() || !socket.isConnected()) {
+                removeHttpRequestList.add(entry.getKey());
+            }
+        }
+        return removeHttpRequestList;
     }
 
     private void clearRequestDecode(Set<SocketChannel> removeHttpRequestList) {
