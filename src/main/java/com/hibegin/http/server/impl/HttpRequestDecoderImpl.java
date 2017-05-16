@@ -3,6 +3,7 @@ package com.hibegin.http.server.impl;
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.config.ConfigKit;
@@ -13,7 +14,6 @@ import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
 import com.hibegin.http.server.util.PathUtil;
 
 import java.io.*;
-import java.net.SocketAddress;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
@@ -28,15 +28,11 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     protected static final String SPLIT = CRLF + CRLF;
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpRequestDecoderImpl.class);
     private SimpleHttpRequest request;
+    private boolean headerHandled = false;
 
 
-    public HttpRequestDecoderImpl(SocketAddress socketAddress, RequestConfig requestConfig, ServerContext serverContext, ReadWriteSelectorHandler handler) {
-        this.request = new SimpleHttpRequest(System.currentTimeMillis(), handler, serverContext);
-        this.request.requestConfig = requestConfig;
-        this.request.ipAddress = socketAddress;
-        if (requestConfig.isSsl()) {
-            request.scheme = "https";
-        }
+    public HttpRequestDecoderImpl(RequestConfig requestConfig, ServerContext serverContext, ReadWriteSelectorHandler handler) {
+        this.request = new SimpleHttpRequest(handler, serverContext, requestConfig);
     }
 
     private static String randomFile() {
@@ -46,30 +42,56 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
 
     @Override
     public boolean doDecode(byte[] data) throws Exception {
-        boolean flag = false;
-        if (request.dataBuffer == null) {
-            request.headerSb.append(new String(data));
-            if (request.headerSb.toString().contains(SPLIT)) {
-                String fullData = request.headerSb.toString();
-                String httpHeader = fullData.substring(0, fullData.indexOf(SPLIT));
-                String headerArr[] = httpHeader.split(CRLF);
-                String pHeader = headerArr[0];
-                if (!"".equals(pHeader.split(" ")[0])) {
-                    // parse HttpHeader
-                    parseHttpProtocolHeader(headerArr, pHeader);
-                    flag = parseHttpMethod(data, httpHeader);
+        if (headerHandled && request.getMethod() == HttpMethod.CONNECT) {
+            if (request.requestBodyBuffer == null) {
+                request.requestBodyBuffer = ByteBuffer.allocate(data.length);
+            } else {
+                byte[] oldBytes = request.requestBodyBuffer.array();
+                request.requestBodyBuffer = ByteBuffer.allocate(oldBytes.length + data.length);
+                request.requestBodyBuffer.put(oldBytes);
+            }
+            request.requestBodyBuffer.put(data);
+            return true;
+        } else {
+            // 存在2种情况
+            // 1,提交的数据一次性读取完成。
+            // 2,提交的数据一次性读取不完。
+            boolean flag = false;
+            if (request.requestBodyBuffer == null) {
+                request.headerSb.append(new String(data));
+                if (request.headerSb.toString().contains(SPLIT)) {
+                    headerHandled = true;
+                    String fullData = request.headerSb.toString();
+                    int splitIndex = fullData.indexOf(SPLIT);
+                    String httpHeader = fullData.substring(0, splitIndex);
+                    request.headerSb = new StringBuilder(httpHeader);
+                    String headerArr[] = httpHeader.split(CRLF);
+                    String pHeader = headerArr[0];
+                    if (!"".equals(pHeader.split(" ")[0])) {
+                        // parse HttpHeader
+                        parseHttpProtocolHeader(headerArr, pHeader);
+                        byte[] fullBytes = fullData.getBytes();
+                        byte[] requestBody;
+                        if (fullBytes.length > request.headerSb.toString().getBytes().length + SPLIT.getBytes().length) {
+                            requestBody = BytesUtil.subBytes(fullBytes, splitIndex + SPLIT.getBytes().length,
+                                    fullBytes.length - httpHeader.getBytes().length - SPLIT.getBytes().length);
+                        } else {
+                            requestBody = new byte[0];
+                        }
+                        flag = parseHttpRequestBody(requestBody);
+                    }
+                } else {
+                    checkHttpMethod();
                 }
             } else {
-                checkHttpMethod();
+                request.requestBodyBuffer.put(data);
+                flag = !request.requestBodyBuffer.hasRemaining();
+                if (flag) {
+                    dealRequestBodyData();
+                }
             }
-        } else {
-            request.dataBuffer.put(data);
-            flag = !request.dataBuffer.hasRemaining();
-            if (flag) {
-                dealPostData();
-            }
+            return flag;
         }
-        return flag;
     }
 
     private void checkHttpMethod() throws UnSupportMethodException {
@@ -87,30 +109,24 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         }
     }
 
-    private boolean parseHttpMethod(byte[] data, String httpHeader) {
+    private boolean parseHttpRequestBody(byte[] requestBodyData) {
         boolean flag = false;
 
         if (request.method == HttpMethod.GET || request.method == HttpMethod.CONNECT) {
             wrapperParamStrToMap(request.queryStr);
             flag = true;
         } else if (request.method == HttpMethod.POST || request.method == HttpMethod.DELETE || request.method == HttpMethod.PUT) {
-            // 存在2种情况
-            // 1,POST 提交的数据一次性读取完成。
-            // 2,POST 提交的数据一次性读取不完。
             wrapperParamStrToMap(request.queryStr);
             if (request.header.get("Content-Length") != null) {
                 Integer dateLength = Integer.parseInt(request.header.get("Content-Length"));
                 if (dateLength > ConfigKit.getMaxUploadSize()) {
-                    throw new ContentLengthTooLargeException("Content-Length outSide the max uploadSize "
-                            + ConfigKit.getMaxUploadSize());
+                    throw new ContentLengthTooLargeException("The Content-Length outside the max upload size " + ConfigKit.getMaxUploadSize());
                 }
-                request.dataBuffer = ByteBuffer.allocate(dateLength);
-                int headerLength = httpHeader.getBytes().length + SPLIT.getBytes().length;
-                byte[] remain = BytesUtil.subBytes(data, headerLength, data.length - headerLength);
-                request.dataBuffer.put(remain);
-                flag = !request.dataBuffer.hasRemaining();
+                request.requestBodyBuffer = ByteBuffer.allocate(dateLength);
+                request.requestBodyBuffer.put(requestBodyData);
+                flag = !request.requestBodyBuffer.hasRemaining();
                 if (flag) {
-                    dealPostData();
+                    dealRequestBodyData();
                 }
             } else {
                 flag = true;
@@ -125,8 +141,8 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         request.method = HttpMethod.valueOf(protocolHeaderArr[0].toUpperCase());
         String tUrl = request.uri = protocolHeaderArr[1];
         // just for some proxy-client
-        if (tUrl.startsWith(request.scheme + "://")) {
-            tUrl = tUrl.substring((request.scheme + "://").length());
+        if (tUrl.startsWith(request.getScheme() + "://")) {
+            tUrl = tUrl.substring((request.getScheme() + "://").length());
             if (tUrl.contains("/")) {
                 request.header.put("Host", tUrl.substring(0, tUrl.indexOf("/")));
                 tUrl = tUrl.substring(tUrl.indexOf("/"));
@@ -185,53 +201,46 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         }
     }
 
-    private void dealPostData() {
+    private void dealRequestBodyData() {
         if (request.header.get("Content-Type") != null && request.header.get("Content-Type").split(";")[0] != null) {
+            //FIXME 不支持多文件上传，不支持这里有其他属性字段
             if ("multipart/form-data".equals(request.header.get("Content-Type").split(";")[0])) {
-                //TODO 使用合理算法提高对网卡的利用率
-                //FIXME 不支持多文件上传，不支持这里有其他属性字段
-                if (!request.dataBuffer.hasRemaining()) {
-                    BufferedReader bin = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(request.dataBuffer.array())));
-                    //ByteArrayOutputStream bout=new ByteArrayOutputStream(d);
-                    StringBuilder sb = new StringBuilder();
+                BufferedReader bin = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(request.requestBodyBuffer.array())));
+                StringBuilder sb = new StringBuilder();
+                try {
+                    String headerStr;
+                    while ((headerStr = bin.readLine()) != null && !"".equals(headerStr)) {
+                        sb.append(headerStr).append(CRLF);
+                        dealRequestHeaderString(headerStr);
+                    }
+                } catch (IOException e) {
+                    LOGGER.log(Level.SEVERE, "", e);
+                } finally {
                     try {
-                        String headerStr;
-                        while ((headerStr = bin.readLine()) != null && !"".equals(headerStr)) {
-                            sb.append(headerStr).append(CRLF);
-                            dealRequestHeaderString(headerStr);
-                        }
+                        bin.close();
                     } catch (IOException e) {
                         LOGGER.log(Level.SEVERE, "", e);
-                    } finally {
-                        try {
-                            bin.close();
-                        } catch (IOException e) {
-                            LOGGER.log(Level.SEVERE, "", e);
-                        }
                     }
-
-                    //LOGGER.info(request.header.toString());
-
-                    String inputName = request.header.get("Content-Disposition").split(";")[1].split("=")[1].replace("\"", "");
-                    String fileName;
-                    if (request.header.get("Content-Disposition").split(";").length > 2) {
-                        fileName = request.header.get("Content-Disposition").split(";")[2].split("=")[1].replace("\"", "");
-                    } else {
-                        fileName = randomFile();
-                    }
-                    File file = new File(PathUtil.getTempPath() + fileName);
-                    request.files.put(inputName, file);
-                    int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
-                    int length2 = sb.toString().getBytes().length + 2;
-                    int dataLength = Integer.parseInt(request.header.get("Content-Length")) - length1 - length2 - SPLIT.getBytes().length;
-                    IOUtil.writeBytesToFile(BytesUtil.subBytes(request.dataBuffer.array(), length2, dataLength), file);
-                    request.paramMap = new HashMap<>();
                 }
+                String inputName = request.header.get("Content-Disposition").split(";")[1].split("=")[1].replace("\"", "");
+                String fileName;
+                if (request.header.get("Content-Disposition").split(";").length > 2) {
+                    fileName = request.header.get("Content-Disposition").split(";")[2].split("=")[1].replace("\"", "");
+                } else {
+                    fileName = randomFile();
+                }
+                File file = new File(PathUtil.getTempPath() + fileName);
+                request.files.put(inputName, file);
+                int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
+                int length2 = sb.toString().getBytes().length + 2;
+                int dataLength = Integer.parseInt(request.header.get("Content-Length")) - length1 - length2 - SPLIT.getBytes().length;
+                IOUtil.writeBytesToFile(BytesUtil.subBytes(request.requestBodyBuffer.array(), length2, dataLength), file);
+                request.paramMap = new HashMap<>();
             } else {
-                wrapperParamStrToMap(new String(request.dataBuffer.array()));
+                wrapperParamStrToMap(new String(request.requestBodyBuffer.array()));
             }
         } else {
-            wrapperParamStrToMap(new String(request.dataBuffer.array()));
+            wrapperParamStrToMap(new String(request.requestBodyBuffer.array()));
         }
     }
 

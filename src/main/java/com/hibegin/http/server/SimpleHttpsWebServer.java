@@ -24,10 +24,6 @@ public class SimpleHttpsWebServer extends SimpleWebServer {
 
     private SSLContext sslContext;
 
-    public SimpleHttpsWebServer() {
-        this(null, null, null);
-    }
-
     public SimpleHttpsWebServer(ServerConfig serverConfig, RequestConfig requestConfig, ResponseConfig responseConfig) {
         super(serverConfig, requestConfig, responseConfig);
         String password = ConfigKit.get("server.ssl.keystore.password", "").toString();

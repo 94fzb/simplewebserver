@@ -1,4 +1,4 @@
-package com.hibegin.http.server.io;
+package com.hibegin.http.io;
 
 import java.io.*;
 import java.util.Enumeration;

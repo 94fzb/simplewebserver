@@ -1,4 +1,4 @@
-package com.hibegin.http.server.io;
+package com.hibegin.http.io;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;

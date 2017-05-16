@@ -6,7 +6,6 @@ import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.impl.ServerContext;
 
 import java.net.Socket;
-import java.nio.channels.SocketChannel;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
@@ -20,10 +19,10 @@ public class CheckRequestRunnable implements Runnable {
     private int requestTimeout;
     private Date lastAccessDate;
 
-    private Map<SocketChannel, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap;
+    private Map<Socket, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap;
     private ServerContext serverContext;
 
-    public CheckRequestRunnable(int requestTimeout, ServerContext serverContext, Map<SocketChannel, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap) {
+    public CheckRequestRunnable(int requestTimeout, ServerContext serverContext, Map<Socket, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap) {
         this.channelHttpRequestHandlerThreadMap = channelHttpRequestHandlerThreadMap;
         this.requestTimeout = requestTimeout;
         this.serverContext = serverContext;
@@ -33,26 +32,26 @@ public class CheckRequestRunnable implements Runnable {
     public void run() {
         lastAccessDate = new Date();
         try {
-            clearRequestListener(getClosedRequestChannelSet());
-            clearRequestDecode(getClosedDecodedChannelSet());
+            clearRequestListener(getClosedRequestSocketSet());
+            clearRequestDecode(getClosedDecodedSocketSet());
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "e", e);
         }
     }
 
-    private void clearRequestListener(Set<SocketChannel> removeHttpRequestList) {
-        for (SocketChannel socketChannel : removeHttpRequestList) {
-            if (channelHttpRequestHandlerThreadMap.get(socketChannel) != null) {
-                channelHttpRequestHandlerThreadMap.get(socketChannel).interrupt();
-                channelHttpRequestHandlerThreadMap.remove(socketChannel);
+    private void clearRequestListener(Set<Socket> removeHttpRequestList) {
+        for (Socket socket : removeHttpRequestList) {
+            if (channelHttpRequestHandlerThreadMap.get(socket) != null) {
+                channelHttpRequestHandlerThreadMap.get(socket).interrupt();
+                channelHttpRequestHandlerThreadMap.remove(socket);
             }
         }
     }
 
-    private Set<SocketChannel> getClosedRequestChannelSet() {
-        Set<SocketChannel> socketChannels = new CopyOnWriteArraySet<>();
-        for (Map.Entry<SocketChannel, HttpRequestHandlerThread> entry : channelHttpRequestHandlerThreadMap.entrySet()) {
-            Socket socket = entry.getKey().socket();
+    private Set<Socket> getClosedRequestSocketSet() {
+        Set<Socket> socketChannels = new CopyOnWriteArraySet<>();
+        for (Map.Entry<Socket, HttpRequestHandlerThread> entry : channelHttpRequestHandlerThreadMap.entrySet()) {
+            Socket socket = entry.getKey();
             if (socket.isClosed() || !socket.isConnected()) {
                 socketChannels.add(entry.getKey());
             }
@@ -66,24 +65,24 @@ public class CheckRequestRunnable implements Runnable {
         return socketChannels;
     }
 
-    private Set<SocketChannel> getClosedDecodedChannelSet() {
-        Set<SocketChannel> removeHttpRequestList = new CopyOnWriteArraySet<>();
-        for (Map.Entry<SocketChannel, Map.Entry<HttpRequestDeCoder, HttpResponse>> entry : serverContext.getHttpDeCoderMap().entrySet()) {
-            Socket socket = entry.getKey().socket();
+    private Set<Socket> getClosedDecodedSocketSet() {
+        Set<Socket> removeHttpRequestList = new CopyOnWriteArraySet<>();
+        for (Map.Entry<Socket, Map.Entry<HttpRequestDeCoder, HttpResponse>> entry : serverContext.getHttpDeCoderMap().entrySet()) {
+            Socket socket = entry.getKey();
             if (socket.isClosed() || !socket.isConnected()) {
-                removeHttpRequestList.add(entry.getKey());
+                removeHttpRequestList.add(socket);
             }
         }
         return removeHttpRequestList;
     }
 
-    private void clearRequestDecode(Set<SocketChannel> removeHttpRequestList) {
-        for (SocketChannel socketChannel : removeHttpRequestList) {
-            serverContext.getHttpDeCoderMap().remove(socketChannel);
+    private void clearRequestDecode(Set<Socket> removeHttpRequestList) {
+        for (Socket socket : removeHttpRequestList) {
+            serverContext.getHttpDeCoderMap().remove(socket);
         }
     }
 
-    public Map<SocketChannel, HttpRequestHandlerThread> getChannelHttpRequestHandlerThreadMap() {
+    public Map<Socket, HttpRequestHandlerThread> getChannelHttpRequestHandlerThreadMap() {
         return channelHttpRequestHandlerThreadMap;
     }
 

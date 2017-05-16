@@ -158,10 +158,10 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
      * Constructor for a secure ChannelIO variant.
      */
     public SSLReadWriteSelectorHandler(SocketChannel sc, SelectionKey selectionKey,
-                                       SSLContext sslc) throws IOException {
-        super(sc, selectionKey);
+                                       SSLContext sslContext) throws IOException {
+        super(sc);
 
-        sslEngine = sslc.createSSLEngine();
+        sslEngine = sslContext.createSSLEngine();
         sslEngine.setUseClientMode(false);
         initialHSStatus = HandshakeStatus.NEED_UNWRAP;
         initialHSComplete = false;

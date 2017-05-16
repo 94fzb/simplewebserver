@@ -3,6 +3,7 @@ package com.hibegin.http.server;
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.ISocketServer;
@@ -16,7 +17,6 @@ import com.hibegin.http.server.handler.CheckRequestRunnable;
 import com.hibegin.http.server.handler.HttpRequestHandlerThread;
 import com.hibegin.http.server.handler.PlainReadWriteSelectorHandler;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
-import com.hibegin.http.server.impl.HttpMethod;
 import com.hibegin.http.server.impl.HttpRequestDecoderImpl;
 import com.hibegin.http.server.impl.ServerContext;
 import com.hibegin.http.server.impl.SimpleHttpResponse;
@@ -27,7 +27,7 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -56,7 +56,7 @@ public class SimpleWebServer implements ISocketServer {
     private ResponseConfig responseConfig;
     private ServerContext serverContext = new ServerContext();
     private File pidFile;
-    private Map<SocketChannel, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
+    private Map<Socket, HttpRequestHandlerThread> socketHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
 
     public SimpleWebServer() {
         this(null, null, null);
@@ -85,10 +85,17 @@ public class SimpleWebServer implements ISocketServer {
             this.responseConfig = responseConfig;
         }
         serverContext.setServerConfig(serverConfig);
+        Runtime rt = Runtime.getRuntime();
+        rt.addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                SimpleWebServer.this.destroy();
+            }
+        });
     }
 
     public ReadWriteSelectorHandler getReadWriteSelectorHandlerInstance(SocketChannel channel, SelectionKey key) throws IOException {
-        return new PlainReadWriteSelectorHandler(channel, key);
+        return new PlainReadWriteSelectorHandler(channel);
     }
 
     @Override
@@ -112,7 +119,7 @@ public class SimpleWebServer implements ISocketServer {
         }
         //防止检查线程被jvm杀死
         ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-        checkRequestRunnable = new CheckRequestRunnable(serverConfig.getTimeOut(), serverContext, channelHttpRequestHandlerThreadMap);
+        checkRequestRunnable = new CheckRequestRunnable(serverConfig.getTimeOut(), serverContext, socketHttpRequestHandlerThreadMap);
         scheduledExecutorService.scheduleAtFixedRate(checkRequestRunnable, 0, 100, TimeUnit.MILLISECONDS);
         while (selector.isOpen()) {
             try {
@@ -154,15 +161,14 @@ public class SimpleWebServer implements ISocketServer {
 
     private boolean handleRequest(SelectionKey key, SocketChannel channel) throws IOException {
         if (channel != null && channel.isOpen()) {
-            Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = serverContext.getHttpDeCoderMap().get(channel);
-            SocketAddress socketAddress = channel.socket().getRemoteSocketAddress();
+            Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = serverContext.getHttpDeCoderMap().get(channel.socket());
             HttpRequestHandlerThread requestHandlerThread = null;
             ReadWriteSelectorHandler handler;
             if (codecEntry == null) {
                 handler = getReadWriteSelectorHandlerInstance(channel, key);
-                HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(socketAddress, requestConfig, serverContext, handler);
+                HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, serverContext, handler);
                 codecEntry = new AbstractMap.SimpleEntry<HttpRequestDeCoder, HttpResponse>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig));
-                serverContext.getHttpDeCoderMap().put(channel, codecEntry);
+                serverContext.getHttpDeCoderMap().put(channel.socket(), codecEntry);
             } else {
                 handler = codecEntry.getKey().getRequest().getHandler();
             }
@@ -186,17 +192,21 @@ public class SimpleWebServer implements ISocketServer {
             } catch (ContentLengthTooLargeException e) {
                 handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue(), serverContext), 413);
                 exception = true;
+            } catch (IOException e) {
+                handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue(), serverContext), 400);
+                exception = true;
             } catch (Exception e) {
                 handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue(), serverContext), 500);
                 exception = true;
+                LOGGER.log(Level.SEVERE, "", e);
             }
             if (channel.isConnected() && !exception) {
                 //清除老的请求
-                HttpRequestHandlerThread oldHttpRequestHandlerThread = channelHttpRequestHandlerThreadMap.get(channel);
+                HttpRequestHandlerThread oldHttpRequestHandlerThread = socketHttpRequestHandlerThreadMap.get(channel.socket());
                 if (oldHttpRequestHandlerThread != null) {
                     oldHttpRequestHandlerThread.interrupt();
                 }
-                channelHttpRequestHandlerThreadMap.put(channel, requestHandlerThread);
+                socketHttpRequestHandlerThreadMap.put(channel.socket(), requestHandlerThread);
                 serverConfig.getExecutor().execute(requestHandlerThread);
                 if (codecEntry.getKey().getRequest().getMethod() != HttpMethod.CONNECT) {
                     serverContext.getHttpDeCoderMap().remove(channel);

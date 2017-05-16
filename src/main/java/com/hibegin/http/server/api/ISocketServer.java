@@ -8,4 +8,5 @@ public interface ISocketServer {
 
     boolean create();
 
+    boolean create(int port);
 }

@@ -1,6 +1,7 @@
 package com.hibegin.http.server.impl;
 
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ServerConfig;
@@ -10,7 +11,9 @@ import com.hibegin.http.server.web.cookie.Cookie;
 import com.hibegin.http.server.web.session.HttpSession;
 import com.hibegin.http.server.web.session.SessionUtil;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -26,7 +29,6 @@ import java.util.logging.Logger;
 public class SimpleHttpRequest implements HttpRequest {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleHttpRequest.class);
-    protected SocketAddress ipAddress;
     protected Map<String, String> header = new HashMap<>();
     protected Map<String, String[]> paramMap;
     protected String uri;
@@ -35,19 +37,26 @@ public class SimpleHttpRequest implements HttpRequest {
     protected Cookie[] cookies;
     protected HttpSession session;
     protected Map<String, File> files = new HashMap<>();
-    protected ByteBuffer dataBuffer;
-    protected String scheme = "http";
-    protected RequestConfig requestConfig;
+    protected ByteBuffer requestBodyBuffer;
     protected StringBuilder headerSb = new StringBuilder();
+    private SocketAddress ipAddress;
+    private RequestConfig requestConfig;
+    private String scheme = "http";
     private ServerContext serverContext;
     private Map<String, Object> attr = Collections.synchronizedMap(new HashMap<String, Object>());
     private ReadWriteSelectorHandler handler;
     private long createTime;
+    private InputStream inputStream;
 
-    protected SimpleHttpRequest(long createTime, ReadWriteSelectorHandler handler, ServerContext serverContext) {
+    protected SimpleHttpRequest(ReadWriteSelectorHandler handler, ServerContext serverContext, RequestConfig requestConfig) {
+        this.requestConfig = requestConfig;
+        this.createTime = System.currentTimeMillis();
         this.handler = handler;
-        this.createTime = createTime;
         this.serverContext = serverContext;
+        this.ipAddress = handler.getChannel().socket().getRemoteSocketAddress();
+        if (this.requestConfig.isSsl()) {
+            scheme = "https";
+        }
     }
 
     @Override
@@ -188,11 +197,16 @@ public class SimpleHttpRequest implements HttpRequest {
     }
 
     @Override
-    public byte[] getContentByte() {
-        if (dataBuffer != null) {
-            return dataBuffer.array();
+    public InputStream getInputStream() {
+        if (inputStream != null) {
+            return inputStream;
         } else {
-            return new byte[]{};
+            if (requestBodyBuffer != null) {
+                inputStream = new ByteArrayInputStream(requestBodyBuffer.array());
+            } else {
+                inputStream = new ByteArrayInputStream(new byte[]{});
+            }
+            return inputStream;
         }
     }
 
@@ -227,18 +241,17 @@ public class SimpleHttpRequest implements HttpRequest {
     }
 
     public ByteBuffer getInputByteBuffer() {
+        byte[] splitBytes = HttpRequestDecoderImpl.SPLIT.getBytes();
         byte[] bytes = headerSb.toString().getBytes();
-        if (dataBuffer == null) {
-            ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
+        if (requestBodyBuffer == null) {
+            ByteBuffer buffer = ByteBuffer.allocate(bytes.length + splitBytes.length);
             buffer.put(bytes);
+            buffer.put(splitBytes);
             return buffer;
         } else {
-            String httpText = new String(bytes);
-            byte[] headerBytes = httpText.substring(0, httpText.indexOf(HttpRequestDecoderImpl.SPLIT)).getBytes();
-            byte[] dataBytes = dataBuffer.array();
-            byte[] splitBytes = HttpRequestDecoderImpl.SPLIT.getBytes();
-            ByteBuffer buffer = ByteBuffer.allocate(headerBytes.length + splitBytes.length + dataBytes.length);
-            buffer.put(headerBytes);
+            byte[] dataBytes = requestBodyBuffer.array();
+            ByteBuffer buffer = ByteBuffer.allocate(headerSb.toString().getBytes().length + splitBytes.length + dataBytes.length);
+            buffer.put(headerSb.toString().getBytes());
             buffer.put(splitBytes);
             buffer.put(dataBytes);
             return buffer;
@@ -253,5 +266,16 @@ public class SimpleHttpRequest implements HttpRequest {
     @Override
     public ServerContext getServerContext() {
         return serverContext;
+    }
+
+    @Override
+    public ByteBuffer getRequestBodyByteBuffer() {
+        return requestBodyBuffer;
+    }
+
+    public void deleteTempFiles() {
+        for (File file : files.values()) {
+            file.delete();
+        }
     }
 }

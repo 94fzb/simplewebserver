@@ -11,9 +11,5 @@ public interface ReadWriteSelectorHandler {
 
     void close();
 
-    ByteBuffer getByteBuffer();
-
-    int currentReadSize();
-
     SocketChannel getChannel();
 }

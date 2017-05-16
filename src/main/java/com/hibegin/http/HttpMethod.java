@@ -1,4 +1,4 @@
-package com.hibegin.http.server.impl;
+package com.hibegin.http;
 
 public enum HttpMethod {
 
