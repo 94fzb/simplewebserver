@@ -209,7 +209,7 @@ public class SimpleWebServer implements ISocketServer {
                 socketHttpRequestHandlerThreadMap.put(channel.socket(), requestHandlerThread);
                 serverConfig.getExecutor().execute(requestHandlerThread);
                 if (codecEntry.getKey().getRequest().getMethod() != HttpMethod.CONNECT) {
-                    serverContext.getHttpDeCoderMap().remove(channel);
+                    serverContext.getHttpDeCoderMap().remove(channel.socket());
                 }
             }
         }
