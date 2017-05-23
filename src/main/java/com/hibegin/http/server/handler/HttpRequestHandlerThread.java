@@ -1,11 +1,11 @@
 package com.hibegin.http.server.handler;
 
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpRequestListener;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
-import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.impl.ServerContext;
 import com.hibegin.http.server.impl.SimpleHttpRequest;
 
@@ -91,7 +91,7 @@ public class HttpRequestHandlerThread extends Thread {
                     serverContext.getHttpDeCoderMap().remove(socket);
                 }
                 if (request instanceof SimpleHttpRequest) {
-                    ((SimpleHttpRequest) request).deleteTempFiles();
+                    ((SimpleHttpRequest) request).deleteTempUploadFiles();
                 }
                 for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
                     requestListener.destroy(getRequest(), getResponse());

@@ -1,5 +1,6 @@
 package com.hibegin.http.server.handler;
 
+import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.LoggerUtil;
 
 import java.io.EOFException;
@@ -34,10 +35,11 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     @Override
     public ByteBuffer handleRead() throws IOException {
-        ByteBuffer byteBuffer = ByteBuffer.allocate(requestBB.capacity());
-        int length = sc.read(byteBuffer);
-        resizeRequestBB(length);
+        int length = sc.read(requestBB);
         if (length != -1) {
+            ByteBuffer byteBuffer = ByteBuffer.allocate(length);
+            byteBuffer.put(BytesUtil.subBytes(requestBB.array(), 0, length));
+            resizeRequestBB(length);
             return byteBuffer;
         }
         close();
@@ -47,10 +49,9 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
     protected void resizeRequestBB(int remaining) {
         if (requestBB.remaining() < remaining) {
             // Expand buffer for large request
-            ByteBuffer bb = ByteBuffer.allocate(requestBB.capacity() * 2);
-            requestBB.flip();
-            bb.put(requestBB);
-            requestBB = bb;
+            requestBB = ByteBuffer.allocate(requestBB.capacity() * 2);
+        } else {
+            requestBB = ByteBuffer.allocate(requestBB.capacity());
         }
     }
 

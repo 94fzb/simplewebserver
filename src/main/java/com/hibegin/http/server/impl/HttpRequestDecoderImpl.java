@@ -24,12 +24,11 @@ import java.util.logging.Logger;
 
 public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
 
-    protected static final String CRLF = "\r\n";
-    protected static final String SPLIT = CRLF + CRLF;
+    private static final String CRLF = "\r\n";
+    static final String SPLIT = CRLF + CRLF;
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpRequestDecoderImpl.class);
     private SimpleHttpRequest request;
     private boolean headerHandled = false;
-
 
     public HttpRequestDecoderImpl(RequestConfig requestConfig, ServerContext serverContext, ReadWriteSelectorHandler handler) {
         this.request = new SimpleHttpRequest(handler, serverContext, requestConfig);
@@ -43,13 +42,9 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     @Override
     public boolean doDecode(byte[] data) throws Exception {
         if (headerHandled && request.getMethod() == HttpMethod.CONNECT) {
-            if (request.requestBodyBuffer == null) {
-                request.requestBodyBuffer = ByteBuffer.allocate(data.length);
-            } else {
-                byte[] oldBytes = request.requestBodyBuffer.array();
-                request.requestBodyBuffer = ByteBuffer.allocate(oldBytes.length + data.length);
-                request.requestBodyBuffer.put(oldBytes);
-            }
+            byte[] oldBytes = request.requestBodyBuffer.array();
+            request.requestBodyBuffer = ByteBuffer.allocate(oldBytes.length + data.length);
+            request.requestBodyBuffer.put(oldBytes);
             request.requestBodyBuffer.put(data);
             return true;
         } else {
@@ -104,12 +99,12 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     }
 
     private boolean parseHttpRequestBody(byte[] requestBodyData) {
-        boolean flag = false;
-
-        if (request.method == HttpMethod.GET || request.method == HttpMethod.CONNECT) {
+        boolean flag;
+        if (isNeedEmptyRequestBody()) {
             wrapperParamStrToMap(request.queryStr);
+            request.requestBodyBuffer = ByteBuffer.allocate(0);
             flag = true;
-        } else if (request.method == HttpMethod.POST || request.method == HttpMethod.DELETE || request.method == HttpMethod.PUT) {
+        } else {
             wrapperParamStrToMap(request.queryStr);
             if (request.header.get("Content-Length") != null) {
                 Integer dateLength = Integer.parseInt(request.header.get("Content-Length"));
@@ -127,6 +122,10 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             }
         }
         return flag;
+    }
+
+    private boolean isNeedEmptyRequestBody() {
+        return request.method == HttpMethod.GET || request.method == HttpMethod.CONNECT || request.method == HttpMethod.TRACE;
     }
 
     private void parseHttpProtocolHeader(String[] headerArr, String pHeader) throws Exception {

@@ -16,7 +16,6 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -39,7 +38,6 @@ public class SimpleHttpRequest implements HttpRequest {
     protected Map<String, File> files = new HashMap<>();
     protected ByteBuffer requestBodyBuffer;
     protected StringBuilder headerSb = new StringBuilder();
-    private SocketAddress ipAddress;
     private RequestConfig requestConfig;
     private String scheme = "http";
     private ServerContext serverContext;
@@ -53,7 +51,6 @@ public class SimpleHttpRequest implements HttpRequest {
         this.createTime = System.currentTimeMillis();
         this.handler = handler;
         this.serverContext = serverContext;
-        this.ipAddress = handler.getChannel().socket().getRemoteSocketAddress();
         if (this.requestConfig.isSsl()) {
             scheme = "https";
         }
@@ -71,7 +68,7 @@ public class SimpleHttpRequest implements HttpRequest {
 
     @Override
     public String getRemoteHost() {
-        return ((InetSocketAddress) ipAddress).getHostString();
+        return ((InetSocketAddress) handler.getChannel().socket().getRemoteSocketAddress()).getHostString();
     }
 
     public HttpMethod getMethod() {
@@ -273,7 +270,7 @@ public class SimpleHttpRequest implements HttpRequest {
         return requestBodyBuffer;
     }
 
-    public void deleteTempFiles() {
+    public void deleteTempUploadFiles() {
         for (File file : files.values()) {
             file.delete();
         }

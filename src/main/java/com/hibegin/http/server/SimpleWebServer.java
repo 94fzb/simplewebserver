@@ -1,6 +1,5 @@
 package com.hibegin.http.server;
 
-import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
@@ -28,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -175,8 +173,7 @@ public class SimpleWebServer implements ISocketServer {
             // 数据不完整时, 跳过当前循环等待下一个请求
             boolean exception = false;
             try {
-                ByteBuffer byteBuffer = handler.handleRead();
-                byte[] bytes = BytesUtil.subBytes(byteBuffer.array(), 0, byteBuffer.array().length - byteBuffer.remaining());
+                byte[] bytes = handler.handleRead().array();
                 if (!codecEntry.getKey().doDecode(bytes)) {
                     return false;
                 }
@@ -201,15 +198,21 @@ public class SimpleWebServer implements ISocketServer {
                 LOGGER.log(Level.SEVERE, "", e);
             }
             if (channel.isConnected() && !exception) {
-                //清除老的请求
-                HttpRequestHandlerThread oldHttpRequestHandlerThread = socketHttpRequestHandlerThreadMap.get(channel.socket());
-                if (oldHttpRequestHandlerThread != null) {
-                    oldHttpRequestHandlerThread.interrupt();
-                }
-                socketHttpRequestHandlerThreadMap.put(channel.socket(), requestHandlerThread);
-                serverConfig.getExecutor().execute(requestHandlerThread);
                 if (codecEntry.getKey().getRequest().getMethod() != HttpMethod.CONNECT) {
+                    HttpRequestHandlerThread oldHttpRequestHandlerThread = socketHttpRequestHandlerThreadMap.get(channel.socket());
+                    //清除老的请求
+                    if (oldHttpRequestHandlerThread != null) {
+                        oldHttpRequestHandlerThread.interrupt();
+                    }
+                    socketHttpRequestHandlerThreadMap.put(channel.socket(), requestHandlerThread);
+                    serverConfig.getExecutor().execute(requestHandlerThread);
                     serverContext.getHttpDeCoderMap().remove(channel.socket());
+                } else {
+                    HttpRequestHandlerThread oldHttpRequestHandlerThread = socketHttpRequestHandlerThreadMap.get(channel.socket());
+                    if (oldHttpRequestHandlerThread == null) {
+                        socketHttpRequestHandlerThreadMap.put(channel.socket(), requestHandlerThread);
+                        serverConfig.getExecutor().execute(requestHandlerThread);
+                    }
                 }
             }
         }
