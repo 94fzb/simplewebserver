@@ -46,16 +46,20 @@ public class WebServerBuilder {
         if (serverConfig.getInterceptors().isEmpty()) {
             serverConfig.addInterceptor(MethodInterceptor.class);
         }
+        SimpleWebServer simpleWebServer;
         if (serverConfig.isSsl()) {
-            webServer = new SimpleHttpsWebServer(serverConfig, requestConfig, responseConfig);
+            simpleWebServer = new SimpleHttpsWebServer(serverConfig, requestConfig, responseConfig);
         } else {
-            webServer = new SimpleWebServer(serverConfig, requestConfig, responseConfig);
+            simpleWebServer = new SimpleWebServer(serverConfig, requestConfig, responseConfig);
         }
         boolean createSuccess;
         if (serverConfig.getPort() != 0) {
-            createSuccess = webServer.create(serverConfig.getPort());
+            createSuccess = simpleWebServer.create(serverConfig.getPort());
         } else {
-            createSuccess = webServer.create();
+            createSuccess = simpleWebServer.create();
+        }
+        if (createSuccess) {
+            this.webServer = simpleWebServer;
         }
         return createSuccess;
     }
