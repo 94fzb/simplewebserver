@@ -19,7 +19,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     public PlainReadWriteSelectorHandler(SocketChannel sc) {
         this.sc = sc;
-        this.requestBB = ByteBuffer.allocate(4096);
+        this.requestBB = ByteBuffer.allocate(1024);
     }
 
     @Override

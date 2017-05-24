@@ -29,6 +29,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpRequestDecoderImpl.class);
     private SimpleHttpRequest request;
     private boolean headerHandled = false;
+    private byte[] headerBytes = new byte[]{};
 
     public HttpRequestDecoderImpl(RequestConfig requestConfig, ServerContext serverContext, ReadWriteSelectorHandler handler) {
         this.request = new SimpleHttpRequest(handler, serverContext, requestConfig);
@@ -53,22 +54,21 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             // 2,提交的数据一次性读取不完。
             boolean flag = false;
             if (request.requestBodyBuffer == null) {
-                request.headerSb.append(new String(data));
-                if (request.headerSb.toString().contains(SPLIT)) {
+                headerBytes = BytesUtil.mergeBytes(headerBytes, data);
+                String fullDataStr = new String(headerBytes);
+                if (fullDataStr.contains(SPLIT)) {
                     headerHandled = true;
-                    String fullData = request.headerSb.toString();
-                    int splitIndex = fullData.indexOf(SPLIT);
-                    String httpHeader = fullData.substring(0, splitIndex);
-                    request.headerSb = new StringBuilder(httpHeader);
+                    checkHttpMethod();
+                    String httpHeader = fullDataStr.substring(0, fullDataStr.indexOf(SPLIT));
+                    request.requestHeaderStr = httpHeader;
                     String headerArr[] = httpHeader.split(CRLF);
-                    String pHeader = headerArr[0];
-                    if (!"".equals(pHeader.split(" ")[0])) {
-                        // parse HttpHeader
-                        parseHttpProtocolHeader(headerArr, pHeader);
-                        int headerByteLength = httpHeader.getBytes().length + SPLIT.getBytes().length;
-                        byte[] requestBody = BytesUtil.subBytes(data, headerByteLength, data.length - headerByteLength);
-                        flag = parseHttpRequestBody(requestBody);
-                    }
+                    // parse HttpHeader
+                    parseHttpProtocolHeader(headerArr);
+                    int headerByteLength = httpHeader.getBytes().length + SPLIT.getBytes().length;
+                    byte[] requestBody = BytesUtil.subBytes(headerBytes, headerByteLength, headerBytes.length - headerByteLength);
+                    flag = parseHttpRequestBody(requestBody);
+                    //处理完成，清空byte[]
+                    headerBytes = new byte[]{};
                 } else {
                     checkHttpMethod();
                 }
@@ -86,8 +86,8 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     private void checkHttpMethod() throws UnSupportMethodException {
         boolean check = false;
         for (HttpMethod httpMethod : HttpMethod.values()) {
-            if (request.headerSb.length() > httpMethod.name().length()) {
-                String tHttpMethod = request.headerSb.substring(0, httpMethod.name().length());
+            if (headerBytes.length > httpMethod.name().length()) {
+                String tHttpMethod = new String(BytesUtil.subBytes(headerBytes, 0, httpMethod.name().getBytes().length));
                 if (tHttpMethod.equals(httpMethod.name())) {
                     check = true;
                 }
@@ -128,9 +128,9 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         return request.method == HttpMethod.GET || request.method == HttpMethod.CONNECT || request.method == HttpMethod.TRACE;
     }
 
-    private void parseHttpProtocolHeader(String[] headerArr, String pHeader) throws Exception {
+    private void parseHttpProtocolHeader(String[] headerArr) throws Exception {
+        String pHeader = headerArr[0];
         String[] protocolHeaderArr = pHeader.split(" ");
-        checkHttpMethod();
         request.method = HttpMethod.valueOf(protocolHeaderArr[0].toUpperCase());
         String tUrl = request.uri = protocolHeaderArr[1];
         // just for some proxy-client

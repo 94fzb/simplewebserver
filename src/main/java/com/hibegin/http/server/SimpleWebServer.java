@@ -113,7 +113,7 @@ public class SimpleWebServer implements ISocketServer {
             EnvKit.savePid(pidFile.toString());
             pidFile.deleteOnExit();
         } catch (Throwable e) {
-            LOGGER.log(Level.WARNING, "save pid error", e);
+            LOGGER.log(Level.WARNING, "save pid error " + e.getMessage());
         }
         //防止检查线程被jvm杀死
         ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
@@ -182,15 +182,12 @@ public class SimpleWebServer implements ISocketServer {
                 //do nothing
                 handleException(key, codecEntry.getKey(), null, 400);
                 exception = true;
-            } catch (UnSupportMethodException e) {
-                LOGGER.info(e.getMessage());
+            } catch (UnSupportMethodException | IOException e) {
+                //LOGGER.log(Level.SEVERE, "", e);
                 handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue(), serverContext), 400);
                 exception = true;
             } catch (ContentLengthTooLargeException e) {
                 handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue(), serverContext), 413);
-                exception = true;
-            } catch (IOException e) {
-                handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue(), serverContext), 400);
                 exception = true;
             } catch (Exception e) {
                 handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue(), serverContext), 500);
