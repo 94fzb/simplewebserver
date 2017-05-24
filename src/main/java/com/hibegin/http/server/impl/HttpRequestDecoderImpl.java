@@ -66,7 +66,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                         // parse HttpHeader
                         parseHttpProtocolHeader(headerArr, pHeader);
                         int headerByteLength = httpHeader.getBytes().length + SPLIT.getBytes().length;
-                        byte[] requestBody = BytesUtil.subBytes(data, headerByteLength, data.length - headerByteLength);
+                        byte[] requestBody = BytesUtil.subBytes(fullData.getBytes(), headerByteLength, fullData.getBytes().length - headerByteLength);
                         flag = parseHttpRequestBody(requestBody);
                     }
                 } else {
