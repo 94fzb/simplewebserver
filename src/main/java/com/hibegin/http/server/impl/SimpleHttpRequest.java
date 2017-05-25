@@ -33,11 +33,11 @@ public class SimpleHttpRequest implements HttpRequest {
     protected String uri;
     protected String queryStr;
     protected HttpMethod method;
-    protected Cookie[] cookies;
-    protected HttpSession session;
     protected Map<String, File> files = new HashMap<>();
     protected ByteBuffer requestBodyBuffer;
-    protected StringBuilder headerSb = new StringBuilder();
+    protected String requestHeaderStr;
+    private Cookie[] cookies;
+    private HttpSession session;
     private RequestConfig requestConfig;
     private String scheme = "http";
     private ServerContext serverContext;
@@ -239,7 +239,7 @@ public class SimpleHttpRequest implements HttpRequest {
 
     public ByteBuffer getInputByteBuffer() {
         byte[] splitBytes = HttpRequestDecoderImpl.SPLIT.getBytes();
-        byte[] bytes = headerSb.toString().getBytes();
+        byte[] bytes = requestHeaderStr.getBytes();
         if (requestBodyBuffer == null) {
             ByteBuffer buffer = ByteBuffer.allocate(bytes.length + splitBytes.length);
             buffer.put(bytes);
@@ -247,8 +247,8 @@ public class SimpleHttpRequest implements HttpRequest {
             return buffer;
         } else {
             byte[] dataBytes = requestBodyBuffer.array();
-            ByteBuffer buffer = ByteBuffer.allocate(headerSb.toString().getBytes().length + splitBytes.length + dataBytes.length);
-            buffer.put(headerSb.toString().getBytes());
+            ByteBuffer buffer = ByteBuffer.allocate(requestHeaderStr.getBytes().length + splitBytes.length + dataBytes.length);
+            buffer.put(requestHeaderStr.getBytes());
             buffer.put(splitBytes);
             buffer.put(dataBytes);
             return buffer;
