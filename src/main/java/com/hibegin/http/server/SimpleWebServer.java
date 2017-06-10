@@ -115,11 +115,14 @@ public class SimpleWebServer implements ISocketServer {
         } catch (Throwable e) {
             LOGGER.log(Level.WARNING, "save pid error " + e.getMessage());
         }
-        //防止检查线程被jvm杀死
-        ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-        checkRequestRunnable = new CheckRequestRunnable(serverConfig.getTimeOut(), serverContext, socketHttpRequestHandlerThreadMap);
-        scheduledExecutorService.scheduleAtFixedRate(checkRequestRunnable, 0, 100, TimeUnit.MILLISECONDS);
+        ScheduledExecutorService scheduledExecutorService = null;
         while (selector.isOpen()) {
+            //防止检查线程被jvm杀死
+            if (scheduledExecutorService == null || scheduledExecutorService.isShutdown()) {
+                scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+                checkRequestRunnable = new CheckRequestRunnable(serverConfig.getTimeOut(), serverContext, socketHttpRequestHandlerThreadMap);
+                scheduledExecutorService.scheduleAtFixedRate(checkRequestRunnable, 0, 100, TimeUnit.MILLISECONDS);
+            }
             try {
                 selector.select();
                 Set<SelectionKey> keys = selector.selectedKeys();
