@@ -21,6 +21,7 @@ import com.hibegin.http.server.impl.ServerContext;
 import com.hibegin.http.server.impl.SimpleHttpResponse;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
+import com.hibegin.http.server.web.MethodInterceptor;
 
 import java.io.EOFException;
 import java.io.File;
@@ -105,7 +106,9 @@ public class SimpleWebServer implements ISocketServer {
         serverContext.init();
 
         LOGGER.info(ServerInfo.getName() + " is run versionStr -> " + ServerInfo.getVersion());
-        LOGGER.info(serverConfig.getRouter().toString());
+        if (serverContext.getServerConfig().getInterceptors().contains(MethodInterceptor.class)) {
+            LOGGER.info(serverConfig.getRouter().toString());
+        }
         try {
             if (pidFile == null) {
                 pidFile = new File(PathUtil.getRootPath() + "/sim.pid");

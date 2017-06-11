@@ -3,12 +3,12 @@ package com.hibegin.http.server.impl;
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.io.ChunkedOutputStream;
+import com.hibegin.http.io.GzipCompressingInputStream;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.execption.InternalException;
-import com.hibegin.http.io.ChunkedOutputStream;
-import com.hibegin.http.io.GzipCompressingInputStream;
 import com.hibegin.http.server.util.*;
 import com.hibegin.http.server.web.cookie.Cookie;
 import flexjson.JSONSerializer;
@@ -212,7 +212,10 @@ public class SimpleHttpResponse implements HttpResponse {
             ByteArrayOutputStream fout = new ByteArrayOutputStream();
             try {
                 if (!header.containsKey("Location")) {
-                    header.put("Location", request.getScheme() + "://" + request.getHeader("Host") + "/" + request.getUri() + request.getServerConfig().getWelcomeFile());
+                    String welcomeFile = request.getServerConfig().getWelcomeFile();
+                    if (welcomeFile == null || "".equals(welcomeFile.trim())) {
+                        header.put("Location", request.getScheme() + "://" + request.getHeader("Host") + "/" + request.getUri() + welcomeFile);
+                    }
                 }
                 fout.write(wrapperData(errorCode, new byte[]{}));
                 send(fout);
