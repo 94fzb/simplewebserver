@@ -285,9 +285,11 @@ public class SimpleHttpResponse implements HttpResponse {
     @Override
     public void renderFile(File file) {
         if (file.exists()) {
-            header.put("Content-Disposition", "attachment;filename=" + file.getName());
+            header.put("Content-Disposition", "attachment;filename=\"" + file.getName() + "\"");
+            writeFile(file);
+        } else {
+            renderCode(404);
         }
-        writeFile(file);
     }
 
     @Override
