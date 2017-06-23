@@ -21,6 +21,7 @@ import com.hibegin.http.server.impl.ServerContext;
 import com.hibegin.http.server.impl.SimpleHttpResponse;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
+import com.hibegin.http.server.web.MethodInterceptor;
 
 import java.io.EOFException;
 import java.io.File;
@@ -105,7 +106,9 @@ public class SimpleWebServer implements ISocketServer {
         serverContext.init();
 
         LOGGER.info(ServerInfo.getName() + " is run versionStr -> " + ServerInfo.getVersion());
-        LOGGER.info(serverConfig.getRouter().toString());
+        if (serverContext.getServerConfig().getInterceptors().contains(MethodInterceptor.class)) {
+            LOGGER.info(serverConfig.getRouter().toString());
+        }
         try {
             if (pidFile == null) {
                 pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
@@ -115,11 +118,14 @@ public class SimpleWebServer implements ISocketServer {
         } catch (Throwable e) {
             LOGGER.log(Level.WARNING, "save pid error " + e.getMessage());
         }
-        //防止检查线程被jvm杀死
-        ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-        checkRequestRunnable = new CheckRequestRunnable(serverConfig.getTimeOut(), serverContext, socketHttpRequestHandlerThreadMap);
-        scheduledExecutorService.scheduleAtFixedRate(checkRequestRunnable, 0, 100, TimeUnit.MILLISECONDS);
+        ScheduledExecutorService scheduledExecutorService = null;
         while (selector.isOpen()) {
+            //防止检查线程被jvm杀死
+            if (scheduledExecutorService == null || scheduledExecutorService.isShutdown()) {
+                scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+                checkRequestRunnable = new CheckRequestRunnable(serverConfig.getTimeOut(), serverContext, socketHttpRequestHandlerThreadMap);
+                scheduledExecutorService.scheduleAtFixedRate(checkRequestRunnable, 0, 100, TimeUnit.MILLISECONDS);
+            }
             try {
                 selector.select();
                 Set<SelectionKey> keys = selector.selectedKeys();
