@@ -19,22 +19,7 @@ public class PathUtil {
         if (ROOT_PATH != null && ROOT_PATH.length() > 0) {
             return ROOT_PATH;
         } else {
-            String path;
-            if (PathUtil.class.getResource("/") != null) {
-                path = new File(PathUtil.class.getClass().getResource("/").getPath()).getParentFile().getParentFile().toString();
-            } else {
-                if (PathUtil.class.getProtectionDomain() != null) {
-                    String thisPath = PathUtil.class.getProtectionDomain().getCodeSource().getLocation().getPath().replace("\\", "/");
-                    if ("/".equals(File.separator)) {
-                        path = thisPath.substring(0, thisPath.lastIndexOf('/'));
-                    } else {
-                        path = thisPath.substring(1, thisPath.lastIndexOf('/'));
-                    }
-                } else {
-                    path = "/";
-                }
-            }
-            return path;
+            return System.getProperty("user.dir");
         }
     }
 
