@@ -1,6 +1,8 @@
 package com.hibegin.http.server.util;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 
 /**
  * 提供给一些路径供程序更方便的调用
@@ -19,7 +21,35 @@ public class PathUtil {
         if (ROOT_PATH != null && ROOT_PATH.length() > 0) {
             return ROOT_PATH;
         } else {
-            return System.getProperty("user.dir");
+            String path;
+            if (PathUtil.class.getResource("/") != null) {
+                String tPath = PathUtil.class.getClass().getResource("/").getPath();
+                try {
+                    path = URLDecoder.decode(tPath, "UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    //e.printStackTrace();
+                    path = tPath;
+                }
+                path = new File(path).getParentFile().getParentFile().toString();
+            } else {
+                if (PathUtil.class.getProtectionDomain() != null) {
+                    String tPath = PathUtil.class.getProtectionDomain().getCodeSource().getLocation().getPath().replace("\\", "/");
+                    try {
+                        path = URLDecoder.decode(tPath, "UTF-8");
+                    } catch (UnsupportedEncodingException e) {
+                        //e.printStackTrace();
+                        path = tPath;
+                    }
+                    if ("/".equals(File.separator)) {
+                        path = path.substring(0, path.lastIndexOf('/'));
+                    } else {
+                        path = path.substring(1, path.lastIndexOf('/'));
+                    }
+                } else {
+                    path = "/";
+                }
+            }
+            return path;
         }
     }
 
