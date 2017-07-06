@@ -15,7 +15,7 @@ public interface HttpResponse {
 
     void renderHtml(String urlPath);
 
-    void renderJson(Object json);
+    void renderJson(Object obj);
 
     void renderCode(int errorCode);
 

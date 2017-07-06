@@ -1,5 +1,6 @@
 package com.hibegin.http.server.impl;
 
+import com.google.gson.Gson;
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
@@ -11,7 +12,6 @@ import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.execption.InternalException;
 import com.hibegin.http.server.util.*;
 import com.hibegin.http.server.web.cookie.Cookie;
-import flexjson.JSONSerializer;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -111,9 +111,9 @@ public class SimpleHttpResponse implements HttpResponse {
     }
 
     @Override
-    public void renderJson(Object json) {
+    public void renderJson(Object obj) {
         try {
-            renderByMimeType("json", new JSONSerializer().exclude("*.class").deepSerialize(json).getBytes(responseConfig.getCharSet()));
+            renderByMimeType("json", new Gson().toJson(obj).getBytes(responseConfig.getCharSet()));
         } catch (UnsupportedEncodingException e) {
             LOGGER.log(Level.SEVERE, "", e);
         }
