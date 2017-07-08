@@ -1,6 +1,5 @@
 package com.hibegin.http.server.impl;
 
-import com.google.gson.Gson;
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
@@ -112,11 +111,12 @@ public class SimpleHttpResponse implements HttpResponse {
 
     @Override
     public void renderJson(Object obj) {
-        try {
+        /*try {
             renderByMimeType("json", new Gson().toJson(obj).getBytes(responseConfig.getCharSet()));
         } catch (UnsupportedEncodingException e) {
             LOGGER.log(Level.SEVERE, "", e);
-        }
+        }*/
+        throw new RuntimeException("Not implement");
     }
 
     /**
