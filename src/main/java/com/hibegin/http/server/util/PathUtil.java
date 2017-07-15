@@ -23,7 +23,7 @@ public class PathUtil {
         } else {
             String path;
             if (PathUtil.class.getResource("/") != null) {
-                String tPath = PathUtil.class.getClass().getResource("/").getPath();
+                String tPath = PathUtil.class.getResource("/").getPath();
                 try {
                     path = URLDecoder.decode(tPath, "UTF-8");
                 } catch (UnsupportedEncodingException e) {

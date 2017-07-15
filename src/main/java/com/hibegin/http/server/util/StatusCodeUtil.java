@@ -51,7 +51,7 @@ public class StatusCodeUtil {
         map.put(505, "HTTP Version Not Supported");
     }
 
-    public static String getStatusCode(Integer code) {
+    public static String getStatusCodeDesc(Integer code) {
         return map.get(code);
     }
 }

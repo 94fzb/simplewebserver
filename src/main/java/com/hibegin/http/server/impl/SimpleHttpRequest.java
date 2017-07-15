@@ -90,6 +90,10 @@ public class SimpleHttpRequest implements HttpRequest {
         if (cookies == null) {
             dealWithCookie(false);
         }
+        if (cookies == null) {
+            //avoid not happen NullPointException
+            cookies = new Cookie[0];
+        }
         return cookies;
     }
 

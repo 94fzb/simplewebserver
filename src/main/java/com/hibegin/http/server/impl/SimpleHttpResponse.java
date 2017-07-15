@@ -139,7 +139,7 @@ public class SimpleHttpResponse implements HttpResponse {
 
     private byte[] wrapperBaseResponseHeader(int statusCode) {
         StringBuilder sb = new StringBuilder();
-        sb.append("HTTP/1.1 ").append(statusCode).append(" ").append(StatusCodeUtil.getStatusCode(statusCode)).append(CRLF);
+        sb.append("HTTP/1.1 ").append(statusCode).append(" ").append(StatusCodeUtil.getStatusCodeDesc(statusCode)).append(CRLF);
         if (responseConfig.isGzip()) {
             header.put("Content-Encoding", "gzip");
             header.remove("Content-Length");
