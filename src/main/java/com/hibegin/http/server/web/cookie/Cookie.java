@@ -1,6 +1,8 @@
 package com.hibegin.http.server.web.cookie;
 
 
+import java.util.Date;
+
 public class Cookie {
 
     public static String JSESSIONID = "JSESSIONID";
@@ -8,7 +10,7 @@ public class Cookie {
     private String value;
     private String domain;
     private String path = "/";
-    private Integer maxAge;
+    private Date expireDate;
     private boolean create;
     private boolean httpOnly;
 
@@ -79,10 +81,10 @@ public class Cookie {
     @Override
     public String toString() {
         String cookieStr;
-        if (maxAge == null) {
+        if (expireDate == null) {
             cookieStr = name + "=" + value + ";" + "Path=" + path;
         } else {
-            cookieStr = name + "=" + value + ";" + "Path=" + path + ";max-age=" + maxAge;
+            cookieStr = name + "=" + value + ";" + "Path=" + path + ";Expires=" + expireDate;
         }
         if (httpOnly) {
             cookieStr += ";HttpOnly";
@@ -98,19 +100,19 @@ public class Cookie {
         this.create = create;
     }
 
-    public Integer getMaxAge() {
-        return maxAge;
-    }
-
-    public void setMaxAge(Integer maxAge) {
-        this.maxAge = maxAge;
-    }
-
     public boolean isHttpOnly() {
         return httpOnly;
     }
 
     public void setHttpOnly(boolean httpOnly) {
         this.httpOnly = httpOnly;
+    }
+
+    public Date getExpireDate() {
+        return expireDate;
+    }
+
+    public void setExpireDate(Date expireDate) {
+        this.expireDate = expireDate;
     }
 }
