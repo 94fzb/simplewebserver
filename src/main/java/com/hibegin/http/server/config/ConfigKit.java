@@ -18,7 +18,7 @@ public class ConfigKit {
     static {
         prop = new Properties();
         try {
-            File file = new File(PathUtil.getConfFile("/conf.properties"));
+            File file = PathUtil.getConfFile("/conf.properties");
             if (file.exists()) {
                 prop.load(new FileInputStream(file));
             }

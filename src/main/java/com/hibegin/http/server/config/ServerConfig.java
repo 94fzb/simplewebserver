@@ -25,6 +25,7 @@ public class ServerConfig {
     private int port;
     private boolean disableCookie;
     private int timeOut;
+    private boolean supportHttp2;
     private String welcomeFile = "index.html";
     private Executor executor = Executors.newFixedThreadPool(10);
     private Router router = new Router();
@@ -80,6 +81,14 @@ public class ServerConfig {
 
     public Router getRouter() {
         return router;
+    }
+
+    public boolean isSupportHttp2() {
+        return supportHttp2;
+    }
+
+    public void setSupportHttp2(boolean supportHttp2) {
+        this.supportHttp2 = supportHttp2;
     }
 
     public Interceptor getNextInterceptor(Class interceptor) {

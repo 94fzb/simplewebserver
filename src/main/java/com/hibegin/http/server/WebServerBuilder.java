@@ -70,7 +70,7 @@ public class WebServerBuilder {
             new Thread() {
                 @Override
                 public void run() {
-                    Thread.currentThread().setName(ServerInfo.getName() + "-Main-Thread");
+                    Thread.currentThread().setName(ServerInfo.getName() + "-main-thread");
                     WebServerBuilder.this.webServer.listener();
                 }
             }.start();

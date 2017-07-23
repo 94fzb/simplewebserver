@@ -19,10 +19,13 @@ import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
 import com.hibegin.http.server.impl.HttpRequestDecoderImpl;
 import com.hibegin.http.server.impl.ServerContext;
 import com.hibegin.http.server.impl.SimpleHttpResponse;
+import com.hibegin.http.server.util.FrameUtil;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
+import com.hibegin.http.server.util.StatusCodeUtil;
 import com.hibegin.http.server.web.MethodInterceptor;
 
+import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
@@ -32,10 +35,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.AbstractMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -132,35 +132,55 @@ public class SimpleWebServer implements ISocketServer {
                 Iterator<SelectionKey> iterator = keys.iterator();
 
                 while (iterator.hasNext()) {
-                    SelectionKey key = iterator.next();
-                    SocketChannel channel = null;
-                    if (!key.isValid() || !key.channel().isOpen()) {
-                        continue;
-                    } else if (key.isAcceptable()) {
-                        ServerSocketChannel server = (ServerSocketChannel) key.channel();
-                        try {
-                            channel = server.accept();
-                            if (channel != null) {
-                                channel.configureBlocking(false);
-                                channel.register(selector, SelectionKey.OP_READ);
+                    try {
+                        SelectionKey key = iterator.next();
+                        SocketChannel channel = null;
+                        if (!key.isValid() || !key.channel().isOpen()) {
+                            continue;
+                        } else if (key.isAcceptable()) {
+                            ServerSocketChannel server = (ServerSocketChannel) key.channel();
+                            try {
+                                channel = server.accept();
+                                if (channel != null) {
+                                    channel.configureBlocking(false);
+                                    channel.register(selector, SelectionKey.OP_READ);
+                                }
+                            } catch (IOException e) {
+                                LOGGER.log(Level.SEVERE, "accept connect error", e);
+                                if (channel != null) {
+                                    key.cancel();
+                                    channel.close();
+                                }
                             }
-                        } catch (IOException e) {
-                            LOGGER.log(Level.SEVERE, "accept connect error", e);
-                            if (channel != null) {
-                                key.cancel();
-                                channel.close();
-                            }
+                        } else if (key.isReadable()) {
+                            channel = (SocketChannel) key.channel();
+                            if (!handleRequest(key, channel)) continue;
                         }
-                    } else if (key.isReadable()) {
-                        channel = (SocketChannel) key.channel();
-                        if (!handleRequest(key, channel)) continue;
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "", e);
+                    } finally {
+                        iterator.remove();
                     }
-                    iterator.remove();
                 }
             } catch (Throwable e) {
                 LOGGER.log(Level.SEVERE, "", e);
             }
         }
+    }
+
+    private void renderUpgradeHttp2Response(HttpResponse httpResponse) throws IOException {
+        Map<String, String> upgradeHeaderMap = new LinkedHashMap<>();
+        upgradeHeaderMap.put("Connection", "upgrade");
+        upgradeHeaderMap.put("Upgrade", "h2c");
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        bout.write(("HTTP/1.1 101 " + StatusCodeUtil.getStatusCodeDesc(101) + "\r\n").getBytes());
+        for (Map.Entry<String, String> entry : upgradeHeaderMap.entrySet()) {
+            bout.write((entry.getKey() + ": " + entry.getValue() + "\r\n").getBytes());
+        }
+        bout.write("\r\n".getBytes());
+        String body = "test";
+        bout.write(FrameUtil.wrapperData(body.getBytes()));
+        httpResponse.send(bout, true);
     }
 
     private boolean handleRequest(SelectionKey key, SocketChannel channel) throws IOException {
@@ -180,7 +200,11 @@ public class SimpleWebServer implements ISocketServer {
             boolean exception = false;
             try {
                 byte[] bytes = handler.handleRead().array();
-                if (!codecEntry.getKey().doDecode(bytes)) {
+                if (bytes.length == 0 || !codecEntry.getKey().doDecode(bytes)) {
+                    return false;
+                }
+                if (serverConfig.isSupportHttp2()) {
+                    renderUpgradeHttp2Response(codecEntry.getValue());
                     return false;
                 }
                 requestHandlerThread = new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue(), serverContext);
@@ -189,7 +213,7 @@ public class SimpleWebServer implements ISocketServer {
                 handleException(key, codecEntry.getKey(), null, 400);
                 exception = true;
             } catch (UnSupportMethodException | IOException e) {
-                //LOGGER.log(Level.SEVERE, "", e);
+                LOGGER.log(Level.SEVERE, "", e);
                 handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue(), serverContext), 400);
                 exception = true;
             } catch (ContentLengthTooLargeException e) {

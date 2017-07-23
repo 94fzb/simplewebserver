@@ -1,8 +1,15 @@
 package com.hibegin.http.server.util;
 
+import com.hibegin.common.util.IOUtil;
+import com.hibegin.common.util.LoggerUtil;
+
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * 提供给一些路径供程序更方便的调用
@@ -10,6 +17,8 @@ import java.net.URLDecoder;
  * @author Chun
  */
 public class PathUtil {
+
+    private static final Logger LOGGER = LoggerUtil.getLogger(PathUtil.class);
 
     private static String ROOT_PATH = "";
 
@@ -57,8 +66,23 @@ public class PathUtil {
         ROOT_PATH = rootPath;
     }
 
-    public static String getConfFile(String file) {
-        return getConfPath() + file;
+    public static File getConfFile(String file) {
+        File nFile = new File(getConfPath() + file);
+        if (nFile.exists()) {
+            return nFile;
+        } else {
+            InputStream in = PathUtil.class.getResourceAsStream("/conf/" + file);
+            if (in != null) {
+                try {
+                    File tempFile = File.createTempFile(nFile.getName(), ".tmp");
+                    IOUtil.writeBytesToFile(IOUtil.getByteByInputStream(in), tempFile);
+                    return tempFile;
+                } catch (IOException e) {
+                    LOGGER.log(Level.SEVERE, "", e);
+                }
+            }
+        }
+        return null;
     }
 
     public static String getStaticPath() {
