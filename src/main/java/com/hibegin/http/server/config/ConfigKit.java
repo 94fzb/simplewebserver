@@ -19,7 +19,7 @@ public class ConfigKit {
         prop = new Properties();
         try {
             File file = PathUtil.getConfFile("/conf.properties");
-            if (file.exists()) {
+            if (file != null && file.exists()) {
                 prop.load(new FileInputStream(file));
             }
         } catch (IOException e) {
