@@ -4,9 +4,9 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.1.22</version>
+    <version>0.1.23-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <url>http://github.com/hibegin/simplewebserver</url>
+    <url>http://github.com/94fzb/simplewebserver</url>
 
     <name>SimpleWebServer</name>
     <description>Simple, flexible, less dependent, more extended. Less memory footprint, can quickly build Web project.
@@ -25,14 +25,14 @@
         </developer>
     </developers>
     <scm>
-        <connection>scm:git:git@github.com:hibegin/simplewebserver.git</connection>
-        <developerConnection>scm:git:git@github.com:hibegin/simplewebserver.git</developerConnection>
-        <url>git@github.com:hibegin/simplewebserver.git</url>
-      <tag>simplewebserver-0.1.22</tag>
+        <connection>scm:git:git@github.com:94fzb/simplewebserver.git</connection>
+        <developerConnection>scm:git:git@github.com:94fzb/simplewebserver.git</developerConnection>
+        <url>git@github.com:94fzb/simplewebserver.git</url>
+      <tag>HEAD</tag>
   </scm>
     <issueManagement>
         <system>Github Issue</system>
-        <url>http://github.com/hibegin/simplewebserver</url>
+        <url>http://github.com/94fzb/simplewebserver</url>
     </issueManagement>
     <licenses>
         <license>
