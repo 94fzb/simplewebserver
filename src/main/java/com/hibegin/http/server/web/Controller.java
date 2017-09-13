@@ -2,9 +2,8 @@ package com.hibegin.http.server.web;
 
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpResponse;
-import com.hibegin.http.server.impl.HttpServlet;
 
-public class Controller extends HttpServlet {
+public class Controller {
 
     protected HttpRequest request;
     protected HttpResponse response;
