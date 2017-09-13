@@ -21,7 +21,7 @@
 <dependency>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.1.15</version>
+    <version>0.1.22</version>
 </dependency>
 ```
 
