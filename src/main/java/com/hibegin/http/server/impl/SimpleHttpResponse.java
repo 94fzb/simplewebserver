@@ -107,7 +107,7 @@ public class SimpleHttpResponse implements HttpResponse {
 
 
     private void send(ByteArrayOutputStream byteArrayOutputStream) {
-        send(byteArrayOutputStream, true);
+        send(byteArrayOutputStream, "close".equalsIgnoreCase(getHeader().get("Connection")));
     }
 
     @Override
@@ -231,8 +231,8 @@ public class SimpleHttpResponse implements HttpResponse {
     }
 
     @Override
-    public void renderHtml(String urlPath) {
-        writeFile(new File(PathUtil.getStaticPath() + urlPath));
+    public void renderHtml(String htmlPath) {
+        writeFile(new File(PathUtil.getStaticPath() + htmlPath));
     }
 
     @Override

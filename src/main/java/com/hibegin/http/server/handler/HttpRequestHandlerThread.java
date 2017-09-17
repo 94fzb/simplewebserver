@@ -10,12 +10,14 @@ import com.hibegin.http.server.impl.ServerContext;
 import com.hibegin.http.server.impl.SimpleHttpRequest;
 
 import java.net.Socket;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class HttpRequestHandlerThread extends Thread {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpRequestHandlerThread.class);
+    private static AtomicLong atomicLong = new AtomicLong(1);
 
     private HttpRequest request;
     private ServerContext serverContext;
@@ -25,6 +27,7 @@ public class HttpRequestHandlerThread extends Thread {
     private volatile boolean interrupted;
 
     public HttpRequestHandlerThread(HttpRequest request, HttpResponse response, ServerContext serverContext) {
+        super("simplewebserver-http-nio-" + atomicLong.getAndIncrement());
         this.serverContext = serverContext;
         this.request = request;
         this.response = response;
@@ -58,9 +61,9 @@ public class HttpRequestHandlerThread extends Thread {
                         LOGGER.log(Level.WARNING, "forget close stream " + socket.toString());
                         response.renderCode(404);
                     }
+                    close();
+                    serverContext.getHttpDeCoderMap().remove(socket);
                 }
-                serverContext.getHttpDeCoderMap().remove(socket);
-                close();
             }
         }
     }
@@ -83,20 +86,15 @@ public class HttpRequestHandlerThread extends Thread {
 
     private void close() {
         interrupted = true;
-        new Thread() {
-            @Override
-            public void run() {
-                //LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
-                if (socket.isClosed()) {
-                    serverContext.getHttpDeCoderMap().remove(socket);
-                }
-                if (request instanceof SimpleHttpRequest) {
-                    ((SimpleHttpRequest) request).deleteTempUploadFiles();
-                }
-                for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
-                    requestListener.destroy(getRequest(), getResponse());
-                }
-            }
-        }.start();
+        //LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
+        if (socket.isClosed()) {
+            serverContext.getHttpDeCoderMap().remove(socket);
+        }
+        if (request instanceof SimpleHttpRequest) {
+            ((SimpleHttpRequest) request).deleteTempUploadFiles();
+        }
+        for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
+            requestListener.destroy(getRequest(), getResponse());
+        }
     }
 }

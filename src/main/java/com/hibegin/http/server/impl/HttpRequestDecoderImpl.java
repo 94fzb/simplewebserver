@@ -108,7 +108,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             wrapperParamStrToMap(request.queryStr);
             if (request.header.get("Content-Length") != null) {
                 Integer dateLength = Integer.parseInt(request.header.get("Content-Length"));
-                if (dateLength > ConfigKit.getMaxUploadSize()) {
+                if (dateLength > getRequest().getRequestConfig().getMaxRequestBodySize()) {
                     throw new ContentLengthTooLargeException("The Content-Length outside the max upload size " + ConfigKit.getMaxUploadSize());
                 }
                 request.requestBodyBuffer = ByteBuffer.allocate(dateLength);
@@ -215,19 +215,22 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                         LOGGER.log(Level.SEVERE, "", e);
                     }
                 }
-                String inputName = request.header.get("Content-Disposition").split(";")[1].split("=")[1].replace("\"", "");
-                String fileName;
-                if (request.header.get("Content-Disposition").split(";").length > 2) {
-                    fileName = request.header.get("Content-Disposition").split(";")[2].split("=")[1].replace("\"", "");
-                } else {
-                    fileName = randomFile();
+                String contentDisposition = request.header.get("Content-Disposition");
+                if (contentDisposition != null) {
+                    String inputName = contentDisposition.split(";")[1].split("=")[1].replace("\"", "");
+                    String fileName;
+                    if (contentDisposition.split(";").length > 2) {
+                        fileName = contentDisposition.split(";")[2].split("=")[1].replace("\"", "");
+                    } else {
+                        fileName = randomFile();
+                    }
+                    File file = new File(PathUtil.getTempPath() + fileName);
+                    request.files.put(inputName, file);
+                    int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
+                    int length2 = sb.toString().getBytes().length + 2;
+                    int dataLength = Integer.parseInt(request.header.get("Content-Length")) - length1 - length2 - SPLIT.getBytes().length;
+                    IOUtil.writeBytesToFile(BytesUtil.subBytes(request.requestBodyBuffer.array(), length2, dataLength), file);
                 }
-                File file = new File(PathUtil.getTempPath() + fileName);
-                request.files.put(inputName, file);
-                int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
-                int length2 = sb.toString().getBytes().length + 2;
-                int dataLength = Integer.parseInt(request.header.get("Content-Length")) - length1 - length2 - SPLIT.getBytes().length;
-                IOUtil.writeBytesToFile(BytesUtil.subBytes(request.requestBodyBuffer.array(), length2, dataLength), file);
                 request.paramMap = new HashMap<>();
             } else {
                 wrapperParamStrToMap(new String(request.requestBodyBuffer.array()));

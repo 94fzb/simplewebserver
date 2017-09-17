@@ -13,7 +13,7 @@ public interface HttpResponse {
 
     void renderText(String text);
 
-    void renderHtml(String urlPath);
+    void renderHtml(String htmlPath);
 
     void renderJson(Object obj);
 

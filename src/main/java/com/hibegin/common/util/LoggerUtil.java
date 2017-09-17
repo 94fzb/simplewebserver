@@ -23,7 +23,11 @@ public class LoggerUtil {
 
     static {
         try {
-            fileHandler = new FileHandler(getLogFilePath(), true);
+            File fileName = new File(getLogFilePath());
+            if (!fileName.exists()) {
+                fileName.getParentFile().mkdirs();
+            }
+            fileHandler = new FileHandler(fileName.toString(), true);
             fileHandler.setFormatter(new SimpleFormatter());
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "", e);

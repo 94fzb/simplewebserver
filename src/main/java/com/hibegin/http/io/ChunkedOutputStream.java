@@ -9,10 +9,6 @@ public class ChunkedOutputStream extends FilterOutputStream {
     static final byte[] LAST_TOKEN = "0\r\n\r\n".getBytes();
     boolean eos = false;
 
-    private ChunkedOutputStream() {
-        super(null);
-    }
-
     public ChunkedOutputStream(OutputStream os) {
         super(os);
     }
@@ -33,7 +29,7 @@ public class ChunkedOutputStream extends FilterOutputStream {
         out.write(CRLF);
     }
 
-    public void eos() throws IOException {
+    private void eos() throws IOException {
         synchronized (this) {
             if (eos) return;
             eos = true;

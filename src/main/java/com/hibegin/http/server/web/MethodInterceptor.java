@@ -39,14 +39,7 @@ public class MethodInterceptor implements Interceptor {
                 break;
             }
         }
-
         if (next) {
-            File file = new File(request.getRealPath() + request.getUri());
-            // 在请求路径中存在了. 认为其为文件
-            if (file.exists() && !file.isDirectory() || request.getUri().contains(".")) {
-                response.writeFile(file);
-                return false;
-            }
             Method method;
             Router router = request.getRequestConfig().getRouter();
             if (request.getUri().contains("-")) {
@@ -55,6 +48,12 @@ public class MethodInterceptor implements Interceptor {
                 method = router.getMethod(request.getUri());
             }
             if (method == null) {
+                File file = new File(request.getRealPath() + request.getUri());
+                // 在请求路径中存在了. 认为其为文件
+                if (file.exists() && !file.isDirectory() || request.getUri().contains(".")) {
+                    response.writeFile(file);
+                    return false;
+                }
                 if (request.getUri().endsWith("/")) {
                     response.renderHtml(request.getUri() + request.getServerConfig().getWelcomeFile());
                 } else {
@@ -62,18 +61,31 @@ public class MethodInterceptor implements Interceptor {
                 }
                 return false;
             }
-            //
             try {
-                Controller controller;
-                try {
-                    Constructor constructor = method.getDeclaringClass().getConstructor(HttpRequest.class, HttpResponse.class);
-                    controller = (Controller) constructor.newInstance(request, response);
-                } catch (NoSuchMethodException e) {
-                    controller = (Controller) method.getDeclaringClass().newInstance();
-                    controller.request = request;
-                    controller.response = response;
+                Controller controller = null;
+                Constructor[] constructors = method.getDeclaringClass().getConstructors();
+                boolean haveDefaultConstructor = false;
+                for (Constructor constructor : constructors) {
+                    if (constructor.getParameterTypes().length == 2) {
+                        if (constructor.getParameterTypes()[0].getName().equals(HttpRequest.class.getName()) &&
+                                constructor.getParameterTypes()[1].getName().equals(HttpResponse.class.getName())) {
+                            controller = (Controller) constructor.newInstance(request, response);
+                        }
+                    }
+                    if (constructor.getParameterTypes().length == 0) {
+                        haveDefaultConstructor = true;
+                    }
                 }
-                //LOGGER.info("invoke method " + method);
+                if (controller == null) {
+                    if (haveDefaultConstructor) {
+                        controller = (Controller) method.getDeclaringClass().newInstance();
+                        controller.request = request;
+                        controller.response = response;
+                    } else {
+                        LOGGER.log(Level.WARNING, method.getDeclaringClass().getSimpleName() + " not find default constructor");
+                        return false;
+                    }
+                }
                 method.invoke(controller);
             } catch (Exception e) {
                 response.renderCode(500);

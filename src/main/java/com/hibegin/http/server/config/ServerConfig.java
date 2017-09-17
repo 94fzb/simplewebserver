@@ -28,6 +28,7 @@ public class ServerConfig {
     private boolean supportHttp2;
     private String welcomeFile = "index.html";
     private Executor executor = Executors.newFixedThreadPool(10);
+    private Executor decodeExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
     private Router router = new Router();
     private List<HttpRequestListener> httpRequestListenerList = new ArrayList<>();
 
@@ -89,6 +90,14 @@ public class ServerConfig {
 
     public void setSupportHttp2(boolean supportHttp2) {
         this.supportHttp2 = supportHttp2;
+    }
+
+    public Executor getDecodeExecutor() {
+        return decodeExecutor;
+    }
+
+    public void setDecodeExecutor(Executor decodeExecutor) {
+        this.decodeExecutor = decodeExecutor;
     }
 
     public Interceptor getNextInterceptor(Class interceptor) {

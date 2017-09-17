@@ -18,7 +18,6 @@ public class DemoController extends Controller {
     }
 
     public void helloWorld() {
-        getRequest().getCookies();
         getResponse().renderText("Hello world/v" + ServerInfo.getVersion());
     }
 }

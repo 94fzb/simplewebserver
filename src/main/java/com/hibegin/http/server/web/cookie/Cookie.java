@@ -1,7 +1,9 @@
 package com.hibegin.http.server.web.cookie;
 
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class Cookie {
 
@@ -24,23 +26,24 @@ public class Cookie {
 
     public static Cookie[] saxToCookie(String cookieStr) {
         String[] kvArr = cookieStr.split(";");
-        Cookie[] cookies = new Cookie[kvArr.length];
-        for (int i = 0; i < kvArr.length; i++) {
-            String[] kv = kvArr[i].trim().split("=");
-            Cookie cookie = new Cookie();
-            cookie.setName(kv[0]);
-            cookie.setValue(kv[1]);
-            cookies[i] = cookie;
+        List<Cookie> cookieList = new ArrayList<>();
+        for (String aKvArr : kvArr) {
+            String kvStr = aKvArr.trim();
+            if (kvStr.contains("=")) {
+                Cookie cookie = new Cookie();
+                cookie.setName(kvStr.split("=")[0]);
+                cookie.setValue(kvStr.substring(kvStr.indexOf("=") + 1, kvStr.length()));
+                cookieList.add(cookie);
+            }
         }
-        return cookies;
+        return cookieList.toArray(new Cookie[cookieList.size()]);
     }
 
     public static String getJSessionId(String cookieStr) {
-        String[] kvArr = cookieStr.split(";");
-        for (String aKvArr : kvArr) {
-            String[] kv = aKvArr.trim().split("=");
-            if (JSESSIONID.equals(kv[0])) {
-                return (kv[1]);
+        Cookie[] cookies = saxToCookie(cookieStr);
+        for (Cookie cookie : cookies) {
+            if (JSESSIONID.equals(cookie.getName())) {
+                return cookie.getValue();
             }
         }
         return null;

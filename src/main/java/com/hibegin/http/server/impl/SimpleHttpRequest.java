@@ -63,7 +63,12 @@ public class SimpleHttpRequest implements HttpRequest {
 
     @Override
     public String getHeader(String key) {
-        return header.get(key);
+        for (Map.Entry<String, String> entry : header.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(key)) {
+                return header.get(key);
+            }
+        }
+        return null;
     }
 
     @Override

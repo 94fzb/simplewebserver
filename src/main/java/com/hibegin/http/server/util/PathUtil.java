@@ -9,7 +9,6 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * 提供给一些路径供程序更方便的调用
@@ -17,8 +16,6 @@ import java.util.logging.Logger;
  * @author Chun
  */
 public class PathUtil {
-
-    private static final Logger LOGGER = LoggerUtil.getLogger(PathUtil.class);
 
     private static String ROOT_PATH = "";
 
@@ -78,7 +75,7 @@ public class PathUtil {
                     IOUtil.writeBytesToFile(IOUtil.getByteByInputStream(in), tempFile);
                     return tempFile;
                 } catch (IOException e) {
-                    LOGGER.log(Level.SEVERE, "", e);
+                    LoggerUtil.getLogger(PathUtil.class).log(Level.SEVERE, "", e);
                 }
             }
         }
