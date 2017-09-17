@@ -58,7 +58,7 @@ public class DemoController extends Controller{
 
 **推荐使用 maven-assembly-plugin**
 
-```
+```xml
 <build>
     <plugins>
         <plugin>
