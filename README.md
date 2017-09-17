@@ -7,7 +7,7 @@
 ## 功能
 
 - 1.实现对HTTP请求的处理，可用于展示一些静态页面
-- 2.支持文件上传，下载，cookie，json
+- 2.支持文件上传，下载，Cookie/Session，Json
 - 3.路由请求配置
 - 4.freemarker 模板
 - 5.多线程支持
@@ -21,7 +21,7 @@
 <dependency>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.1.22</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -51,8 +51,34 @@ public class DemoController extends Controller{
     }
 }
 ```
-
 然后浏览器输入 http://localhost:6058
+
+
+## 打包
+
+**推荐使用 maven-assembly-plugin**
+
+```
+<build>
+    <plugins>
+        <plugin>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <version>2.5.5</version>
+            <configuration>
+                <archive>
+                    <manifest>
+                        <mainClass>com.hibegin.http.server.test.DemoController</mainClass>
+                    </manifest>
+                </archive>
+                <finalName>simplewebserver-demo</finalName>
+                <descriptorRefs>
+                    <descriptorRef>jar-with-dependencies</descriptorRef>
+                </descriptorRefs>
+            </configuration>
+        </plugin>
+    </plugins>
+</build>
+```
 
 ## Changelog
 

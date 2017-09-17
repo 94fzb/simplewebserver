@@ -1,3 +1,20 @@
+V0.2(2017-09-18)
+
+* 优化
+    * Cookie 的过期时间的设置方式
+    * Json 序列化是使用 Gson 替换 flexjson
+    * 对代理请求的处理
+    * 支持 HTTP 请求创建，销毁的监听接口
+    * HTTPS 配置更加方便
+
+* 修复
+    * 默认的日志存放路径不支持中文路径
+    * Chrome 浏览器部分特殊文件无法进行下载
+    * 一处内存泄漏
+    * HttpSession中的Map不能使用 null
+    * 几出已知的NullPointException
+
+
 V0.1(2016-11-19)
 
 * 变更Cookie的生成机制，及使用request.getSession()，后才添加用于标示会话的Cookie
