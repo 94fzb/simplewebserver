@@ -44,7 +44,6 @@ public class SimpleWebServer implements ISocketServer {
     private ResponseConfig responseConfig;
     private ServerContext serverContext = new ServerContext();
     private File pidFile;
-    private Map<Socket, HttpRequestHandlerThread> socketHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
     private HttpDecodeRunnable httpDecodeRunnable;
 
     public SimpleWebServer() {
@@ -163,9 +162,9 @@ public class SimpleWebServer implements ISocketServer {
      */
     private void startExecHttpRequestThread() {
         ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
-        checkRequestRunnable = new CheckRequestRunnable(serverConfig.getTimeOut(), serverContext, socketHttpRequestHandlerThreadMap);
+        checkRequestRunnable = new CheckRequestRunnable(serverConfig.getTimeOut(), serverContext);
         httpDecodeRunnable = new HttpDecodeRunnable(serverContext, this, requestConf, responseConfig, serverConfig);
-        scheduledExecutorService.scheduleAtFixedRate(checkRequestRunnable, 0, 100, TimeUnit.MILLISECONDS);
+        scheduledExecutorService.scheduleAtFixedRate(checkRequestRunnable, 0, 1, TimeUnit.MILLISECONDS);
         scheduledExecutorService.scheduleAtFixedRate(httpDecodeRunnable, 0, 1, TimeUnit.MILLISECONDS);
         new Thread(ServerInfo.getName().toLowerCase() + "-http-request-exec-thread") {
             @Override
@@ -175,17 +174,17 @@ public class SimpleWebServer implements ISocketServer {
                     if (requestHandlerThread != null) {
                         Socket socket = requestHandlerThread.getRequest().getHandler().getChannel().socket();
                         if (requestHandlerThread.getRequest().getMethod() != HttpMethod.CONNECT) {
-                            HttpRequestHandlerThread oldHttpRequestHandlerThread = socketHttpRequestHandlerThreadMap.get(socket);
+                            HttpRequestHandlerThread oldHttpRequestHandlerThread = checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().get(socket);
                             //清除老的请求
                             if (oldHttpRequestHandlerThread != null) {
                                 oldHttpRequestHandlerThread.interrupt();
                             }
-                            socketHttpRequestHandlerThreadMap.put(socket, requestHandlerThread);
+                            checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().put(socket, requestHandlerThread);
                             serverConfig.getExecutor().execute(requestHandlerThread);
                         } else {
-                            HttpRequestHandlerThread oldHttpRequestHandlerThread = socketHttpRequestHandlerThreadMap.get(socket);
+                            HttpRequestHandlerThread oldHttpRequestHandlerThread = checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().get(socket);
                             if (oldHttpRequestHandlerThread == null) {
-                                socketHttpRequestHandlerThreadMap.put(socket, requestHandlerThread);
+                                checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().put(socket, requestHandlerThread);
                                 serverConfig.getExecutor().execute(requestHandlerThread);
                             }
                         }

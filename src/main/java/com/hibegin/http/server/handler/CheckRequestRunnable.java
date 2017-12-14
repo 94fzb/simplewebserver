@@ -9,6 +9,7 @@ import java.net.Socket;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,8 +23,8 @@ public class CheckRequestRunnable implements Runnable {
     private Map<Socket, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap;
     private ServerContext serverContext;
 
-    public CheckRequestRunnable(int requestTimeout, ServerContext serverContext, Map<Socket, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap) {
-        this.channelHttpRequestHandlerThreadMap = channelHttpRequestHandlerThreadMap;
+    public CheckRequestRunnable(int requestTimeout, ServerContext serverContext) {
+        this.channelHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
         this.requestTimeout = requestTimeout;
         this.serverContext = serverContext;
     }
@@ -52,7 +53,7 @@ public class CheckRequestRunnable implements Runnable {
         Set<Socket> socketChannels = new CopyOnWriteArraySet<>();
         for (Map.Entry<Socket, HttpRequestHandlerThread> entry : channelHttpRequestHandlerThreadMap.entrySet()) {
             Socket socket = entry.getKey();
-            if (socket.isClosed() || !socket.isConnected()) {
+            if (socket.isClosed()) {
                 socketChannels.add(entry.getKey());
             }
             if (requestTimeout > 0) {
