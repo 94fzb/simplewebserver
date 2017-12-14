@@ -164,7 +164,7 @@ public class SimpleWebServer implements ISocketServer {
         ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
         checkRequestRunnable = new CheckRequestRunnable(serverConfig.getTimeOut(), serverContext);
         httpDecodeRunnable = new HttpDecodeRunnable(serverContext, this, requestConf, responseConfig, serverConfig);
-        scheduledExecutorService.scheduleAtFixedRate(checkRequestRunnable, 0, 1, TimeUnit.MILLISECONDS);
+        scheduledExecutorService.scheduleAtFixedRate(checkRequestRunnable, 0, 100, TimeUnit.MILLISECONDS);
         scheduledExecutorService.scheduleAtFixedRate(httpDecodeRunnable, 0, 1, TimeUnit.MILLISECONDS);
         new Thread(ServerInfo.getName().toLowerCase() + "-http-request-exec-thread") {
             @Override

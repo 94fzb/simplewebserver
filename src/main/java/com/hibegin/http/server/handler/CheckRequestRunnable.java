@@ -22,21 +22,45 @@ public class CheckRequestRunnable implements Runnable {
 
     private Map<Socket, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap;
     private ServerContext serverContext;
+    private Thread thread;
+    private boolean isAndroid;
 
     public CheckRequestRunnable(int requestTimeout, ServerContext serverContext) {
         this.channelHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
         this.requestTimeout = requestTimeout;
         this.serverContext = serverContext;
+        try {
+            Class.forName("android.app.Application");
+            isAndroid = true;
+        } catch (ClassNotFoundException e) {
+            isAndroid = false;
+        }
     }
+
 
     @Override
     public void run() {
         lastAccessDate = new Date();
-        try {
-            clearRequestListener(getClosedRequestSocketSet());
-            clearRequestDecode(getClosedDecodedSocketSet());
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "e", e);
+        if (isAndroid) {
+            if (thread != null) {
+                thread.interrupt();
+            }
+        }
+        thread = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    clearRequestListener(getClosedRequestSocketSet());
+                    clearRequestDecode(getClosedDecodedSocketSet());
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, "e", e);
+                }
+            }
+        };
+        if (isAndroid) {
+            thread.start();
+        } else {
+            thread.run();
         }
     }
 
