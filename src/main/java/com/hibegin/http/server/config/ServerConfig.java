@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,8 +28,8 @@ public class ServerConfig {
     private int timeOut;
     private boolean supportHttp2;
     private String welcomeFile = "index.html";
-    private Executor executor = Executors.newFixedThreadPool(10);
-    private Executor decodeExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+    private Executor requestExecutor;
+    private Executor decodeExecutor;
     private Router router = new Router();
     private List<HttpRequestListener> httpRequestListenerList = new ArrayList<>();
 
@@ -48,12 +49,15 @@ public class ServerConfig {
         this.port = port;
     }
 
-    public Executor getExecutor() {
-        return executor;
+    public Executor getRequestExecutor() {
+        if (requestExecutor == null) {
+            requestExecutor = Executors.newFixedThreadPool(10);
+        }
+        return requestExecutor;
     }
 
-    public void setExecutor(Executor executor) {
-        this.executor = executor;
+    public void setRequestExecutor(Executor requestExecutor) {
+        this.requestExecutor = requestExecutor;
     }
 
     public boolean isDisableCookie() {
@@ -93,6 +97,9 @@ public class ServerConfig {
     }
 
     public Executor getDecodeExecutor() {
+        if (decodeExecutor == null) {
+            decodeExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+        }
         return decodeExecutor;
     }
 

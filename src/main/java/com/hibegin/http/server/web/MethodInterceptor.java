@@ -18,7 +18,7 @@ public class MethodInterceptor implements Interceptor {
     private static final Logger LOGGER = LoggerUtil.getLogger(MethodInterceptor.class);
 
     @Override
-    public boolean doInterceptor(HttpRequest request, HttpResponse response) {
+    public boolean doInterceptor(HttpRequest request, HttpResponse response) throws Exception {
         boolean next = true;
         for (Map.Entry<String, String> entry : request.getServerConfig().getStaticResourceMapper().entrySet()) {
             if (request.getUri().startsWith(entry.getKey())) {
@@ -42,10 +42,9 @@ public class MethodInterceptor implements Interceptor {
         if (next) {
             Method method;
             Router router = request.getRequestConfig().getRouter();
-            if (request.getUri().contains("-")) {
+            method = router.getMethod(request.getUri());
+            if (method == null && request.getUri().contains("-")) {
                 method = router.getMethod(request.getUri().substring(0, request.getUri().indexOf("-")));
-            } else {
-                method = router.getMethod(request.getUri());
             }
             if (method == null) {
                 File file = new File(request.getRealPath() + request.getUri());
@@ -61,37 +60,31 @@ public class MethodInterceptor implements Interceptor {
                 }
                 return false;
             }
-            try {
-                Controller controller = null;
-                Constructor[] constructors = method.getDeclaringClass().getConstructors();
-                boolean haveDefaultConstructor = false;
-                for (Constructor constructor : constructors) {
-                    if (constructor.getParameterTypes().length == 2) {
-                        if (constructor.getParameterTypes()[0].getName().equals(HttpRequest.class.getName()) &&
-                                constructor.getParameterTypes()[1].getName().equals(HttpResponse.class.getName())) {
-                            controller = (Controller) constructor.newInstance(request, response);
-                        }
-                    }
-                    if (constructor.getParameterTypes().length == 0) {
-                        haveDefaultConstructor = true;
+            Controller controller = null;
+            Constructor[] constructors = method.getDeclaringClass().getConstructors();
+            boolean haveDefaultConstructor = false;
+            for (Constructor constructor : constructors) {
+                if (constructor.getParameterTypes().length == 2) {
+                    if (constructor.getParameterTypes()[0].getName().equals(HttpRequest.class.getName()) &&
+                            constructor.getParameterTypes()[1].getName().equals(HttpResponse.class.getName())) {
+                        controller = (Controller) constructor.newInstance(request, response);
                     }
                 }
-                if (controller == null) {
-                    if (haveDefaultConstructor) {
-                        controller = (Controller) method.getDeclaringClass().newInstance();
-                        controller.request = request;
-                        controller.response = response;
-                    } else {
-                        LOGGER.log(Level.WARNING, method.getDeclaringClass().getSimpleName() + " not find default constructor");
-                        return false;
-                    }
+                if (constructor.getParameterTypes().length == 0) {
+                    haveDefaultConstructor = true;
                 }
-                method.invoke(controller);
-            } catch (Exception e) {
-                response.renderCode(500);
-                LOGGER.log(Level.SEVERE, "invoke error ", e);
-                return false;
             }
+            if (controller == null) {
+                if (haveDefaultConstructor) {
+                    controller = (Controller) method.getDeclaringClass().newInstance();
+                    controller.request = request;
+                    controller.response = response;
+                } else {
+                    LOGGER.log(Level.WARNING, method.getDeclaringClass().getSimpleName() + " not find default constructor");
+                    return false;
+                }
+            }
+            method.invoke(controller);
         }
         return true;
     }

@@ -43,6 +43,9 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     @Override
     public boolean doDecode(byte[] data) throws Exception {
         if (headerHandled && request.getMethod() == HttpMethod.CONNECT) {
+            if (request.requestBodyBuffer == null) {
+                request.requestBodyBuffer = ByteBuffer.allocate(0);
+            }
             byte[] oldBytes = request.requestBodyBuffer.array();
             request.requestBodyBuffer = ByteBuffer.allocate(oldBytes.length + data.length);
             request.requestBodyBuffer.put(oldBytes);
@@ -58,7 +61,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 String fullDataStr = new String(headerBytes);
                 if (fullDataStr.contains(SPLIT)) {
                     headerHandled = true;
-                    checkHttpMethod();
+                    parseHttpMethod();
                     String httpHeader = fullDataStr.substring(0, fullDataStr.indexOf(SPLIT));
                     request.requestHeaderStr = httpHeader;
                     String headerArr[] = httpHeader.split(CRLF);
@@ -70,7 +73,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                     //处理完成，清空byte[]
                     headerBytes = new byte[]{};
                 } else {
-                    checkHttpMethod();
+                    parseHttpMethod();
                 }
             } else {
                 request.requestBodyBuffer.put(data);
@@ -83,18 +86,20 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         }
     }
 
-    private void checkHttpMethod() throws UnSupportMethodException {
-        boolean check = false;
-        for (HttpMethod httpMethod : HttpMethod.values()) {
-            if (headerBytes.length > httpMethod.name().length()) {
-                String tHttpMethod = new String(BytesUtil.subBytes(headerBytes, 0, httpMethod.name().getBytes().length));
-                if (tHttpMethod.equals(httpMethod.name())) {
+    private void parseHttpMethod() throws UnSupportMethodException {
+        if (request.method == null) {
+            boolean check = false;
+            String requestLine = new String(headerBytes);
+            for (HttpMethod httpMethod : HttpMethod.values()) {
+                if (requestLine.startsWith(httpMethod.name() + " ")) {
+                    request.method = httpMethod;
                     check = true;
+                    break;
                 }
             }
-        }
-        if (!check) {
-            throw new UnSupportMethodException("");
+            if (!check) {
+                throw new UnSupportMethodException("");
+            }
         }
     }
 
@@ -102,12 +107,12 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         boolean flag;
         if (isNeedEmptyRequestBody()) {
             wrapperParamStrToMap(request.queryStr);
-            request.requestBodyBuffer = ByteBuffer.allocate(0);
             flag = true;
         } else {
             wrapperParamStrToMap(request.queryStr);
-            if (request.header.get("Content-Length") != null) {
-                Integer dateLength = Integer.parseInt(request.header.get("Content-Length"));
+            Object contentLengthObj = request.getHeader("Content-Length");
+            if (contentLengthObj != null) {
+                Integer dateLength = Integer.parseInt(contentLengthObj.toString());
                 if (dateLength > getRequest().getRequestConfig().getMaxRequestBodySize()) {
                     throw new ContentLengthTooLargeException("The Content-Length outside the max upload size " + ConfigKit.getMaxUploadSize());
                 }
@@ -131,7 +136,6 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     private void parseHttpProtocolHeader(String[] headerArr) throws Exception {
         String pHeader = headerArr[0];
         String[] protocolHeaderArr = pHeader.split(" ");
-        request.method = HttpMethod.valueOf(protocolHeaderArr[0].toUpperCase());
         String tUrl = request.uri = protocolHeaderArr[1];
         // just for some proxy-client
         if (tUrl.startsWith(request.getScheme() + "://")) {
@@ -151,7 +155,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             request.uri = tUrl;
         }
         if (request.uri.contains("/")) {
-            request.uri = URLDecoder.decode(request.uri.substring(request.uri.indexOf("/")), "UTF-8");
+            request.uri = URLDecoder.decode(request.uri.substring(request.uri.indexOf("/")), request.getRequestConfig().getCharSet());
         } else {
             request.getHeaderMap().put("Host", request.uri);
             request.uri = "/";
@@ -197,7 +201,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     private void dealRequestBodyData() {
         if (request.header.get("Content-Type") != null && request.header.get("Content-Type").split(";")[0] != null) {
             //FIXME 不支持多文件上传，不支持这里有其他属性字段
-            if ("multipart/form-data".equals(request.header.get("Content-Type").split(";")[0])) {
+            if ("multipart/form-data".equals(request.getHeader("Content-Type").split(";")[0])) {
                 BufferedReader bin = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(request.requestBodyBuffer.array())));
                 StringBuilder sb = new StringBuilder();
                 try {
@@ -215,7 +219,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                         LOGGER.log(Level.SEVERE, "", e);
                     }
                 }
-                String contentDisposition = request.header.get("Content-Disposition");
+                String contentDisposition = request.getHeader("Content-Disposition");
                 if (contentDisposition != null) {
                     String inputName = contentDisposition.split(";")[1].split("=")[1].replace("\"", "");
                     String fileName;
@@ -225,10 +229,13 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                         fileName = randomFile();
                     }
                     File file = new File(PathUtil.getTempPath() + fileName);
+                    if (request.files == null) {
+                        request.files = new HashMap<>();
+                    }
                     request.files.put(inputName, file);
                     int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
                     int length2 = sb.toString().getBytes().length + 2;
-                    int dataLength = Integer.parseInt(request.header.get("Content-Length")) - length1 - length2 - SPLIT.getBytes().length;
+                    int dataLength = request.requestBodyBuffer.array().length - length1 - length2 - SPLIT.getBytes().length;
                     IOUtil.writeBytesToFile(BytesUtil.subBytes(request.requestBodyBuffer.array(), length2, dataLength), file);
                 }
                 request.paramMap = new HashMap<>();

@@ -1,5 +1,6 @@
 package com.hibegin.http.server.handler;
 
+import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.api.HttpResponse;
@@ -23,25 +24,18 @@ public class CheckRequestRunnable implements Runnable {
     private Map<Socket, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap;
     private ServerContext serverContext;
     private Thread thread;
-    private boolean isAndroid;
 
-    public CheckRequestRunnable(int requestTimeout, ServerContext serverContext) {
+    public CheckRequestRunnable(ServerContext serverContext) {
         this.channelHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
-        this.requestTimeout = requestTimeout;
+        this.requestTimeout = serverContext.getServerConfig().getTimeOut();
         this.serverContext = serverContext;
-        try {
-            Class.forName("android.app.Application");
-            isAndroid = true;
-        } catch (ClassNotFoundException e) {
-            isAndroid = false;
-        }
     }
 
 
     @Override
     public void run() {
         lastAccessDate = new Date();
-        if (isAndroid) {
+        if (EnvKit.isAndroid()) {
             if (thread != null) {
                 thread.interrupt();
             }
@@ -57,7 +51,7 @@ public class CheckRequestRunnable implements Runnable {
                 }
             }
         };
-        if (isAndroid) {
+        if (EnvKit.isAndroid()) {
             thread.start();
         } else {
             thread.run();

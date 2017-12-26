@@ -6,6 +6,19 @@ import java.lang.management.RuntimeMXBean;
 
 public class EnvKit {
 
+    private static final boolean android;
+
+    static {
+        boolean tmpFlag;
+        try {
+            Class.forName("android.app.Application");
+            tmpFlag = true;
+        } catch (ClassNotFoundException e) {
+            tmpFlag = false;
+        }
+        android = tmpFlag;
+    }
+
     public static void savePid(String pidFile) {
         RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
         int pid = Integer.valueOf(runtimeMXBean.getName().split("@")[0]);
@@ -15,5 +28,9 @@ public class EnvKit {
         }
         IOUtil.writeStrToFile(pid + "", file);
         file.deleteOnExit();
+    }
+
+    public static boolean isAndroid() {
+        return android;
     }
 }

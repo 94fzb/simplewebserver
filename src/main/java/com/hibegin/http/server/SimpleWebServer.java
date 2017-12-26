@@ -14,18 +14,18 @@ import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.MethodInterceptor;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +40,7 @@ public class SimpleWebServer implements ISocketServer {
 
     private Selector selector;
     private ServerConfig serverConfig;
-    private RequestConfig requestConf;
+    private RequestConfig requestConfig;
     private ResponseConfig responseConfig;
     private ServerContext serverContext = new ServerContext();
     private File pidFile;
@@ -63,22 +63,22 @@ public class SimpleWebServer implements ISocketServer {
         }
         this.serverConfig = serverConf;
         if (requestConf == null) {
-            this.requestConf = getDefaultRequestConfig();
+            this.requestConfig = getDefaultRequestConfig();
         } else {
-            this.requestConf = requestConf;
+            this.requestConfig = requestConf;
         }
         if (responseConf == null) {
             this.responseConfig = getDefaultResponseConfig();
         } else {
             this.responseConfig = responseConf;
         }
-        if (this.requestConf.getMaxRequestBodySize() < 0) {
-            this.requestConf.setMaxRequestBodySize(Integer.MAX_VALUE);
-        } else if (this.requestConf.getMaxRequestBodySize() == 0) {
-            this.requestConf.setMaxRequestBodySize(ConfigKit.getMaxUploadSize());
+        if (this.requestConfig.getMaxRequestBodySize() < 0) {
+            this.requestConfig.setMaxRequestBodySize(Integer.MAX_VALUE);
+        } else if (this.requestConfig.getMaxRequestBodySize() == 0) {
+            this.requestConfig.setMaxRequestBodySize(ConfigKit.getMaxUploadSize());
         }
-        if (this.requestConf.getRouter() == null) {
-            this.requestConf.setRouter(serverConf.getRouter());
+        if (this.requestConfig.getRouter() == null) {
+            this.requestConfig.setRouter(serverConf.getRouter());
         }
         serverContext.setServerConfig(serverConf);
         Runtime rt = Runtime.getRuntime();
@@ -125,9 +125,7 @@ public class SimpleWebServer implements ISocketServer {
                     try {
                         SelectionKey key = iterator.next();
                         SocketChannel channel = null;
-                        if (!key.isValid() || !key.channel().isOpen()) {
-                            continue;
-                        } else if (key.isAcceptable()) {
+                        if (key.isAcceptable()) {
                             ServerSocketChannel server = (ServerSocketChannel) key.channel();
                             try {
                                 channel = server.accept();
@@ -143,8 +141,10 @@ public class SimpleWebServer implements ISocketServer {
                                 }
                             }
                         } else if (key.isReadable()) {
-                            httpDecodeRunnable.addTask((SocketChannel) key.channel(), key);
+                            httpDecodeRunnable.doRead((SocketChannel) key.channel(), key);
                         }
+                    } catch (IOException e) {
+                        //ignore，这里基本都是系统抛出来的异常了，比如连接被异常关闭，SSL握手失败
                     } catch (Exception e) {
                         LOGGER.log(Level.SEVERE, "", e);
                     } finally {
@@ -162,10 +162,18 @@ public class SimpleWebServer implements ISocketServer {
      */
     private void startExecHttpRequestThread() {
         ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
-        checkRequestRunnable = new CheckRequestRunnable(serverConfig.getTimeOut(), serverContext);
-        httpDecodeRunnable = new HttpDecodeRunnable(serverContext, this, requestConf, responseConfig, serverConfig);
-        scheduledExecutorService.scheduleAtFixedRate(checkRequestRunnable, 0, 100, TimeUnit.MILLISECONDS);
-        scheduledExecutorService.scheduleAtFixedRate(httpDecodeRunnable, 0, 1, TimeUnit.MILLISECONDS);
+        checkRequestRunnable = new CheckRequestRunnable(serverContext);
+        httpDecodeRunnable = new HttpDecodeRunnable(serverContext, this, requestConfig, responseConfig);
+        int checkTimeout = 100;
+        if (EnvKit.isAndroid()) {
+            checkTimeout = 1000;
+        }
+        int httpDecodeTimeout = 1;
+        if (EnvKit.isAndroid()) {
+            httpDecodeTimeout = 100;
+        }
+        scheduledExecutorService.scheduleAtFixedRate(checkRequestRunnable, 0, checkTimeout, TimeUnit.MILLISECONDS);
+        scheduledExecutorService.scheduleAtFixedRate(httpDecodeRunnable, 0, httpDecodeTimeout, TimeUnit.MILLISECONDS);
         new Thread(ServerInfo.getName().toLowerCase() + "-http-request-exec-thread") {
             @Override
             public void run() {
@@ -180,12 +188,12 @@ public class SimpleWebServer implements ISocketServer {
                                 oldHttpRequestHandlerThread.interrupt();
                             }
                             checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().put(socket, requestHandlerThread);
-                            serverConfig.getExecutor().execute(requestHandlerThread);
+                            serverConfig.getRequestExecutor().execute(requestHandlerThread);
                         } else {
                             HttpRequestHandlerThread oldHttpRequestHandlerThread = checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().get(socket);
                             if (oldHttpRequestHandlerThread == null) {
                                 checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().put(socket, requestHandlerThread);
-                                serverConfig.getExecutor().execute(requestHandlerThread);
+                                serverConfig.getRequestExecutor().execute(requestHandlerThread);
                             }
                         }
                     }
@@ -201,7 +209,7 @@ public class SimpleWebServer implements ISocketServer {
         }
         try {
             selector.close();
-            LOGGER.info("close webServer success");
+            LOGGER.info(ServerInfo.getName() + " close success");
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "close selector error");
         }

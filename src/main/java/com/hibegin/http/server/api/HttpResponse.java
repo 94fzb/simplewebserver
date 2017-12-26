@@ -37,6 +37,14 @@ public interface HttpResponse {
 
     void write(InputStream inputStream, int code);
 
+    void write(ByteArrayOutputStream outputStream, int code);
+
+    /**
+     * 不包装HTTP协议，及直接写裸数据
+     *
+     * @param outputStream
+     * @param close
+     */
     void send(ByteArrayOutputStream outputStream, boolean close);
 
     Map<String, String> getHeader();

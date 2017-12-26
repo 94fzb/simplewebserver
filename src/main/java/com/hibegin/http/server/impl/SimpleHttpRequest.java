@@ -33,15 +33,14 @@ public class SimpleHttpRequest implements HttpRequest {
     protected String uri;
     protected String queryStr;
     protected HttpMethod method;
-    protected Map<String, File> files = new HashMap<>();
+    protected Map<String, File> files;
     protected ByteBuffer requestBodyBuffer;
     protected String requestHeaderStr;
     private Cookie[] cookies;
     private HttpSession session;
     private RequestConfig requestConfig;
-    private String scheme = "http";
     private ServerContext serverContext;
-    private Map<String, Object> attr = Collections.synchronizedMap(new HashMap<String, Object>());
+    private Map<String, Object> attr;
     private ReadWriteSelectorHandler handler;
     private long createTime;
     private InputStream inputStream;
@@ -51,9 +50,6 @@ public class SimpleHttpRequest implements HttpRequest {
         this.createTime = System.currentTimeMillis();
         this.handler = handler;
         this.serverContext = serverContext;
-        if (this.requestConfig.isSsl()) {
-            scheme = "https";
-        }
     }
 
     @Override
@@ -63,9 +59,13 @@ public class SimpleHttpRequest implements HttpRequest {
 
     @Override
     public String getHeader(String key) {
+        String headerValue = header.get(key);
+        if (headerValue != null) {
+            return headerValue;
+        }
         for (Map.Entry<String, String> entry : header.entrySet()) {
             if (entry.getKey().equalsIgnoreCase(key)) {
-                return header.get(key);
+                return entry.getValue();
             }
         }
         return null;
@@ -82,7 +82,7 @@ public class SimpleHttpRequest implements HttpRequest {
 
     @Override
     public String getUrl() {
-        return scheme + "://" + header.get("Host") + uri;
+        return getScheme() + "://" + header.get("Host") + uri;
     }
 
     @Override
@@ -153,7 +153,10 @@ public class SimpleHttpRequest implements HttpRequest {
 
     @Override
     public File getFile(String key) {
-        return files.get(key);
+        if (files != null) {
+            return files.get(key);
+        }
+        return null;
     }
 
     @Override
@@ -189,12 +192,15 @@ public class SimpleHttpRequest implements HttpRequest {
 
     @Override
     public Map<String, Object> getAttr() {
+        if (attr == null) {
+            attr = Collections.synchronizedMap(new HashMap<String, Object>());
+        }
         return attr;
     }
 
     @Override
     public String getScheme() {
-        return scheme;
+        return requestConfig.isSsl() ? "https" : "http";
     }
 
     @Override
@@ -280,8 +286,10 @@ public class SimpleHttpRequest implements HttpRequest {
     }
 
     public void deleteTempUploadFiles() {
-        for (File file : files.values()) {
-            file.delete();
+        if (files != null) {
+            for (File file : files.values()) {
+                file.delete();
+            }
         }
     }
 }
