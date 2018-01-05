@@ -22,7 +22,6 @@ public class HttpRequestHandlerThread extends Thread {
     private HttpRequest request;
 
     private HttpResponse response;
-    private volatile boolean interrupted;
 
     public HttpRequestHandlerThread(HttpRequest request, HttpResponse response) {
         this.request = request;
@@ -48,12 +47,8 @@ public class HttpRequestHandlerThread extends Thread {
             LOGGER.log(Level.SEVERE, "dispose error ", e);
         } finally {
             if (request.getMethod() != HttpMethod.CONNECT) {
-                String requestConnection = request.getHeader("Connection");
                 String responseConnection = response.getHeader().get("Connection");
-                boolean keepAlive = requestConnection != null && "keep-alive".equalsIgnoreCase(requestConnection);
-                if (keepAlive) {
-                    keepAlive = responseConnection != null && !"close".equalsIgnoreCase(responseConnection);
-                }
+                boolean keepAlive = responseConnection == null || !"close".equalsIgnoreCase(responseConnection);
                 if (!keepAlive) {
                     // 渲染错误页面
                     if (!getSocket().isClosed()) {
@@ -64,6 +59,7 @@ public class HttpRequestHandlerThread extends Thread {
                     request.getServerContext().getHttpDeCoderMap().remove(getSocket());
                 }
             }
+            //System.out.println("(System.nanoTime() - start) = " + (System.nanoTime() - request.getCreateTime()));
         }
     }
 
@@ -75,17 +71,7 @@ public class HttpRequestHandlerThread extends Thread {
         return response;
     }
 
-    @Override
-    public void interrupt() {
-        super.interrupt();
-        if (!interrupted) {
-            close();
-        }
-    }
-
-    private void close() {
-        interrupted = true;
-        //LOGGER.info(request.gestMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
+    public void close() {
         if (getSocket().isClosed()) {
             request.getServerContext().getHttpDeCoderMap().remove(getSocket());
         }
@@ -95,5 +81,6 @@ public class HttpRequestHandlerThread extends Thread {
         for (HttpRequestListener requestListener : request.getServerContext().getServerConfig().getHttpRequestListenerList()) {
             requestListener.destroy(getRequest(), getResponse());
         }
+        //LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
     }
 }

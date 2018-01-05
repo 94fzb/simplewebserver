@@ -14,12 +14,10 @@ import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.MethodInterceptor;
 
-import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -106,11 +104,13 @@ public class SimpleWebServer implements ISocketServer {
             LOGGER.info(serverConfig.getRouter().toString());
         }
         try {
-            if (pidFile == null) {
-                pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
+            if (!EnvKit.isAndroid()) {
+                if (pidFile == null) {
+                    pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
+                }
+                EnvKit.savePid(pidFile.toString());
+                pidFile.deleteOnExit();
             }
-            EnvKit.savePid(pidFile.toString());
-            pidFile.deleteOnExit();
         } catch (Throwable e) {
             LOGGER.log(Level.WARNING, "save pid error " + e.getMessage());
         }
@@ -185,7 +185,7 @@ public class SimpleWebServer implements ISocketServer {
                             HttpRequestHandlerThread oldHttpRequestHandlerThread = checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().get(socket);
                             //清除老的请求
                             if (oldHttpRequestHandlerThread != null) {
-                                oldHttpRequestHandlerThread.interrupt();
+                                oldHttpRequestHandlerThread.close();
                             }
                             checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().put(socket, requestHandlerThread);
                             serverConfig.getRequestExecutor().execute(requestHandlerThread);

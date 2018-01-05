@@ -24,7 +24,6 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     @Override
     public void handleWrite(ByteBuffer byteBuffer) throws IOException {
-        byteBuffer.flip();
         while (byteBuffer.hasRemaining() && sc.isOpen()) {
             int len = sc.write(byteBuffer);
             if (len < 0) {

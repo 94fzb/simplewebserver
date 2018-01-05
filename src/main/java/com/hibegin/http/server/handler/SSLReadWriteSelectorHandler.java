@@ -531,7 +531,6 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
     @Override
     public void handleWrite(ByteBuffer byteBuffer) throws IOException {
-        byteBuffer.flip();
         while (byteBuffer.hasRemaining() && sc.isOpen()) {
             int len = doWrite(byteBuffer);
             if (len < 0) {

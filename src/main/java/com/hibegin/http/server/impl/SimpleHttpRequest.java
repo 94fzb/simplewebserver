@@ -134,7 +134,7 @@ public class SimpleHttpRequest implements HttpRequest {
                 cookies[cookies.length - 1] = cookie;
                 session = new HttpSession(jsessionid);
                 SessionUtil.sessionMap.put(jsessionid, session);
-                LOGGER.info("create a cookie " + cookie.toString());
+                //LOGGER.info("create a cookie " + cookie.toString());
             }
         }
     }

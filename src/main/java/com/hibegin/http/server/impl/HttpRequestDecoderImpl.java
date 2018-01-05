@@ -41,23 +41,21 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     }
 
     @Override
-    public boolean doDecode(byte[] data) throws Exception {
+    public Map.Entry<Boolean, ByteBuffer> doDecode(ByteBuffer byteBuffer) throws Exception {
         if (headerHandled && request.getMethod() == HttpMethod.CONNECT) {
             if (request.requestBodyBuffer == null) {
-                request.requestBodyBuffer = ByteBuffer.allocate(0);
+                request.requestBodyBuffer = byteBuffer;
+            } else {
+                request.requestBodyBuffer = ByteBuffer.wrap(BytesUtil.mergeBytes(request.requestBodyBuffer.array(), byteBuffer.array()));
             }
-            byte[] oldBytes = request.requestBodyBuffer.array();
-            request.requestBodyBuffer = ByteBuffer.allocate(oldBytes.length + data.length);
-            request.requestBodyBuffer.put(oldBytes);
-            request.requestBodyBuffer.put(data);
-            return true;
+            return new AbstractMap.SimpleEntry<>(true, ByteBuffer.allocate(0));
         } else {
             // 存在2种情况
             // 1,提交的数据一次性读取完成。
             // 2,提交的数据一次性读取不完。
             boolean flag = false;
             if (request.requestBodyBuffer == null) {
-                headerBytes = BytesUtil.mergeBytes(headerBytes, data);
+                headerBytes = BytesUtil.mergeBytes(headerBytes, byteBuffer.array());
                 String fullDataStr = new String(headerBytes);
                 if (fullDataStr.contains(SPLIT)) {
                     headerHandled = true;
@@ -72,17 +70,20 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                     flag = parseHttpRequestBody(requestBody);
                     //处理完成，清空byte[]
                     headerBytes = new byte[]{};
+                    if (isNeedEmptyRequestBody()) {
+                        return new AbstractMap.SimpleEntry<>(flag, ByteBuffer.wrap(requestBody));
+                    }
                 } else {
                     parseHttpMethod();
                 }
             } else {
-                request.requestBodyBuffer.put(data);
+                request.requestBodyBuffer.put(byteBuffer);
                 flag = !request.requestBodyBuffer.hasRemaining();
                 if (flag) {
                     dealRequestBodyData();
                 }
             }
-            return flag;
+            return new AbstractMap.SimpleEntry<>(flag, ByteBuffer.allocate(0));
         }
     }
 
@@ -98,7 +99,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 }
             }
             if (!check) {
-                throw new UnSupportMethodException("");
+                throw new UnSupportMethodException(requestLine);
             }
         }
     }
