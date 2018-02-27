@@ -77,7 +77,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                     parseHttpMethod();
                 }
             } else {
-                request.requestBodyBuffer.put(byteBuffer);
+                request.requestBodyBuffer.put(byteBuffer.array());
                 flag = !request.requestBodyBuffer.hasRemaining();
                 if (flag) {
                     dealRequestBodyData();
