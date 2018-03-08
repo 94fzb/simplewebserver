@@ -175,7 +175,9 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
 
 
     private void wrapperParamStrToMap(String paramStr) {
-        request.paramMap = new HashMap<>();
+        if (request.paramMap == null) {
+            request.paramMap = new HashMap<>();
+        }
         if (paramStr != null) {
             Map<String, List<String>> tempParam = new HashMap<>();
             String args[] = paramStr.split("&");
@@ -239,7 +241,6 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                     int dataLength = request.requestBodyBuffer.array().length - length1 - length2 - SPLIT.getBytes().length;
                     IOUtil.writeBytesToFile(BytesUtil.subBytes(request.requestBodyBuffer.array(), length2, dataLength), file);
                 }
-                request.paramMap = new HashMap<>();
             } else {
                 wrapperParamStrToMap(new String(request.requestBodyBuffer.array()));
             }
