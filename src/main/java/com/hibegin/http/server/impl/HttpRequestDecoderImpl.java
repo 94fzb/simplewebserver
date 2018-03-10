@@ -97,10 +97,13 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 }
             } else {
                 if (request.requestBodyBuffer != null) {
-                    if (request.requestBodyFile == null) {
-                        request.requestBodyFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort());
+                    if (request.requestBodyBuffer.array().length > 0) {
+                        if (request.requestBodyFile == null) {
+                            request.requestBodyFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort(), request.requestBodyBuffer.array());
+                        } else {
+                            IOUtil.writeBytesToFile(request.requestBodyBuffer.array(), request.requestBodyFile);
+                        }
                     }
-                    IOUtil.writeBytesToFile(request.requestBodyBuffer.array(), request.requestBodyFile);
                     request.requestBodyBuffer.clear();
                 }
             }

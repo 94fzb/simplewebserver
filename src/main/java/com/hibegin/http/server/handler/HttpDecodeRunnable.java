@@ -71,14 +71,13 @@ public class HttpDecodeRunnable implements Runnable {
                                     if (selectionKeyEntry != null) {
                                         SelectionKey key = selectionKeyEntry.getKey();
                                         Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = serverContext.getHttpDeCoderMap().get(channel.socket());
+                                        File file = selectionKeyEntry.getValue();
                                         try {
-                                            File file = selectionKeyEntry.getValue();
                                             if (codecEntry != null) {
                                                 Map.Entry<Boolean, ByteBuffer> booleanEntry = codecEntry.getKey().doDecode(ByteBuffer.wrap(IOUtil.getByteByInputStream(new FileInputStream(file))));
-                                                file.delete();
                                                 if (booleanEntry.getKey()) {
                                                     if (booleanEntry.getValue().limit() > 0) {
-                                                        blockingQueue.addFirst(new AbstractMap.SimpleEntry<>(key, FileCacheKit.generatorRequestTempFile(serverConfig.getPort())));
+                                                        blockingQueue.addFirst(new AbstractMap.SimpleEntry<>(key, FileCacheKit.generatorRequestTempFile(serverConfig.getPort(), booleanEntry.getValue().array())));
                                                     }
                                                     if (serverConfig.isSupportHttp2()) {
                                                         renderUpgradeHttp2Response(codecEntry.getValue());
@@ -103,6 +102,8 @@ public class HttpDecodeRunnable implements Runnable {
                                         } catch (Exception e) {
                                             handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue()), 500);
                                             LOGGER.log(Level.SEVERE, "", e);
+                                        } finally {
+                                            file.delete();
                                         }
                                     }
                                 }
@@ -115,7 +116,13 @@ public class HttpDecodeRunnable implements Runnable {
             }
         }
         for (SocketChannel socketChannel : needRemoveChannel) {
-            socketChannelBlockingQueueConcurrentHashMap.remove(socketChannel);
+            LinkedBlockingDeque<Map.Entry<SelectionKey, File>> entry = socketChannelBlockingQueueConcurrentHashMap.get(socketChannel);
+            if (entry != null) {
+                while (!entry.isEmpty()) {
+                    entry.poll().getValue().delete();
+                }
+                socketChannelBlockingQueueConcurrentHashMap.remove(socketChannel);
+            }
             workingChannel.remove(socketChannel);
         }
     }
@@ -150,9 +157,8 @@ public class HttpDecodeRunnable implements Runnable {
                 entryBlockingQueue = new LinkedBlockingDeque<>();
                 socketChannelBlockingQueueConcurrentHashMap.put(channel, entryBlockingQueue);
             }
-            File file = FileCacheKit.generatorRequestTempFile(serverConfig.getPort());
-            IOUtil.writeBytesToFile(handler.handleRead().array(), file);
-            entryBlockingQueue.add(new AbstractMap.SimpleEntry<>(key, file));
+            entryBlockingQueue.add(new AbstractMap.SimpleEntry<>(key,
+                    FileCacheKit.generatorRequestTempFile(serverConfig.getPort(), handler.handleRead().array())));
         }
     }
 

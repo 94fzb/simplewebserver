@@ -1,12 +1,22 @@
 package com.hibegin.http.server.util;
 
+import com.hibegin.common.util.IOUtil;
+
 import java.io.File;
 import java.io.IOException;
+import java.util.UUID;
 
 public class FileCacheKit {
 
-    public static File generatorRequestTempFile(int flag) throws IOException {
-        return File.createTempFile("cache", suffix(flag), new File(PathUtil.getTempPath()));
+    private static File NOT_FOUND_FILE = new File(PathUtil.getTempPath() + "/" + UUID.randomUUID().toString());
+
+    public static File generatorRequestTempFile(int flag, byte[] bytes) throws IOException {
+        if (bytes != null && bytes.length > 0) {
+            File file = File.createTempFile("cache-", suffix(flag), new File(PathUtil.getTempPath()));
+            IOUtil.writeBytesToFile(bytes, file);
+            return file;
+        }
+        return NOT_FOUND_FILE;
     }
 
     private static String suffix(int flag) {
