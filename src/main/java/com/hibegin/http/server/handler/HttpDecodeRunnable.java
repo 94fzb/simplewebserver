@@ -1,6 +1,7 @@
 package com.hibegin.http.server.handler;
 
 import com.hibegin.common.util.EnvKit;
+import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.SimpleWebServer;
@@ -14,12 +15,11 @@ import com.hibegin.http.server.execption.UnSupportMethodException;
 import com.hibegin.http.server.impl.HttpRequestDecoderImpl;
 import com.hibegin.http.server.impl.ServerContext;
 import com.hibegin.http.server.impl.SimpleHttpResponse;
+import com.hibegin.http.server.util.FileCacheKit;
 import com.hibegin.http.server.util.FrameUtil;
 import com.hibegin.http.server.util.StatusCodeUtil;
 
-import java.io.ByteArrayOutputStream;
-import java.io.EOFException;
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
@@ -34,7 +34,7 @@ public class HttpDecodeRunnable implements Runnable {
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpDecodeRunnable.class);
 
     private ServerContext serverContext;
-    private Map<SocketChannel, LinkedBlockingDeque<Map.Entry<SelectionKey, ByteBuffer>>> socketChannelBlockingQueueConcurrentHashMap = new ConcurrentHashMap<>();
+    private Map<SocketChannel, LinkedBlockingDeque<Map.Entry<SelectionKey, File>>> socketChannelBlockingQueueConcurrentHashMap = new ConcurrentHashMap<>();
     private SimpleWebServer simpleWebServer;
     private RequestConfig requestConfig;
     private ResponseConfig responseConfig;
@@ -54,30 +54,31 @@ public class HttpDecodeRunnable implements Runnable {
     @Override
     public void run() {
         List<SocketChannel> needRemoveChannel = new CopyOnWriteArrayList<>();
-        for (final Map.Entry<SocketChannel, LinkedBlockingDeque<Map.Entry<SelectionKey, ByteBuffer>>> entry : socketChannelBlockingQueueConcurrentHashMap.entrySet()) {
+        for (final Map.Entry<SocketChannel, LinkedBlockingDeque<Map.Entry<SelectionKey, File>>> entry : socketChannelBlockingQueueConcurrentHashMap.entrySet()) {
             final SocketChannel channel = entry.getKey();
             if (entry.getKey().socket().isClosed()) {
                 needRemoveChannel.add(channel);
             } else {
                 if (!workingChannel.contains(channel)) {
-                    final LinkedBlockingDeque<Map.Entry<SelectionKey, ByteBuffer>> blockingQueue = entry.getValue();
+                    final LinkedBlockingDeque<Map.Entry<SelectionKey, File>> blockingQueue = entry.getValue();
                     if (!blockingQueue.isEmpty()) {
                         workingChannel.add(channel);
                         Thread thread = new Thread() {
                             @Override
                             public void run() {
                                 while (!blockingQueue.isEmpty()) {
-                                    Map.Entry<SelectionKey, ByteBuffer> selectionKeyEntry = blockingQueue.poll();
+                                    Map.Entry<SelectionKey, File> selectionKeyEntry = blockingQueue.poll();
                                     if (selectionKeyEntry != null) {
                                         SelectionKey key = selectionKeyEntry.getKey();
                                         Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = serverContext.getHttpDeCoderMap().get(channel.socket());
                                         try {
-                                            ByteBuffer byteBuffer = selectionKeyEntry.getValue();
+                                            File file = selectionKeyEntry.getValue();
                                             if (codecEntry != null) {
-                                                Map.Entry<Boolean, ByteBuffer> booleanEntry = codecEntry.getKey().doDecode(byteBuffer);
+                                                Map.Entry<Boolean, ByteBuffer> booleanEntry = codecEntry.getKey().doDecode(ByteBuffer.wrap(IOUtil.getByteByInputStream(new FileInputStream(file))));
+                                                file.delete();
                                                 if (booleanEntry.getKey()) {
                                                     if (booleanEntry.getValue().limit() > 0) {
-                                                        blockingQueue.addFirst(new AbstractMap.SimpleEntry<>(key, booleanEntry.getValue()));
+                                                        blockingQueue.addFirst(new AbstractMap.SimpleEntry<>(key, FileCacheKit.generatorRequestTempFile(serverConfig.getPort())));
                                                     }
                                                     if (serverConfig.isSupportHttp2()) {
                                                         renderUpgradeHttp2Response(codecEntry.getValue());
@@ -144,12 +145,14 @@ public class HttpDecodeRunnable implements Runnable {
             } else {
                 handler = codecEntry.getKey().getRequest().getHandler();
             }
-            LinkedBlockingDeque<Map.Entry<SelectionKey, ByteBuffer>> entryBlockingQueue = socketChannelBlockingQueueConcurrentHashMap.get(channel);
+            LinkedBlockingDeque<Map.Entry<SelectionKey, File>> entryBlockingQueue = socketChannelBlockingQueueConcurrentHashMap.get(channel);
             if (entryBlockingQueue == null) {
                 entryBlockingQueue = new LinkedBlockingDeque<>();
                 socketChannelBlockingQueueConcurrentHashMap.put(channel, entryBlockingQueue);
             }
-            entryBlockingQueue.add(new AbstractMap.SimpleEntry<>(key, handler.handleRead()));
+            File file = FileCacheKit.generatorRequestTempFile(serverConfig.getPort());
+            IOUtil.writeBytesToFile(handler.handleRead().array(), file);
+            entryBlockingQueue.add(new AbstractMap.SimpleEntry<>(key, file));
         }
     }
 

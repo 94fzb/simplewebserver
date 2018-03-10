@@ -5,6 +5,7 @@ import com.hibegin.http.server.config.AbstractServerConfig;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
+import com.hibegin.http.server.util.FileCacheKit;
 import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.MethodInterceptor;
 
@@ -71,6 +72,7 @@ public class WebServerBuilder {
                 @Override
                 public void run() {
                     Thread.currentThread().setName(ServerInfo.getName().toLowerCase() + "-main-thread");
+                    FileCacheKit.cleanByFlag(serverConfig.getPort());
                     WebServerBuilder.this.webServer.listener();
                 }
             }.start();

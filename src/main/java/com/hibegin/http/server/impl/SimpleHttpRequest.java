@@ -1,5 +1,6 @@
 package com.hibegin.http.server.impl;
 
+import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.api.HttpRequest;
@@ -11,10 +12,7 @@ import com.hibegin.http.server.web.cookie.Cookie;
 import com.hibegin.http.server.web.session.HttpSession;
 import com.hibegin.http.server.web.session.SessionUtil;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
@@ -35,6 +33,7 @@ public class SimpleHttpRequest implements HttpRequest {
     protected HttpMethod method;
     protected Map<String, File> files;
     protected ByteBuffer requestBodyBuffer;
+    protected File requestBodyFile;
     protected String requestHeaderStr;
     private Cookie[] cookies;
     private HttpSession session;
@@ -253,20 +252,29 @@ public class SimpleHttpRequest implements HttpRequest {
     }
 
     public ByteBuffer getInputByteBuffer() {
-        byte[] splitBytes = HttpRequestDecoderImpl.SPLIT.getBytes();
-        byte[] bytes = requestHeaderStr.getBytes();
-        if (requestBodyBuffer == null) {
-            ByteBuffer buffer = ByteBuffer.allocate(bytes.length + splitBytes.length);
-            buffer.put(bytes);
-            buffer.put(splitBytes);
-            return buffer;
+        if (getRequestConfig().isRecordRequestBody()) {
+            byte[] splitBytes = HttpRequestDecoderImpl.SPLIT.getBytes();
+            byte[] bytes = requestHeaderStr.getBytes();
+            if (requestBodyFile == null) {
+                ByteBuffer buffer = ByteBuffer.allocate(bytes.length + splitBytes.length);
+                buffer.put(bytes);
+                buffer.put(splitBytes);
+                return buffer;
+            } else {
+                byte[] dataBytes = new byte[0];
+                try {
+                    dataBytes = IOUtil.getByteByInputStream(new FileInputStream(requestBodyFile));
+                } catch (FileNotFoundException e) {
+                    //e.printStackTrace();
+                }
+                ByteBuffer buffer = ByteBuffer.allocate(requestHeaderStr.getBytes().length + splitBytes.length + dataBytes.length);
+                buffer.put(requestHeaderStr.getBytes());
+                buffer.put(splitBytes);
+                buffer.put(dataBytes);
+                return buffer;
+            }
         } else {
-            byte[] dataBytes = requestBodyBuffer.array();
-            ByteBuffer buffer = ByteBuffer.allocate(requestHeaderStr.getBytes().length + splitBytes.length + dataBytes.length);
-            buffer.put(requestHeaderStr.getBytes());
-            buffer.put(splitBytes);
-            buffer.put(dataBytes);
-            return buffer;
+            throw new RuntimeException("Please enable record request body");
         }
     }
 
@@ -286,6 +294,9 @@ public class SimpleHttpRequest implements HttpRequest {
     }
 
     public void deleteTempUploadFiles() {
+        if (requestBodyFile != null) {
+            requestBodyFile.delete();
+        }
         if (files != null) {
             for (File file : files.values()) {
                 file.delete();

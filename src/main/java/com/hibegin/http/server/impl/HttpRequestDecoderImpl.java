@@ -11,6 +11,7 @@ import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.execption.ContentLengthTooLargeException;
 import com.hibegin.http.server.execption.UnSupportMethodException;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
+import com.hibegin.http.server.util.FileCacheKit;
 import com.hibegin.http.server.util.PathUtil;
 
 import java.io.*;
@@ -42,18 +43,19 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
 
     @Override
     public Map.Entry<Boolean, ByteBuffer> doDecode(ByteBuffer byteBuffer) throws Exception {
+        Map.Entry<Boolean, ByteBuffer> result;
         if (headerHandled && request.getMethod() == HttpMethod.CONNECT) {
             if (request.requestBodyBuffer == null) {
                 request.requestBodyBuffer = byteBuffer;
             } else {
-                request.requestBodyBuffer = ByteBuffer.wrap(BytesUtil.mergeBytes(request.requestBodyBuffer.array(), byteBuffer.array()));
+                request.requestBodyBuffer = ByteBuffer.wrap(BytesUtil.mergeBytes(IOUtil.getByteByInputStream(new FileInputStream(request.requestBodyFile)), byteBuffer.array()));
             }
-            return new AbstractMap.SimpleEntry<>(true, ByteBuffer.allocate(0));
+            result = new AbstractMap.SimpleEntry<>(true, ByteBuffer.allocate(0));
         } else {
             // 存在2种情况
             // 1,提交的数据一次性读取完成。
             // 2,提交的数据一次性读取不完。
-            boolean flag = false;
+            boolean flag;
             if (request.requestBodyBuffer == null) {
                 headerBytes = BytesUtil.mergeBytes(headerBytes, byteBuffer.array());
                 String fullDataStr = new String(headerBytes);
@@ -71,10 +73,13 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                     //处理完成，清空byte[]
                     headerBytes = new byte[]{};
                     if (isNeedEmptyRequestBody()) {
-                        return new AbstractMap.SimpleEntry<>(flag, ByteBuffer.wrap(requestBody));
+                        result = new AbstractMap.SimpleEntry<>(flag, ByteBuffer.wrap(requestBody));
+                    } else {
+                        result = new AbstractMap.SimpleEntry<>(flag, ByteBuffer.allocate(0));
                     }
                 } else {
                     parseHttpMethod();
+                    result = new AbstractMap.SimpleEntry<>(false, ByteBuffer.allocate(0));
                 }
             } else {
                 request.requestBodyBuffer.put(byteBuffer.array());
@@ -82,9 +87,25 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 if (flag) {
                     dealRequestBodyData();
                 }
+                result = new AbstractMap.SimpleEntry<>(flag, ByteBuffer.allocate(0));
             }
-            return new AbstractMap.SimpleEntry<>(flag, ByteBuffer.allocate(0));
         }
+        if (result.getKey()) {
+            if (!request.getRequestConfig().isRecordRequestBody()) {
+                if (request.requestBodyBuffer != null) {
+                    request.requestBodyBuffer.clear();
+                }
+            } else {
+                if (request.requestBodyBuffer != null) {
+                    if (request.requestBodyFile == null) {
+                        request.requestBodyFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort());
+                    }
+                    IOUtil.writeBytesToFile(request.requestBodyBuffer.array(), request.requestBodyFile);
+                    request.requestBodyBuffer.clear();
+                }
+            }
+        }
+        return result;
     }
 
     private void parseHttpMethod() throws UnSupportMethodException {
