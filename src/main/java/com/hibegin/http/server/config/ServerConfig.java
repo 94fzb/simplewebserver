@@ -1,25 +1,27 @@
 package com.hibegin.http.server.config;
 
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.server.SimpleWebServer;
 import com.hibegin.http.server.api.HttpRequestListener;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.web.Router;
 
+import java.io.InputStream;
 import java.lang.reflect.Constructor;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ForkJoinPool;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ServerConfig {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(ServerConfig.class);
-    private final Map<String, String> staticResourceMapper = new ConcurrentHashMap<>();
+    private final Map<String, Map.Entry<String, StaticResourceLoader>> staticResourceMapper = new ConcurrentHashMap<>();
     private final List<Class<? extends Interceptor>> interceptors = new ArrayList<>();
     private boolean isSsl;
     private String host = "0.0.0.0";
@@ -31,6 +33,12 @@ public class ServerConfig {
     private Executor requestExecutor;
     private Executor decodeExecutor;
     private Router router = new Router();
+    private StaticResourceLoader defaultStaticResourceClassLoader = new StaticResourceLoader() {
+        @Override
+        public InputStream getInputStream(String path) {
+            return SimpleWebServer.class.getResourceAsStream(path);
+        }
+    };
     private List<HttpRequestListener> httpRequestListenerList = new ArrayList<>();
 
     public boolean isSsl() {
@@ -157,6 +165,10 @@ public class ServerConfig {
     }
 
     public void addStaticResourceMapper(String path, String locationPath) {
+        addStaticResourceMapper(path, locationPath, defaultStaticResourceClassLoader);
+    }
+
+    public void addStaticResourceMapper(String path, String locationPath, StaticResourceLoader resourceClassLoader) {
         String newPath = path;
         if (!path.endsWith("/")) {
             newPath = path + "/";
@@ -165,10 +177,10 @@ public class ServerConfig {
         if (!newLocationPath.endsWith("/")) {
             newLocationPath = newLocationPath + "/";
         }
-        staticResourceMapper.put(newPath, newLocationPath);
+        staticResourceMapper.put(newPath, new AbstractMap.SimpleEntry<>(newLocationPath, resourceClassLoader));
     }
 
-    public Map<String, String> getStaticResourceMapper() {
+    public Map<String, Map.Entry<String, StaticResourceLoader>> getStaticResourceMapper() {
         return staticResourceMapper;
     }
 

@@ -1,6 +1,7 @@
 package com.hibegin.http.server.web;
 
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.server.config.StaticResourceLoader;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
@@ -20,13 +21,13 @@ public class MethodInterceptor implements Interceptor {
     @Override
     public boolean doInterceptor(HttpRequest request, HttpResponse response) throws Exception {
         boolean next = true;
-        for (Map.Entry<String, String> entry : request.getServerConfig().getStaticResourceMapper().entrySet()) {
+        for (Map.Entry<String, Map.Entry<String, StaticResourceLoader>> entry : request.getServerConfig().getStaticResourceMapper().entrySet()) {
             if (request.getUri().startsWith(entry.getKey())) {
                 String path = request.getUri().substring(entry.getKey().length());
                 if (request.getUri().endsWith("/")) {
                     path += request.getServerConfig().getWelcomeFile();
                 }
-                InputStream inputStream = MethodInterceptor.class.getResourceAsStream(entry.getValue() + path);
+                InputStream inputStream = entry.getValue().getValue().getInputStream(entry.getValue().getKey() + path);
                 if (inputStream != null) {
                     if (path.contains(".")) {
                         response.addHeader("Content-Type", MimeTypeUtil.getMimeStrByExt(path.substring(path.lastIndexOf(".") + 1)));
