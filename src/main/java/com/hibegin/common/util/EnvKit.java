@@ -1,8 +1,6 @@
 package com.hibegin.common.util;
 
 import java.io.File;
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
 
 public class EnvKit {
 
@@ -20,8 +18,7 @@ public class EnvKit {
     }
 
     public static void savePid(String pidFile) {
-        RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
-        int pid = Integer.valueOf(runtimeMXBean.getName().split("@")[0]);
+        long pid = ProcessHandle.current().pid();
         File file = new File(pidFile);
         if (file.exists()) {
             file.delete();
