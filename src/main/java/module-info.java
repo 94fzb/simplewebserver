@@ -1,5 +1,9 @@
 module hibegin.simplewebserver {
     requires java.logging;
+    //requires gson;
+    //requires freemarker;
+    requires java.management;
+    //requires gson;
     exports com.hibegin.common.util;
     exports com.hibegin.http;
     exports com.hibegin.http.io;

@@ -1,0 +1,1 @@
+mvn clean install -Pjdk7 && mvn clean install

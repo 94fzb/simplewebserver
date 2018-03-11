@@ -2,6 +2,7 @@ package com.hibegin.http.server.test;
 
 import com.hibegin.http.server.WebServerBuilder;
 import com.hibegin.http.server.config.ServerConfig;
+import com.hibegin.http.server.util.MimeTypeUtil;
 import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.Controller;
 
