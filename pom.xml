@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.2.16-SNAPSHOT</version>
+    <version>0.2.17-SNAPSHOT</version>
     <packaging>jar</packaging>
     <url>http://github.com/94fzb/simplewebserver</url>
 
@@ -203,6 +203,9 @@
     <profiles>
         <profile>
             <id>jdk7</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <properties>
                 <maven.compiler.source>1.7</maven.compiler.source>
                 <maven.compiler.target>1.7</maven.compiler.target>
