@@ -27,7 +27,7 @@ public class ServerConfig {
     private String host = "0.0.0.0";
     private int port;
     private boolean disableCookie;
-    private int timeOut;
+    private int timeout;
     private boolean supportHttp2;
     private String welcomeFile = "index.html";
     private Executor requestExecutor;
@@ -76,12 +76,12 @@ public class ServerConfig {
         this.disableCookie = disableCookie;
     }
 
-    public int getTimeOut() {
-        return timeOut;
+    public int getTimeout() {
+        return timeout;
     }
 
-    public void setTimeOut(int timeOut) {
-        this.timeOut = timeOut;
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
     }
 
     public String getHost() {
@@ -113,24 +113,6 @@ public class ServerConfig {
 
     public void setDecodeExecutor(Executor decodeExecutor) {
         this.decodeExecutor = decodeExecutor;
-    }
-
-    public Interceptor getNextInterceptor(Class interceptor) {
-        try {
-            boolean flag = false;
-            for (Class interceptor1 : interceptors) {
-                if (flag) {
-                    return (Interceptor) interceptor1.newInstance();
-                }
-                if (interceptor.getSimpleName().equals(interceptor1.getSimpleName())) {
-                    flag = true;
-                }
-            }
-
-        } catch (InstantiationException | IllegalAccessException e) {
-            LOGGER.log(Level.SEVERE, "", e);
-        }
-        return null;
     }
 
     public List<Class<? extends Interceptor>> getInterceptors() {

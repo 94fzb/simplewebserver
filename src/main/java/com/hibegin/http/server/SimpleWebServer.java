@@ -9,7 +9,6 @@ import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.handler.*;
-import com.hibegin.http.server.impl.ServerContext;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.MethodInterceptor;
@@ -40,7 +39,7 @@ public class SimpleWebServer implements ISocketServer {
     private ServerConfig serverConfig;
     private RequestConfig requestConfig;
     private ResponseConfig responseConfig;
-    private ServerContext serverContext = new ServerContext();
+    private ApplicationContext applicationContext = new ApplicationContext();
     private File pidFile;
     private HttpDecodeRunnable httpDecodeRunnable;
 
@@ -53,8 +52,8 @@ public class SimpleWebServer implements ISocketServer {
             serverConf = new ServerConfig();
             serverConf.setDisableCookie(Boolean.valueOf(ConfigKit.get("server.disableCookie", requestConf.isDisableCookie()).toString()));
         }
-        if (serverConf.getTimeOut() == 0 && ConfigKit.contains("server.timeout")) {
-            serverConf.setTimeOut(Integer.parseInt(ConfigKit.get("server.timeout", 60).toString()));
+        if (serverConf.getTimeout() == 0 && ConfigKit.contains("server.timeout")) {
+            serverConf.setTimeout(Integer.parseInt(ConfigKit.get("server.timeout", 60).toString()));
         }
         if (serverConf.getPort() == 0) {
             serverConf.setPort(ConfigKit.getServerPort());
@@ -73,12 +72,12 @@ public class SimpleWebServer implements ISocketServer {
         if (this.requestConfig.getMaxRequestBodySize() < 0) {
             this.requestConfig.setMaxRequestBodySize(Integer.MAX_VALUE);
         } else if (this.requestConfig.getMaxRequestBodySize() == 0) {
-            this.requestConfig.setMaxRequestBodySize(ConfigKit.getMaxUploadSize());
+            this.requestConfig.setMaxRequestBodySize(ConfigKit.getMaxRequestBodySize());
         }
         if (this.requestConfig.getRouter() == null) {
             this.requestConfig.setRouter(serverConf.getRouter());
         }
-        serverContext.setServerConfig(serverConf);
+        applicationContext.setServerConfig(serverConf);
         Runtime rt = Runtime.getRuntime();
         rt.addShutdownHook(new Thread() {
             @Override
@@ -98,9 +97,9 @@ public class SimpleWebServer implements ISocketServer {
             return;
         }
         //开始初始化一些配置
-        serverContext.init();
+        applicationContext.init();
         LOGGER.info(ServerInfo.getName() + " is run version -> " + ServerInfo.getVersion());
-        if (serverContext.getServerConfig().getInterceptors().contains(MethodInterceptor.class)) {
+        if (applicationContext.getServerConfig().getInterceptors().contains(MethodInterceptor.class)) {
             LOGGER.info(serverConfig.getRouter().toString());
         }
         try {
@@ -162,8 +161,8 @@ public class SimpleWebServer implements ISocketServer {
      */
     private void startExecHttpRequestThread() {
         ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
-        checkRequestRunnable = new CheckRequestRunnable(serverContext);
-        httpDecodeRunnable = new HttpDecodeRunnable(serverContext, this, requestConfig, responseConfig);
+        checkRequestRunnable = new CheckRequestRunnable(applicationContext);
+        httpDecodeRunnable = new HttpDecodeRunnable(applicationContext, this, requestConfig, responseConfig);
         int checkTimeout = 100;
         if (EnvKit.isAndroid()) {
             checkTimeout = 1000;

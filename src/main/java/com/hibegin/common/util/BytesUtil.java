@@ -2,8 +2,6 @@ package com.hibegin.common.util;
 
 /**
  * 字节，字节数组(合并,截取)
- *
- * @author xiaochun
  */
 public class BytesUtil {
 

@@ -27,7 +27,7 @@ public interface HttpResponse {
 
     void redirect(String url);
 
-    void forward(String url);
+    void forward(String uri);
 
     void renderFile(File file);
 

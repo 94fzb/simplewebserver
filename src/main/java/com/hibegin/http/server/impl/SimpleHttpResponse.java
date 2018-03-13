@@ -112,7 +112,6 @@ public class SimpleHttpResponse implements HttpResponse {
     @Override
     public void renderJson(Object obj) {
         try {
-
             Object gson = Class.forName("com.google.gson.Gson").getDeclaredConstructor().newInstance();
             renderByMimeType("json", ((String) Class.forName("com.google.gson.Gson").getMethod("toJson", Object.class).invoke(gson, obj)).getBytes());
         } catch (Exception e) {
@@ -254,8 +253,8 @@ public class SimpleHttpResponse implements HttpResponse {
     }
 
     @Override
-    public void forward(String url) {
-        redirect(request.getScheme() + "://" + request.getHeader("Host") + "/" + url);
+    public void forward(String uri) {
+        redirect(request.getScheme() + "://" + request.getHeader("Host") + "/" + uri);
     }
 
     @Override

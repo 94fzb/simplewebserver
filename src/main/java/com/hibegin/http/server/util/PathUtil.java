@@ -13,8 +13,6 @@ import java.util.logging.Level;
 
 /**
  * 提供给一些路径供程序更方便的调用
- *
- * @author Chun
  */
 public class PathUtil {
 

@@ -2,42 +2,56 @@ package com.hibegin.http.server.util;
 
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.api.HttpRequest;
+import com.hibegin.http.server.execption.InternalException;
+import com.hibegin.http.server.web.session.HttpSession;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.lang.reflect.InvocationTargetException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-
-/*import freemarker.template.Configuration;
-import freemarker.template.Template;*/
 
 public class FreeMarkerUtil {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(FreeMarkerUtil.class);
-    /*private static Configuration cfg = new Configuration(Configuration.VERSION_2_3_23);*/
+    private static Object cfg;
+
+    static {
+        try {
+            cfg = Class.forName("freemarker.template.Configuration").getDeclaredConstructor().newInstance();
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException e) {
+            LOGGER.log(Level.WARNING, "load freemarker error", e);
+        }
+    }
 
     public static String renderToFM(String name, HttpRequest httpRequest) {
-        /*try {
-            Template temp = cfg.getTemplate(name + ".ftl");
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            Writer writer = new OutputStreamWriter(out);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (Writer writer = new OutputStreamWriter(out)) {
+            Object template = cfg.getClass().getMethod("getTemplate", String.class).invoke(cfg, name + ".ftl");
             HttpSession httpSession = httpRequest.getSession();
             if (httpSession != null) {
                 httpRequest.getAttr().put("session", httpSession);
             }
             httpRequest.getAttr().put("request", httpRequest);
-            temp.process(httpRequest.getAttr(), writer);
+            template.getClass().getMethod("process", Object.class, Writer.class).invoke(template, httpRequest.getAttr(), writer);
             writer.flush();
-            writer.close();
             return new String(out.toByteArray());
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "", e);
-        }*/
-        return StringsUtil.getHtmlStrByStatusCode(501);
+            throw new InternalException(e);
+        }
     }
 
     public static void init(String basePath) throws Exception {
-        /*cfg.setDirectoryForTemplateLoading(new File(basePath));*/
+        cfg.getClass().getMethod("setDirectoryForTemplateLoading", File.class).invoke(cfg, new File(basePath));
     }
 
     public static void initClassTemplate(String basePath) {
-        /*cfg.setClassForTemplateLoading(FreeMarkerUtil.class, basePath);*/
+        try {
+            cfg.getClass().getMethod("setClassForTemplateLoading", Class.class, String.class).invoke(cfg, FreeMarkerUtil.class, basePath);
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            LOGGER.log(Level.WARNING, "init freemarker class path error", e);
+        }
     }
 }

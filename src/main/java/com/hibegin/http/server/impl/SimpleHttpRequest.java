@@ -1,11 +1,14 @@
 package com.hibegin.http.server.impl;
 
+import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
+import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ServerConfig;
+import com.hibegin.http.server.execption.InternalException;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.web.cookie.Cookie;
@@ -26,29 +29,29 @@ import java.util.logging.Logger;
 public class SimpleHttpRequest implements HttpRequest {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleHttpRequest.class);
+    private Cookie[] cookies;
+    private HttpSession session;
+    private RequestConfig requestConfig;
+    private ApplicationContext applicationContext;
+    private Map<String, Object> attr;
+    private ReadWriteSelectorHandler handler;
+    private long createTime;
+    private InputStream inputStream;
+
     protected Map<String, String> header = new HashMap<>();
     protected Map<String, String[]> paramMap;
     protected String uri;
     protected String queryStr;
     protected HttpMethod method;
     protected Map<String, File> files;
-    protected ByteBuffer requestBodyBuffer;
-    protected File requestBodyFile;
+    protected File tmpRequestBodyFile;
     protected String requestHeaderStr;
-    private Cookie[] cookies;
-    private HttpSession session;
-    private RequestConfig requestConfig;
-    private ServerContext serverContext;
-    private Map<String, Object> attr;
-    private ReadWriteSelectorHandler handler;
-    private long createTime;
-    private InputStream inputStream;
 
-    protected SimpleHttpRequest(ReadWriteSelectorHandler handler, ServerContext serverContext, RequestConfig requestConfig) {
+    protected SimpleHttpRequest(ReadWriteSelectorHandler handler, ApplicationContext applicationContext, RequestConfig requestConfig) {
         this.requestConfig = requestConfig;
         this.createTime = System.currentTimeMillis();
         this.handler = handler;
-        this.serverContext = serverContext;
+        this.applicationContext = applicationContext;
     }
 
     @Override
@@ -81,7 +84,7 @@ public class SimpleHttpRequest implements HttpRequest {
 
     @Override
     public String getUrl() {
-        return getScheme() + "://" + header.get("Host") + uri;
+        return getScheme() + "://" + getHeader("Host") + uri;
     }
 
     @Override
@@ -111,7 +114,7 @@ public class SimpleHttpRequest implements HttpRequest {
 
     private void dealWithCookie(boolean create) {
         if (!requestConfig.isDisableCookie()) {
-            String cookieHeader = header.get("Cookie");
+            String cookieHeader = getHeader("Cookie");
             if (cookieHeader != null) {
                 cookies = Cookie.saxToCookie(cookieHeader);
                 String jsessionid = Cookie.getJSessionId(cookieHeader);
@@ -168,7 +171,7 @@ public class SimpleHttpRequest implements HttpRequest {
 
     @Override
     public boolean getParaToBool(String key) {
-        return paramMap.get(key) != null && "on".equals(paramMap.get(key)[0]);
+        return paramMap.get(key) != null && ("on".equals(paramMap.get(key)[0]) || "true".equals(paramMap.get(key)[0]));
     }
 
     @Override
@@ -212,8 +215,13 @@ public class SimpleHttpRequest implements HttpRequest {
         if (inputStream != null) {
             return inputStream;
         } else {
-            if (requestBodyBuffer != null) {
-                inputStream = new ByteArrayInputStream(requestBodyBuffer.array());
+            if (tmpRequestBodyFile != null) {
+                try {
+                    inputStream = new FileInputStream(tmpRequestBodyFile);
+                } catch (FileNotFoundException e) {
+                    //e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
             } else {
                 inputStream = new ByteArrayInputStream(new byte[]{});
             }
@@ -255,7 +263,7 @@ public class SimpleHttpRequest implements HttpRequest {
         if (getRequestConfig().isRecordRequestBody()) {
             byte[] splitBytes = HttpRequestDecoderImpl.SPLIT.getBytes();
             byte[] bytes = requestHeaderStr.getBytes();
-            if (requestBodyFile == null) {
+            if (tmpRequestBodyFile == null) {
                 ByteBuffer buffer = ByteBuffer.allocate(bytes.length + splitBytes.length);
                 buffer.put(bytes);
                 buffer.put(splitBytes);
@@ -263,7 +271,7 @@ public class SimpleHttpRequest implements HttpRequest {
             } else {
                 byte[] dataBytes = new byte[0];
                 try {
-                    dataBytes = IOUtil.getByteByInputStream(new FileInputStream(requestBodyFile));
+                    dataBytes = IOUtil.getByteByInputStream(new FileInputStream(tmpRequestBodyFile));
                 } catch (FileNotFoundException e) {
                     //e.printStackTrace();
                 }
@@ -274,28 +282,42 @@ public class SimpleHttpRequest implements HttpRequest {
                 return buffer;
             }
         } else {
-            throw new RuntimeException("Please enable record request body");
+            throw new InternalException("Please enable record request body");
         }
     }
 
     @Override
     public ServerConfig getServerConfig() {
-        return getServerContext().getServerConfig();
+        return getApplicationContext().getServerConfig();
     }
 
     @Override
-    public ServerContext getServerContext() {
-        return serverContext;
+    public ApplicationContext getApplicationContext() {
+        return applicationContext;
     }
 
     @Override
     public ByteBuffer getRequestBodyByteBuffer() {
-        return requestBodyBuffer;
+        return getRequestBodyByteBuffer(0);
+    }
+
+    @Override
+    public ByteBuffer getRequestBodyByteBuffer(int offset) {
+        try {
+            if (tmpRequestBodyFile != null && tmpRequestBodyFile.exists() && offset <= tmpRequestBodyFile.length()) {
+                byte[] bytes = IOUtil.getByteByInputStream(new FileInputStream(tmpRequestBodyFile.toString()));
+                return ByteBuffer.wrap(BytesUtil.subBytes(bytes, offset, bytes.length - offset));
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "", e);
+            //throw new InternalException(e);
+        }
+        return ByteBuffer.wrap(new byte[0]);
     }
 
     public void deleteTempUploadFiles() {
-        if (requestBodyFile != null) {
-            requestBodyFile.delete();
+        if (tmpRequestBodyFile != null) {
+            tmpRequestBodyFile.delete();
         }
         if (files != null) {
             for (File file : files.values()) {

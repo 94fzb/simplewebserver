@@ -6,12 +6,11 @@ import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpRequestListener;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
-import com.hibegin.http.server.config.ServerConfig;
-import com.hibegin.http.server.impl.ServerContext;
 import com.hibegin.http.server.impl.SimpleHttpRequest;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.Socket;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,12 +37,19 @@ public class HttpRequestHandlerThread extends Thread {
             for (HttpRequestListener httpRequestListener : request.getServerConfig().getHttpRequestListenerList()) {
                 httpRequestListener.create(request, response);
             }
-            for (Interceptor interceptor : request.getServerContext().getInterceptors()) {
+            for (Interceptor interceptor : request.getApplicationContext().getInterceptors()) {
                 if (!interceptor.doInterceptor(request, response)) {
                     break;
                 }
             }
         } catch (Exception e) {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            try {
+                byteArrayOutputStream.write(LoggerUtil.recordStackTraceMsg(e).getBytes());
+            } catch (IOException e1) {
+                //e1.printStackTrace();
+            }
+            response.write(byteArrayOutputStream, 500);
             LOGGER.log(Level.SEVERE, "dispose error ", e);
         } finally {
             if (request.getMethod() != HttpMethod.CONNECT) {
@@ -56,7 +62,7 @@ public class HttpRequestHandlerThread extends Thread {
                         response.renderCode(404);
                     }
                     close();
-                    request.getServerContext().getHttpDeCoderMap().remove(getSocket());
+                    request.getApplicationContext().getHttpDeCoderMap().remove(getSocket());
                 }
             }
             //System.out.println("(System.nanoTime() - start) = " + (System.nanoTime() - request.getCreateTime()));
@@ -73,12 +79,12 @@ public class HttpRequestHandlerThread extends Thread {
 
     public void close() {
         if (getSocket().isClosed()) {
-            request.getServerContext().getHttpDeCoderMap().remove(getSocket());
+            request.getApplicationContext().getHttpDeCoderMap().remove(getSocket());
         }
         if (request instanceof SimpleHttpRequest) {
             ((SimpleHttpRequest) request).deleteTempUploadFiles();
         }
-        for (HttpRequestListener requestListener : request.getServerContext().getServerConfig().getHttpRequestListenerList()) {
+        for (HttpRequestListener requestListener : request.getApplicationContext().getServerConfig().getHttpRequestListenerList()) {
             requestListener.destroy(getRequest(), getResponse());
         }
         //LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");

@@ -10,10 +10,10 @@ import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
-import com.hibegin.http.server.execption.ContentLengthTooLargeException;
+import com.hibegin.http.server.execption.RequestBodyTooLargeException;
 import com.hibegin.http.server.execption.UnSupportMethodException;
 import com.hibegin.http.server.impl.HttpRequestDecoderImpl;
-import com.hibegin.http.server.impl.ServerContext;
+import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.impl.SimpleHttpResponse;
 import com.hibegin.http.server.util.FileCacheKit;
 import com.hibegin.http.server.util.FrameUtil;
@@ -33,7 +33,7 @@ public class HttpDecodeRunnable implements Runnable {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpDecodeRunnable.class);
 
-    private ServerContext serverContext;
+    private ApplicationContext applicationContext;
     private Map<SocketChannel, LinkedBlockingDeque<Map.Entry<SelectionKey, File>>> socketChannelBlockingQueueConcurrentHashMap = new ConcurrentHashMap<>();
     private SimpleWebServer simpleWebServer;
     private RequestConfig requestConfig;
@@ -43,12 +43,12 @@ public class HttpDecodeRunnable implements Runnable {
 
     private BlockingQueue<HttpRequestHandlerThread> httpRequestHandlerThreadBlockingQueue = new LinkedBlockingQueue<>();
 
-    public HttpDecodeRunnable(ServerContext serverContext, SimpleWebServer simpleWebServer, RequestConfig requestConfig, ResponseConfig responseConfig) {
-        this.serverContext = serverContext;
+    public HttpDecodeRunnable(ApplicationContext applicationContext, SimpleWebServer simpleWebServer, RequestConfig requestConfig, ResponseConfig responseConfig) {
+        this.applicationContext = applicationContext;
         this.simpleWebServer = simpleWebServer;
         this.requestConfig = requestConfig;
         this.responseConfig = responseConfig;
-        this.serverConfig = serverContext.getServerConfig();
+        this.serverConfig = applicationContext.getServerConfig();
     }
 
     @Override
@@ -70,7 +70,7 @@ public class HttpDecodeRunnable implements Runnable {
                                     Map.Entry<SelectionKey, File> selectionKeyEntry = blockingQueue.poll();
                                     if (selectionKeyEntry != null) {
                                         SelectionKey key = selectionKeyEntry.getKey();
-                                        Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = serverContext.getHttpDeCoderMap().get(channel.socket());
+                                        Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = applicationContext.getHttpDeCoderMap().get(channel.socket());
                                         File file = selectionKeyEntry.getValue();
                                         try {
                                             if (codecEntry != null) {
@@ -84,9 +84,9 @@ public class HttpDecodeRunnable implements Runnable {
                                                     } else {
                                                         httpRequestHandlerThreadBlockingQueue.add(new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue()));
                                                         if (codecEntry.getKey().getRequest().getMethod() != HttpMethod.CONNECT) {
-                                                            HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, serverContext, codecEntry.getKey().getRequest().getHandler());
+                                                            HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, applicationContext, codecEntry.getKey().getRequest().getHandler());
                                                             codecEntry = new AbstractMap.SimpleEntry<HttpRequestDeCoder, HttpResponse>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig));
-                                                            serverContext.getHttpDeCoderMap().put(channel.socket(), codecEntry);
+                                                            applicationContext.getHttpDeCoderMap().put(channel.socket(), codecEntry);
                                                         }
                                                     }
                                                 }
@@ -97,7 +97,7 @@ public class HttpDecodeRunnable implements Runnable {
                                         } catch (UnSupportMethodException | IOException e) {
                                             LOGGER.log(Level.SEVERE, "", e);
                                             handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue()), 400);
-                                        } catch (ContentLengthTooLargeException e) {
+                                        } catch (RequestBodyTooLargeException e) {
                                             handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue()), 413);
                                         } catch (Exception e) {
                                             handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue()), 500);
@@ -142,13 +142,13 @@ public class HttpDecodeRunnable implements Runnable {
 
     public void doRead(SocketChannel channel, SelectionKey key) throws IOException {
         if (channel != null && channel.isOpen()) {
-            Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = serverContext.getHttpDeCoderMap().get(channel.socket());
+            Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = applicationContext.getHttpDeCoderMap().get(channel.socket());
             ReadWriteSelectorHandler handler;
             if (codecEntry == null) {
                 handler = simpleWebServer.getReadWriteSelectorHandlerInstance(channel, key);
-                HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, serverContext, handler);
+                HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, applicationContext, handler);
                 codecEntry = new AbstractMap.SimpleEntry<HttpRequestDeCoder, HttpResponse>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig));
-                serverContext.getHttpDeCoderMap().put(channel.socket(), codecEntry);
+                applicationContext.getHttpDeCoderMap().put(channel.socket(), codecEntry);
             } else {
                 handler = codecEntry.getKey().getRequest().getHandler();
             }
