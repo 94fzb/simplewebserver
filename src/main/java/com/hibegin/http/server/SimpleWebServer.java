@@ -163,17 +163,13 @@ public class SimpleWebServer implements ISocketServer {
         ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
         checkRequestRunnable = new CheckRequestRunnable(applicationContext);
         httpDecodeRunnable = new HttpDecodeRunnable(applicationContext, this, requestConfig, responseConfig);
-        int checkTimeout = 100;
+        int httpDecodeCycle = 10;
         if (EnvKit.isAndroid()) {
-            checkTimeout = 1000;
+            httpDecodeCycle = 100;
         }
-        int httpDecodeTimeout = 1;
-        if (EnvKit.isAndroid()) {
-            httpDecodeTimeout = 100;
-        }
-        scheduledExecutorService.scheduleAtFixedRate(checkRequestRunnable, 0, checkTimeout, TimeUnit.MILLISECONDS);
-        scheduledExecutorService.scheduleAtFixedRate(httpDecodeRunnable, 0, httpDecodeTimeout, TimeUnit.MILLISECONDS);
-        new Thread(ServerInfo.getName().toLowerCase() + "-http-request-exec-thread") {
+        scheduledExecutorService.scheduleAtFixedRate(checkRequestRunnable, 0, 1000, TimeUnit.MILLISECONDS);
+        scheduledExecutorService.scheduleAtFixedRate(httpDecodeRunnable, 0, httpDecodeCycle, TimeUnit.MILLISECONDS);
+        new Thread(ServerInfo.getName().toLowerCase() + "-http-request-eventloop-thread") {
             @Override
             public void run() {
                 while (true) {

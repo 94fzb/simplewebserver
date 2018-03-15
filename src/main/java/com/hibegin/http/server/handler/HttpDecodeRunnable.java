@@ -1,9 +1,9 @@
 package com.hibegin.http.server.handler;
 
-import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
+import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.SimpleWebServer;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.api.HttpResponse;
@@ -13,7 +13,6 @@ import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.execption.RequestBodyTooLargeException;
 import com.hibegin.http.server.execption.UnSupportMethodException;
 import com.hibegin.http.server.impl.HttpRequestDecoderImpl;
-import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.impl.SimpleHttpResponse;
 import com.hibegin.http.server.util.FileCacheKit;
 import com.hibegin.http.server.util.FrameUtil;
@@ -128,12 +127,8 @@ public class HttpDecodeRunnable implements Runnable {
     }
 
     public HttpRequestHandlerThread getHttpRequestHandlerThread() {
-        int timeout = 1;
         try {
-            if (EnvKit.isAndroid()) {
-                timeout = 100;
-            }
-            return httpRequestHandlerThreadBlockingQueue.poll(timeout, TimeUnit.MILLISECONDS);
+            return httpRequestHandlerThreadBlockingQueue.poll(100, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             LOGGER.log(Level.SEVERE, "", e);
         }
