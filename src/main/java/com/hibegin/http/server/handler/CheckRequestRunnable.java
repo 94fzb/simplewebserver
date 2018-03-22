@@ -18,8 +18,6 @@ import java.util.logging.Logger;
 public class CheckRequestRunnable implements Runnable {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(CheckRequestRunnable.class);
-    private int requestTimeout;
-    private Date lastAccessDate;
 
     private Map<Socket, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap;
     private ApplicationContext applicationContext;
@@ -27,14 +25,15 @@ public class CheckRequestRunnable implements Runnable {
 
     public CheckRequestRunnable(ApplicationContext applicationContext) {
         this.channelHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
-        this.requestTimeout = applicationContext.getServerConfig().getTimeout();
         this.applicationContext = applicationContext;
     }
 
+    private int getRequestTimeout(){
+        return applicationContext.getServerConfig().getTimeout();
+    }
 
     @Override
     public void run() {
-        lastAccessDate = new Date();
         if (EnvKit.isAndroid()) {
             if (thread != null) {
                 thread.interrupt();
@@ -74,8 +73,8 @@ public class CheckRequestRunnable implements Runnable {
             if (socket.isClosed()) {
                 socketChannels.add(entry.getKey());
             }
-            if (requestTimeout > 0) {
-                if (System.currentTimeMillis() - entry.getValue().getRequest().getCreateTime() > requestTimeout * 1000) {
+            if (getRequestTimeout() > 0) {
+                if (System.currentTimeMillis() - entry.getValue().getRequest().getCreateTime() > getRequestTimeout() * 1000) {
                     entry.getValue().getResponse().renderCode(504);
                     socketChannels.add(entry.getKey());
                 }
@@ -103,9 +102,5 @@ public class CheckRequestRunnable implements Runnable {
 
     public Map<Socket, HttpRequestHandlerThread> getChannelHttpRequestHandlerThreadMap() {
         return channelHttpRequestHandlerThreadMap;
-    }
-
-    public Date getLastAccessDate() {
-        return lastAccessDate;
     }
 }

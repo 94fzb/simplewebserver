@@ -71,4 +71,6 @@ public interface HttpRequest {
     ServerConfig getServerConfig();
 
     ApplicationContext getApplicationContext();
+
+    String getHttpVersion();
 }

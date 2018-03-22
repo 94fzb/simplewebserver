@@ -2,10 +2,13 @@ package com.hibegin.http.server.handler;
 
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.server.api.HttpRequest;
 
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;

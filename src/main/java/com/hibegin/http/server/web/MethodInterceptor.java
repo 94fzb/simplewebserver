@@ -1,10 +1,10 @@
 package com.hibegin.http.server.web;
 
 import com.hibegin.common.util.LoggerUtil;
-import com.hibegin.http.server.config.StaticResourceLoader;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
+import com.hibegin.http.server.config.StaticResourceLoader;
 import com.hibegin.http.server.util.MimeTypeUtil;
 
 import java.io.File;

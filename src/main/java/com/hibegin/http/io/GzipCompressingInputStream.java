@@ -8,9 +8,9 @@ import java.util.zip.DeflaterInputStream;
 
 /**
  * @author mwyraz
- *         Wraps an input stream and compresses it's contents. Similiar to DeflateInputStream but adds GZIP-header and trailer
- *         See GzipOutputStream for details.
- *         LICENSE: Free to use. Contains some lines from GzipOutputStream, so oracle's license might apply as well!
+ * Wraps an input stream and compresses it's contents. Similiar to DeflateInputStream but adds GZIP-header and trailer
+ * See GzipOutputStream for details.
+ * LICENSE: Free to use. Contains some lines from GzipOutputStream, so oracle's license might apply as well!
  */
 public class GzipCompressingInputStream extends SequenceInputStream {
     public GzipCompressingInputStream(InputStream in) throws IOException {

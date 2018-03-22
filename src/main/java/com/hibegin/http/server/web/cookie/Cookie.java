@@ -7,7 +7,6 @@ import java.util.List;
 
 public class Cookie {
 
-    public static String JSESSIONID = "JSESSIONID";
     private String name;
     private String value;
     private String domain;
@@ -39,10 +38,10 @@ public class Cookie {
         return cookieList.toArray(new Cookie[cookieList.size()]);
     }
 
-    public static String getJSessionId(String cookieStr) {
+    public static String getJSessionId(String cookieStr, String jsessionId) {
         Cookie[] cookies = saxToCookie(cookieStr);
         for (Cookie cookie : cookies) {
-            if (JSESSIONID.equals(cookie.getName())) {
+            if (jsessionId.equals(cookie.getName())) {
                 return cookie.getValue();
             }
         }

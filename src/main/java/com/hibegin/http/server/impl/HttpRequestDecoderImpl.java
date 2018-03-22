@@ -1,7 +1,6 @@
 package com.hibegin.http.server.impl;
 
 import com.hibegin.common.util.BytesUtil;
-import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.ApplicationContext;
@@ -13,12 +12,10 @@ import com.hibegin.http.server.execption.RequestBodyTooLargeException;
 import com.hibegin.http.server.execption.UnSupportMethodException;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
 import com.hibegin.http.server.util.FileCacheKit;
-import com.hibegin.http.server.util.PathUtil;
 
 import java.io.*;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -36,11 +33,6 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
 
     public HttpRequestDecoderImpl(RequestConfig requestConfig, ApplicationContext applicationContext, ReadWriteSelectorHandler handler) {
         this.request = new SimpleHttpRequest(handler, applicationContext, requestConfig);
-    }
-
-    private static String randomFile() {
-        SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
-        return df.format(new Date()) + "_" + new Random().nextInt(1000);
     }
 
     @Override
@@ -92,15 +84,16 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         }
         if (result.getKey()) {
             if (!request.getRequestConfig().isRecordRequestBody()) {
-                if (requestBodyBuffer != null) {
-                    requestBodyBuffer = null;
-                }
+                //手动清除引用，避免内存占用
+                requestBodyBuffer = null;
             } else {
-                if (requestBodyBuffer != null) {
-                    if (requestBodyBuffer.array().length > 0) {
-                        if (request.tmpRequestBodyFile != null) {
-                            request.tmpRequestBodyFile.delete();
+                if (requestBodyBuffer != null && requestBodyBuffer.array().length > 0) {
+                    if (request.tmpRequestBodyFile != null) {
+                        try (FileOutputStream fileOutputStream = new FileOutputStream(request.tmpRequestBodyFile, true)) {
+                            fileOutputStream.write(byteBuffer.array());
                         }
+                    } else {
+                        //first record use full request buffer
                         request.tmpRequestBodyFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort(), requestBodyBuffer.array());
                     }
                 }
@@ -241,21 +234,14 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 String contentDisposition = request.getHeader("Content-Disposition");
                 if (contentDisposition != null) {
                     String inputName = contentDisposition.split(";")[1].split("=")[1].replace("\"", "");
-                    String fileName;
-                    if (contentDisposition.split(";").length > 2) {
-                        fileName = contentDisposition.split(";")[2].split("=")[1].replace("\"", "");
-                    } else {
-                        fileName = randomFile();
-                    }
-                    File file = new File(PathUtil.getTempPath() + fileName);
+                    int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
+                    int length2 = sb.toString().getBytes().length + 2;
+                    int dataLength = requestBodyBuffer.array().length - length1 - length2 - SPLIT.getBytes().length;
+                    File file = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort(), BytesUtil.subBytes(requestBodyBuffer.array(), length2, dataLength));
                     if (request.files == null) {
                         request.files = new HashMap<>();
                     }
                     request.files.put(inputName, file);
-                    int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
-                    int length2 = sb.toString().getBytes().length + 2;
-                    int dataLength = requestBodyBuffer.array().length - length1 - length2 - SPLIT.getBytes().length;
-                    IOUtil.writeBytesToFile(BytesUtil.subBytes(requestBodyBuffer.array(), length2, dataLength), file);
                 }
             } else if ("application/x-www-form-urlencoded".equals(contentType)) {
                 parseUrlEncodedStrToMap(new String(requestBodyBuffer.array()));

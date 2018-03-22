@@ -116,6 +116,7 @@ public class SimpleHttpResponse implements HttpResponse {
             renderByMimeType("json", ((String) Class.forName("com.google.gson.Gson").getMethod("toJson", Object.class).invoke(gson, obj)).getBytes());
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "", e);
+            throw new InternalException(e);
         }
     }
 
@@ -144,8 +145,14 @@ public class SimpleHttpResponse implements HttpResponse {
 
         header.put("Server", SERVER_INFO);
         if (!getHeader().containsKey("Connection")) {
-            boolean keepAlive = request.getHeader("Connection") == null || "close".equalsIgnoreCase(request.getHeader("Connection"));
+            boolean keepAlive = request.getHeader("Connection") == null;
             if (keepAlive) {
+                if (request.getHttpVersion().equals("HTTP/1.0")) {
+                    getHeader().put("Connection", "close");
+                } else {
+                    getHeader().put("Connection", "keep-alive");
+                }
+            } else if (!"close".equals(request.getHeader("Connection"))) {
                 getHeader().put("Connection", "keep-alive");
             } else {
                 getHeader().put("Connection", "close");
@@ -269,7 +276,12 @@ public class SimpleHttpResponse implements HttpResponse {
 
     @Override
     public void renderFreeMarker(String name) {
-        renderHtmlStr(FreeMarkerUtil.renderToFM(name, request));
+        try {
+            renderHtmlStr(FreeMarkerUtil.renderToFM(name, request));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "", e);
+            throw new InternalException(e);
+        }
     }
 
     @Override
@@ -328,6 +340,7 @@ public class SimpleHttpResponse implements HttpResponse {
             renderByMimeType("text", text.getBytes(responseConfig.getCharSet()));
         } catch (UnsupportedEncodingException e) {
             LOGGER.log(Level.SEVERE, "", e);
+            throw new InternalException(e);
         }
     }
 }

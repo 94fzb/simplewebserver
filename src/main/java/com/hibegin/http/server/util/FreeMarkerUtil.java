@@ -2,7 +2,6 @@ package com.hibegin.http.server.util;
 
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.api.HttpRequest;
-import com.hibegin.http.server.execption.InternalException;
 import com.hibegin.http.server.web.session.HttpSession;
 
 import java.io.ByteArrayOutputStream;
@@ -26,21 +25,18 @@ public class FreeMarkerUtil {
         }
     }
 
-    public static String renderToFM(String name, HttpRequest httpRequest) {
+    public static String renderToFM(String name, HttpRequest httpRequest) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try (Writer writer = new OutputStreamWriter(out)) {
-            Object template = cfg.getClass().getMethod("getTemplate", String.class).invoke(cfg, name + ".ftl");
-            HttpSession httpSession = httpRequest.getSession();
-            if (httpSession != null) {
-                httpRequest.getAttr().put("session", httpSession);
-            }
-            httpRequest.getAttr().put("request", httpRequest);
-            template.getClass().getMethod("process", Object.class, Writer.class).invoke(template, httpRequest.getAttr(), writer);
-            writer.flush();
-            return new String(out.toByteArray());
-        } catch (Exception e) {
-            throw new InternalException(e);
+        Writer writer = new OutputStreamWriter(out);
+        Object template = cfg.getClass().getMethod("getTemplate", String.class).invoke(cfg, name + ".ftl");
+        HttpSession httpSession = httpRequest.getSession();
+        if (httpSession != null) {
+            httpRequest.getAttr().put("session", httpSession);
         }
+        httpRequest.getAttr().put("request", httpRequest);
+        template.getClass().getMethod("process", Object.class, Writer.class).invoke(template, httpRequest.getAttr(), writer);
+        writer.flush();
+        return new String(out.toByteArray());
     }
 
     public static void init(String basePath) throws Exception {

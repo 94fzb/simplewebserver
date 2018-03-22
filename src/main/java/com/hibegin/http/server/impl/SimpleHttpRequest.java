@@ -10,6 +10,7 @@ import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.execption.InternalException;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
+import com.hibegin.http.server.util.FileCacheKit;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.web.cookie.Cookie;
 import com.hibegin.http.server.web.session.HttpSession;
@@ -117,7 +118,7 @@ public class SimpleHttpRequest implements HttpRequest {
             String cookieHeader = getHeader("Cookie");
             if (cookieHeader != null) {
                 cookies = Cookie.saxToCookie(cookieHeader);
-                String jsessionid = Cookie.getJSessionId(cookieHeader);
+                String jsessionid = Cookie.getJSessionId(cookieHeader, getServerConfig().getSessionId());
                 if (jsessionid != null) {
                     session = SessionUtil.getSessionById(jsessionid);
                 }
@@ -130,7 +131,7 @@ public class SimpleHttpRequest implements HttpRequest {
                 }
                 Cookie cookie = new Cookie(true);
                 String jsessionid = UUID.randomUUID().toString();
-                cookie.setName(Cookie.JSESSIONID);
+                cookie.setName(getServerConfig().getSessionId());
                 cookie.setPath("/");
                 cookie.setValue(jsessionid);
                 cookies[cookies.length - 1] = cookie;
@@ -304,7 +305,7 @@ public class SimpleHttpRequest implements HttpRequest {
     @Override
     public ByteBuffer getRequestBodyByteBuffer(int offset) {
         try {
-            if (tmpRequestBodyFile != null && tmpRequestBodyFile.exists() && offset <= tmpRequestBodyFile.length()) {
+            if (tmpRequestBodyFile != null && offset <= tmpRequestBodyFile.length()) {
                 byte[] bytes = IOUtil.getByteByInputStream(new FileInputStream(tmpRequestBodyFile.toString()));
                 return ByteBuffer.wrap(BytesUtil.subBytes(bytes, offset, bytes.length - offset));
             }
@@ -317,12 +318,17 @@ public class SimpleHttpRequest implements HttpRequest {
 
     public void deleteTempUploadFiles() {
         if (tmpRequestBodyFile != null) {
-            tmpRequestBodyFile.delete();
+            FileCacheKit.deleteCache(tmpRequestBodyFile);
         }
         if (files != null) {
             for (File file : files.values()) {
-                file.delete();
+                FileCacheKit.deleteCache(file);
             }
         }
+    }
+
+    @Override
+    public String getHttpVersion() {
+        return requestHeaderStr.split("\r\n")[0].split(" ")[2];
     }
 }

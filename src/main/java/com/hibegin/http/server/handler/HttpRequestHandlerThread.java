@@ -22,7 +22,7 @@ public class HttpRequestHandlerThread extends Thread {
 
     private HttpResponse response;
 
-    public HttpRequestHandlerThread(HttpRequest request, HttpResponse response) {
+    HttpRequestHandlerThread(HttpRequest request, HttpResponse response) {
         this.request = request;
         this.response = response;
     }

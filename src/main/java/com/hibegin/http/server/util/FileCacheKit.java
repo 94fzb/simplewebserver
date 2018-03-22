@@ -4,17 +4,39 @@ import com.hibegin.common.util.IOUtil;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class FileCacheKit {
 
     private static File NOT_FOUND_FILE = new File(PathUtil.getTempPath() + "/" + UUID.randomUUID().toString());
+    private static Queue<File> needDeleteFileQueue = new ConcurrentLinkedQueue<>();
+    private static ScheduledExecutorService scheduledThreadPoolExecutor = Executors.newSingleThreadScheduledExecutor();
 
-    public static File generatorRequestTempFile(int flag, byte[] bytes) throws IOException {
+    static {
+        scheduledThreadPoolExecutor.scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                while (!needDeleteFileQueue.isEmpty()) {
+                    needDeleteFileQueue.poll().delete();
+                }
+            }
+        }, 0, 1, TimeUnit.SECONDS);
+    }
+
+    public static File generatorRequestTempFile(int flag, byte[] bytes) {
         if (bytes != null && bytes.length > 0) {
-            File file = File.createTempFile("cache-", suffix(flag), new File(PathUtil.getTempPath()));
-            IOUtil.writeBytesToFile(bytes, file);
-            return file;
+            try {
+                File file = File.createTempFile("cache-", suffix(flag), new File(PathUtil.getTempPath()));
+                IOUtil.writeBytesToFile(bytes, file);
+                return file;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         return NOT_FOUND_FILE;
     }
@@ -32,5 +54,9 @@ public class FileCacheKit {
                 }
             }
         }
+    }
+
+    public static void deleteCache(File file) {
+        needDeleteFileQueue.add(file);
     }
 }

@@ -32,6 +32,7 @@ public class ServerConfig {
     private String welcomeFile = "index.html";
     private Executor requestExecutor;
     private Executor decodeExecutor;
+    private String sessionId = "JSESSIONID";
     private Router router = new Router();
     private StaticResourceLoader defaultStaticResourceClassLoader = new StaticResourceLoader() {
         @Override
@@ -66,6 +67,14 @@ public class ServerConfig {
 
     public void setRequestExecutor(Executor requestExecutor) {
         this.requestExecutor = requestExecutor;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
     }
 
     public boolean isDisableCookie() {

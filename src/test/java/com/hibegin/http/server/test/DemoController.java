@@ -2,7 +2,6 @@ package com.hibegin.http.server.test;
 
 import com.hibegin.http.server.WebServerBuilder;
 import com.hibegin.http.server.config.ServerConfig;
-import com.hibegin.http.server.util.MimeTypeUtil;
 import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.Controller;
 
@@ -19,6 +18,6 @@ public class DemoController extends Controller {
     }
 
     public void helloWorld() {
-        getResponse().renderText("Hello world/v" + ServerInfo.getVersion());
+        getResponse().renderText("Hello world/v" + ServerInfo.getVersion() + System.currentTimeMillis());
     }
 }
