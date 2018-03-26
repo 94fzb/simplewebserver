@@ -32,6 +32,7 @@ public class SimpleHttpResponse implements HttpResponse {
     private HttpRequest request;
     private List<Cookie> cookieList = new ArrayList<>();
     private ResponseConfig responseConfig;
+    private static final int SEND_FILE_BLANK_LENGTH = 1024 * 1024;
     private static final String SERVER_INFO = ServerInfo.getName() + "/" + ServerInfo.getVersion();
 
     public SimpleHttpResponse(HttpRequest request, ResponseConfig responseConfig) {
@@ -54,12 +55,12 @@ public class SimpleHttpResponse implements HttpResponse {
                 if (header.get("Content-Type") == null) {
                     header.put("Content-Type", MimeTypeUtil.getMimeStrByExt(ext));
                 }
-                if (file.length() < 1024 * 1024) {
+                if (file.length() < SEND_FILE_BLANK_LENGTH) {
                     send(buildResponseData(200, IOUtil.getByteByInputStream(fileInputStream)));
                 } else {
                     send(wrapperResponseHeaderWithContentLength(200, file.length()), false);
                     //处理大文件
-                    int length = 1024 * 1024;
+                    int length = SEND_FILE_BLANK_LENGTH;
                     byte tempByte[] = new byte[length];
                     while ((length = fileInputStream.read(tempByte)) != -1) {
                         send(BytesUtil.subBytes(tempByte, 0, length), false);

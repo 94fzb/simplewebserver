@@ -66,7 +66,12 @@ public class HttpDecodeRunnable implements Runnable {
                             @Override
                             public void run() {
                                 while (!blockingQueue.isEmpty()) {
-                                    Map.Entry<SelectionKey, File> selectionKeyEntry = blockingQueue.poll();
+                                    Map.Entry<SelectionKey, File> selectionKeyEntry = null;
+                                    try {
+                                        selectionKeyEntry = blockingQueue.take();
+                                    } catch (InterruptedException e) {
+                                        LOGGER.log(Level.SEVERE, "", e);
+                                    }
                                     if (selectionKeyEntry != null) {
                                         SelectionKey key = selectionKeyEntry.getKey();
                                         Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = applicationContext.getHttpDeCoderMap().get(channel.socket());
@@ -128,7 +133,7 @@ public class HttpDecodeRunnable implements Runnable {
 
     public HttpRequestHandlerThread getHttpRequestHandlerThread() {
         try {
-            return httpRequestHandlerThreadBlockingQueue.poll(100, TimeUnit.MILLISECONDS);
+            return httpRequestHandlerThreadBlockingQueue.take();
         } catch (InterruptedException e) {
             LOGGER.log(Level.SEVERE, "", e);
         }
