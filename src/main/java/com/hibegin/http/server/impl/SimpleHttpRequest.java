@@ -329,6 +329,12 @@ public class SimpleHttpRequest implements HttpRequest {
 
     @Override
     public String getHttpVersion() {
-        return requestHeaderStr.split("\r\n")[0].split(" ")[2];
+        String[] tempArr = requestHeaderStr.split("\r\n");
+        if (tempArr.length > 0) {
+            if (tempArr[0].split(" ").length > 2) {
+                return tempArr[0].split(" ")[2];
+            }
+        }
+        return "";
     }
 }
