@@ -17,10 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -150,6 +147,8 @@ public class SimpleWebServer implements ISocketServer {
                         iterator.remove();
                     }
                 }
+            } catch (CancelledKeyException e) {
+                //ignore
             } catch (Throwable e) {
                 LOGGER.log(Level.SEVERE, "", e);
             }

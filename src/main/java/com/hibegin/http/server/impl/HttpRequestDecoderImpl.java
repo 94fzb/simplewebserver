@@ -121,11 +121,10 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
 
     private boolean parseHttpRequestBody(byte[] requestBodyData) {
         boolean flag;
+        parseUrlEncodedStrToMap(request.queryStr);
         if (isNeedEmptyRequestBody()) {
-            parseUrlEncodedStrToMap(request.queryStr);
             flag = true;
         } else {
-            parseUrlEncodedStrToMap(request.queryStr);
             Object contentLengthObj = request.getHeader("Content-Length");
             if (contentLengthObj != null) {
                 Integer dateLength = Integer.parseInt(contentLengthObj.toString());
@@ -145,8 +144,13 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         return flag;
     }
 
+    /**
+     * 存在 content-length 认为
+     *
+     * @return
+     */
     private boolean isNeedEmptyRequestBody() {
-        return request.method == HttpMethod.GET || request.method == HttpMethod.CONNECT || request.method == HttpMethod.TRACE;
+        return request.getHeader("Content-Length") == null && (request.method == HttpMethod.GET || request.method == HttpMethod.CONNECT || request.method == HttpMethod.TRACE);
     }
 
     private void parseHttpProtocolHeader(String[] headerArr) throws Exception {
