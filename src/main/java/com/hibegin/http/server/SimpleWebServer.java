@@ -223,7 +223,7 @@ public class SimpleWebServer implements ISocketServer {
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
             LOGGER.info(ServerInfo.getName() + " listening on port -> " + port);
             return true;
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "", e);
             return false;
         }
