@@ -49,12 +49,12 @@ public class HttpRequestHandlerThread extends Thread {
             } catch (IOException e1) {
                 //e1.printStackTrace();
             }
-            response.write(byteArrayOutputStream, 500);
             LOGGER.log(Level.SEVERE, "dispose error ", e);
+            response.write(byteArrayOutputStream, 500);
         } finally {
             if (request.getMethod() != HttpMethod.CONNECT) {
                 String responseConnection = response.getHeader().get("Connection");
-                boolean keepAlive = responseConnection == null || !"close".equalsIgnoreCase(responseConnection);
+                boolean keepAlive = !"close".equalsIgnoreCase(responseConnection);
                 if (!keepAlive) {
                     // 渲染错误页面
                     if (!getSocket().isClosed()) {

@@ -39,7 +39,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     public Map.Entry<Boolean, ByteBuffer> doDecode(ByteBuffer byteBuffer) throws Exception {
         Map.Entry<Boolean, ByteBuffer> result;
         //HTTPS proxy
-        if (request.getMethod() == HttpMethod.CONNECT) {
+        if (request.requestHeaderStr != null && request.getMethod() == HttpMethod.CONNECT) {
             result = new AbstractMap.SimpleEntry<>(true, ByteBuffer.allocate(0));
             saveRequestBodyBytes(byteBuffer.array());
         } else {
