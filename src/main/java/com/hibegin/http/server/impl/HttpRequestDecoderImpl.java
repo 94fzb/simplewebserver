@@ -1,6 +1,7 @@
 package com.hibegin.http.server.impl;
 
 import com.hibegin.common.util.BytesUtil;
+import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.ApplicationContext;
@@ -27,8 +28,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     static final String SPLIT = CRLF + CRLF;
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpRequestDecoderImpl.class);
     private final SimpleHttpRequest request;
-    private ByteBuffer requestBodyBuffer;
-    private boolean headerHandled = false;
+    private int dataLength;
     private byte[] headerBytes = new byte[]{};
 
     public HttpRequestDecoderImpl(RequestConfig requestConfig, ApplicationContext applicationContext, ReadWriteSelectorHandler handler) {
@@ -38,21 +38,17 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     @Override
     public Map.Entry<Boolean, ByteBuffer> doDecode(ByteBuffer byteBuffer) throws Exception {
         Map.Entry<Boolean, ByteBuffer> result;
-        if (headerHandled && request.getMethod() == HttpMethod.CONNECT) {
-            if (requestBodyBuffer == null) {
-                requestBodyBuffer = byteBuffer;
-            } else {
-                requestBodyBuffer = ByteBuffer.wrap(BytesUtil.mergeBytes(requestBodyBuffer.array(), byteBuffer.array()));
-            }
+        //HTTPS proxy
+        if (request.getMethod() == HttpMethod.CONNECT) {
             result = new AbstractMap.SimpleEntry<>(true, ByteBuffer.allocate(0));
+            saveRequestBodyBytes(byteBuffer.array());
         } else {
             // 存在2种情况,提交的数据一次性读取完成,提交的数据一次性读取不完
             boolean flag;
-            if (requestBodyBuffer == null) {
+            if (getRequestBodyBytes() == null) {
                 headerBytes = BytesUtil.mergeBytes(headerBytes, byteBuffer.array());
                 String fullDataStr = new String(headerBytes);
                 if (fullDataStr.contains(SPLIT)) {
-                    headerHandled = true;
                     parseHttpMethod();
                     String httpHeader = fullDataStr.substring(0, fullDataStr.indexOf(SPLIT));
                     request.requestHeaderStr = httpHeader;
@@ -79,32 +75,44 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                     result = new AbstractMap.SimpleEntry<>(false, ByteBuffer.allocate(0));
                 }
             } else {
-                requestBodyBuffer.put(byteBuffer.array());
-                flag = !requestBodyBuffer.hasRemaining();
+                flag = saveRequestBodyBytes(byteBuffer.array());
                 if (flag) {
                     dealRequestBodyData();
                 }
                 result = new AbstractMap.SimpleEntry<>(flag, ByteBuffer.allocate(0));
             }
         }
-        if (result.getKey()) {
-            if (!request.getRequestConfig().isRecordRequestBody()) {
-                //手动清除引用，避免内存占用
-                requestBodyBuffer = null;
-            } else {
-                if (requestBodyBuffer != null && requestBodyBuffer.array().length > 0) {
-                    if (request.tmpRequestBodyFile != null) {
-                        try (FileOutputStream fileOutputStream = new FileOutputStream(request.tmpRequestBodyFile, true)) {
-                            fileOutputStream.write(byteBuffer.array());
-                        }
-                    } else {
-                        //first record use full request buffer
-                        request.tmpRequestBodyFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort(), requestBodyBuffer.array());
-                    }
-                }
-            }
-        }
         return result;
+    }
+
+    /**
+     * 使用磁盘文件替代内存 ByteBuffered，避免OOM
+     *
+     * @param bytes
+     * @return
+     * @throws IOException
+     */
+    private boolean saveRequestBodyBytes(byte[] bytes) throws IOException {
+        if (bytes.length > 0) {
+            if (request.tmpRequestBodyFile != null) {
+                try (FileOutputStream fileOutputStream = new FileOutputStream(request.tmpRequestBodyFile, true)) {
+                    fileOutputStream.write(bytes);
+                }
+            } else {
+                //first record use full request buffer
+                request.tmpRequestBodyFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort(), bytes);
+            }
+            return request.tmpRequestBodyFile.length() == dataLength;
+        }
+        return false;
+    }
+
+    private byte[] getRequestBodyBytes() throws FileNotFoundException {
+        if (request.tmpRequestBodyFile != null) {
+            return IOUtil.getByteByInputStream(new FileInputStream(request.tmpRequestBodyFile));
+        } else {
+            return null;
+        }
     }
 
     private void parseHttpMethod() throws UnSupportMethodException {
@@ -124,7 +132,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         }
     }
 
-    private boolean parseHttpRequestBody(byte[] requestBodyData) {
+    private boolean parseHttpRequestBody(byte[] requestBodyData) throws IOException {
         boolean flag;
         parseUrlEncodedStrToMap(request.queryStr);
         if (isNeedEmptyRequestBody()) {
@@ -132,13 +140,11 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         } else {
             Object contentLengthObj = request.getHeader("Content-Length");
             if (contentLengthObj != null) {
-                Integer dateLength = Integer.parseInt(contentLengthObj.toString());
-                if (dateLength > getRequest().getRequestConfig().getMaxRequestBodySize()) {
+                dataLength = Integer.parseInt(contentLengthObj.toString());
+                if (dataLength > getRequest().getRequestConfig().getMaxRequestBodySize()) {
                     throw new RequestBodyTooLargeException("The Content-Length outside the max upload size " + ConfigKit.getMaxRequestBodySize());
                 }
-                requestBodyBuffer = ByteBuffer.allocate(dateLength);
-                requestBodyBuffer.put(requestBodyData);
-                flag = !requestBodyBuffer.hasRemaining();
+                flag = saveRequestBodyBytes(requestBodyData);
                 if (flag) {
                     dealRequestBodyData();
                 }
@@ -225,38 +231,41 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         }
     }
 
-    private void dealRequestBodyData() {
-        if (request.getHeader("Content-Type") != null) {
-            String contentType = request.getHeader("Content-Type").split(";")[0];
-            //FIXME 不支持多文件上传，不支持这里有其他属性字段
-            if ("multipart/form-data".equals(contentType)) {
-                StringBuilder sb = new StringBuilder();
-                try (BufferedReader bin = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(requestBodyBuffer.array())))) {
-                    String headerStr;
-                    while ((headerStr = bin.readLine()) != null && !"".equals(headerStr)) {
-                        sb.append(headerStr).append(CRLF);
-                        dealRequestHeaderString(headerStr);
+    private void dealRequestBodyData() throws FileNotFoundException {
+        byte[] requestBody = getRequestBodyBytes();
+        if (requestBody != null) {
+            if (request.getHeader("Content-Type") != null) {
+                String contentType = request.getHeader("Content-Type").split(";")[0];
+                //FIXME 不支持多文件上传，不支持这里有其他属性字段
+                if ("multipart/form-data".equals(contentType)) {
+                    StringBuilder sb = new StringBuilder();
+                    try (BufferedReader bin = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(requestBody)))) {
+                        String headerStr;
+                        while ((headerStr = bin.readLine()) != null && !"".equals(headerStr)) {
+                            sb.append(headerStr).append(CRLF);
+                            dealRequestHeaderString(headerStr);
+                        }
+                    } catch (IOException e) {
+                        LOGGER.log(Level.SEVERE, "", e);
                     }
-                } catch (IOException e) {
-                    LOGGER.log(Level.SEVERE, "", e);
-                }
-                String contentDisposition = request.getHeader("Content-Disposition");
-                if (contentDisposition != null) {
-                    String inputName = contentDisposition.split(";")[1].split("=")[1].replace("\"", "");
-                    int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
-                    int length2 = sb.toString().getBytes().length + 2;
-                    int dataLength = requestBodyBuffer.array().length - length1 - length2 - SPLIT.getBytes().length;
-                    File file = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort(), BytesUtil.subBytes(requestBodyBuffer.array(), length2, dataLength));
-                    if (request.files == null) {
-                        request.files = new HashMap<>();
+                    String contentDisposition = request.getHeader("Content-Disposition");
+                    if (contentDisposition != null) {
+                        String inputName = contentDisposition.split(";")[1].split("=")[1].replace("\"", "");
+                        int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
+                        int length2 = sb.toString().getBytes().length + 2;
+                        int dataLength = requestBody.length - length1 - length2 - SPLIT.getBytes().length;
+                        File file = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort(), BytesUtil.subBytes(requestBody, length2, dataLength));
+                        if (request.files == null) {
+                            request.files = new HashMap<>();
+                        }
+                        request.files.put(inputName, file);
                     }
-                    request.files.put(inputName, file);
+                } else if ("application/x-www-form-urlencoded".equals(contentType)) {
+                    parseUrlEncodedStrToMap(new String(requestBody));
                 }
-            } else if ("application/x-www-form-urlencoded".equals(contentType)) {
-                parseUrlEncodedStrToMap(new String(requestBodyBuffer.array()));
+            } else {
+                parseUrlEncodedStrToMap(new String(requestBody));
             }
-        } else {
-            parseUrlEncodedStrToMap(new String(requestBodyBuffer.array()));
         }
     }
 

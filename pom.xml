@@ -56,8 +56,7 @@
                     <j2objcPath>${J2OBJC_PATH}</j2objcPath>
                     <useArc>true</useArc>
                     <noPackageDirectories>true</noPackageDirectories>
-                    <!-- for skip module-info.java-->
-                    <sourcePath>${project.basedir}/src/main/java/com</sourcePath>
+                    <sourcePath>${project.basedir}/src/main/java</sourcePath>
                 </configuration>
             </plugin>
             <plugin>

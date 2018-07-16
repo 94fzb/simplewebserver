@@ -8,7 +8,6 @@ import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ServerConfig;
-import com.hibegin.http.server.execption.InternalException;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
 import com.hibegin.http.server.util.FileCacheKit;
 import com.hibegin.http.server.util.PathUtil;
@@ -261,30 +260,14 @@ public class SimpleHttpRequest implements HttpRequest {
     }
 
     public ByteBuffer getInputByteBuffer() {
-        if (getRequestConfig().isRecordRequestBody()) {
-            byte[] splitBytes = HttpRequestDecoderImpl.SPLIT.getBytes();
-            byte[] bytes = requestHeaderStr.getBytes();
-            if (tmpRequestBodyFile == null) {
-                ByteBuffer buffer = ByteBuffer.allocate(bytes.length + splitBytes.length);
-                buffer.put(bytes);
-                buffer.put(splitBytes);
-                return buffer;
-            } else {
-                byte[] dataBytes = new byte[0];
-                try {
-                    dataBytes = IOUtil.getByteByInputStream(new FileInputStream(tmpRequestBodyFile));
-                } catch (FileNotFoundException e) {
-                    //e.printStackTrace();
-                }
-                ByteBuffer buffer = ByteBuffer.allocate(requestHeaderStr.getBytes().length + splitBytes.length + dataBytes.length);
-                buffer.put(requestHeaderStr.getBytes());
-                buffer.put(splitBytes);
-                buffer.put(dataBytes);
-                return buffer;
-            }
-        } else {
-            throw new InternalException("Please enable record request body");
-        }
+        byte[] splitBytes = HttpRequestDecoderImpl.SPLIT.getBytes();
+        byte[] headerBytes = requestHeaderStr.getBytes();
+        byte[] bodyBytes = getRequestBodyByteBuffer().array();
+        ByteBuffer buffer = ByteBuffer.allocate(headerBytes.length + splitBytes.length + bodyBytes.length);
+        buffer.put(headerBytes);
+        buffer.put(splitBytes);
+        buffer.put(bodyBytes);
+        return buffer;
     }
 
     @Override
