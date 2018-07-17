@@ -48,8 +48,8 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             if (getRequestBodyBytes() == null) {
                 headerBytes = BytesUtil.mergeBytes(headerBytes, byteBuffer.array());
                 String fullDataStr = new String(headerBytes);
+                parseHttpMethod();
                 if (fullDataStr.contains(SPLIT)) {
-                    parseHttpMethod();
                     String httpHeader = fullDataStr.substring(0, fullDataStr.indexOf(SPLIT));
                     request.requestHeaderStr = httpHeader;
                     String headerArr[] = httpHeader.split(CRLF);
@@ -71,7 +71,6 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                         result = new AbstractMap.SimpleEntry<>(flag, ByteBuffer.allocate(0));
                     }
                 } else {
-                    parseHttpMethod();
                     result = new AbstractMap.SimpleEntry<>(false, ByteBuffer.allocate(0));
                 }
             } else {

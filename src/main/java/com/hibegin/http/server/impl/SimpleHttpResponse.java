@@ -148,7 +148,8 @@ public class SimpleHttpResponse implements HttpResponse {
         if (!getHeader().containsKey("Connection")) {
             boolean keepAlive = request.getHeader("Connection") == null;
             if (keepAlive) {
-                if (request.getHttpVersion().equals("HTTP/1.0")) {
+                String httpVersion = request.getHttpVersion();
+                if ("".equals(httpVersion.trim()) || httpVersion.equals("HTTP/1.0")) {
                     getHeader().put("Connection", "close");
                 } else {
                     getHeader().put("Connection", "keep-alive");
