@@ -132,26 +132,29 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     }
 
     private boolean parseHttpRequestBody(byte[] requestBodyData) throws IOException {
-        boolean flag;
         parseUrlEncodedStrToMap(request.queryStr);
         if (isNeedEmptyRequestBody()) {
-            flag = true;
+            return true;
         } else {
             Object contentLengthObj = request.getHeader("Content-Length");
             if (contentLengthObj != null) {
                 dataLength = Integer.parseInt(contentLengthObj.toString());
+                if (dataLength == 0) {
+                    return true;
+                }
                 if (dataLength > getRequest().getRequestConfig().getMaxRequestBodySize()) {
                     throw new RequestBodyTooLargeException("The Content-Length outside the max upload size " + ConfigKit.getMaxRequestBodySize());
                 }
-                flag = saveRequestBodyBytes(requestBodyData);
-                if (flag) {
+                if (saveRequestBodyBytes(requestBodyData)) {
                     dealRequestBodyData();
+                    return true;
+                } else {
+                    return false;
                 }
             } else {
-                flag = true;
+                return true;
             }
         }
-        return flag;
     }
 
     /**
