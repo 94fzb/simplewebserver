@@ -1,6 +1,5 @@
 package com.hibegin.http.server.impl;
 
-import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
@@ -287,16 +286,21 @@ public class SimpleHttpRequest implements HttpRequest {
 
     @Override
     public ByteBuffer getRequestBodyByteBuffer(int offset) {
+        byte[] bytes;
         try {
-            if (tmpRequestBodyFile != null && offset <= tmpRequestBodyFile.length()) {
-                byte[] bytes = IOUtil.getByteByInputStream(new FileInputStream(tmpRequestBodyFile.toString()));
-                return ByteBuffer.wrap(BytesUtil.subBytes(bytes, offset, bytes.length - offset));
+            if (tmpRequestBodyFile != null && offset < tmpRequestBodyFile.length()) {
+                FileInputStream fileInputStream = new FileInputStream(tmpRequestBodyFile.toString());
+                fileInputStream.skip(offset);
+                bytes = IOUtil.getByteByInputStream(fileInputStream);
+            } else {
+                bytes = new byte[0];
             }
         } catch (Exception e) {
+            bytes = new byte[0];
             LOGGER.log(Level.SEVERE, "", e);
             //throw new InternalException(e);
         }
-        return ByteBuffer.wrap(new byte[0]);
+        return ByteBuffer.wrap(bytes);
     }
 
     public void deleteTempUploadFiles() {
