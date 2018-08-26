@@ -20,8 +20,9 @@ import java.net.Socket;
 import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -159,15 +160,30 @@ public class SimpleWebServer implements ISocketServer {
      * 初始化处理请求的请求
      */
     private void startExecHttpRequestThread() {
-        ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
+        ScheduledExecutorService checkRequestExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread thread = new Thread(r);
+                thread.setName("check-request-thread");
+                return thread;
+            }
+        });
+        ScheduledExecutorService httpDecodeExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread thread = new Thread(r);
+                thread.setName("http-decode-thread");
+                return thread;
+            }
+        });
         checkRequestRunnable = new CheckRequestRunnable(applicationContext);
         httpDecodeRunnable = new HttpDecodeRunnable(applicationContext, this, requestConfig, responseConfig);
         int httpDecodeCycle = 10;
         if (EnvKit.isAndroid()) {
             httpDecodeCycle = 100;
         }
-        scheduledExecutorService.scheduleAtFixedRate(checkRequestRunnable, 0, 1000, TimeUnit.MILLISECONDS);
-        scheduledExecutorService.scheduleAtFixedRate(httpDecodeRunnable, 0, httpDecodeCycle, TimeUnit.MILLISECONDS);
+        checkRequestExecutor.scheduleAtFixedRate(checkRequestRunnable, 0, 1000, TimeUnit.MILLISECONDS);
+        httpDecodeExecutor.scheduleAtFixedRate(httpDecodeRunnable, 0, httpDecodeCycle, TimeUnit.MILLISECONDS);
         new Thread(ServerInfo.getName().toLowerCase() + "-http-request-eventloop-thread") {
             @Override
             public void run() {
@@ -214,6 +230,7 @@ public class SimpleWebServer implements ISocketServer {
         return create(serverConfig.getPort());
     }
 
+    @Override
     public boolean create(int port) {
         try {
             final ServerSocketChannel serverChannel = ServerSocketChannel.open();

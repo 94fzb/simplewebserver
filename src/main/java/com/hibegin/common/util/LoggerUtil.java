@@ -45,7 +45,9 @@ public class LoggerUtil {
             }
             logger.setLevel(Level.ALL);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, recordStackTraceMsg(e));
+            if (LOGGER != null) {
+                LOGGER.log(Level.SEVERE, recordStackTraceMsg(e));
+            }
         }
         return logger;
     }

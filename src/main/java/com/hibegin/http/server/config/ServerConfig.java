@@ -12,9 +12,7 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -60,7 +58,14 @@ public class ServerConfig {
 
     public Executor getRequestExecutor() {
         if (requestExecutor == null) {
-            requestExecutor = Executors.newFixedThreadPool(10);
+            requestExecutor = new ThreadPoolExecutor(10, 20, 1, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100), new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread thread = new Thread();
+                    thread.setName("request-handler-thread");
+                    return thread;
+                }
+            });
         }
         return requestExecutor;
     }
@@ -115,7 +120,14 @@ public class ServerConfig {
 
     public Executor getDecodeExecutor() {
         if (decodeExecutor == null) {
-            decodeExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+            decodeExecutor = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors() + 1, 20, 1, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100), new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread thread = new Thread();
+                    thread.setName("request-decode-thread");
+                    return thread;
+                }
+            });
         }
         return decodeExecutor;
     }

@@ -62,7 +62,7 @@ public class HttpDecodeRunnable implements Runnable {
                     final LinkedBlockingDeque<Map.Entry<SelectionKey, File>> blockingQueue = entry.getValue();
                     if (!blockingQueue.isEmpty()) {
                         workingChannel.add(channel);
-                        Thread thread = new Thread() {
+                        serverConfig.getDecodeExecutor().execute(new Runnable() {
                             @Override
                             public void run() {
                                 while (!blockingQueue.isEmpty()) {
@@ -104,8 +104,8 @@ public class HttpDecodeRunnable implements Runnable {
                                         } catch (RequestBodyTooLargeException e) {
                                             handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue()), 413);
                                         } catch (Exception e) {
-                                            handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue()), 500);
                                             LOGGER.log(Level.SEVERE, "", e);
+                                            handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue()), 500);
                                         } finally {
                                             file.delete();
                                         }
@@ -113,8 +113,7 @@ public class HttpDecodeRunnable implements Runnable {
                                 }
                                 workingChannel.remove(channel);
                             }
-                        };
-                        serverConfig.getDecodeExecutor().execute(thread);
+                        });
                     }
                 }
             }

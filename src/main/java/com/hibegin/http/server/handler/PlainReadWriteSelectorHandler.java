@@ -65,6 +65,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
         }
     }
 
+    @Override
     public void close() {
         try {
             sc.close();
@@ -73,6 +74,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
         }
     }
 
+    @Override
     public SocketChannel getChannel() {
         return sc;
     }

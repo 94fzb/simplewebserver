@@ -61,9 +61,9 @@ public class SimpleHttpResponse implements HttpResponse {
                     send(wrapperResponseHeaderWithContentLength(200, file.length()), false);
                     //处理大文件
                     int length = SEND_FILE_BLANK_LENGTH;
-                    byte tempByte[] = new byte[length];
-                    while ((length = fileInputStream.read(tempByte)) != -1) {
-                        send(BytesUtil.subBytes(tempByte, 0, length), false);
+                    byte[] tempBytes = new byte[length];
+                    while ((length = fileInputStream.read(tempBytes)) != -1) {
+                        send(BytesUtil.subBytes(tempBytes, 0, length), false);
                     }
                     //是否关闭流
                     send(new byte[]{});
@@ -101,6 +101,7 @@ public class SimpleHttpResponse implements HttpResponse {
         }
     }
 
+    @Override
     public void send(ByteArrayOutputStream outputStream, boolean close) {
         send(outputStream.toByteArray(), close);
     }
@@ -149,7 +150,7 @@ public class SimpleHttpResponse implements HttpResponse {
             boolean keepAlive = request.getHeader("Connection") == null;
             if (keepAlive) {
                 String httpVersion = request.getHttpVersion();
-                if ("".equals(httpVersion.trim()) || httpVersion.equals("HTTP/1.0")) {
+                if ("".equals(httpVersion.trim()) || "HTTP/1.0".equals(httpVersion)) {
                     getHeader().put("Connection", "close");
                 } else {
                     getHeader().put("Connection", "keep-alive");
@@ -332,6 +333,7 @@ public class SimpleHttpResponse implements HttpResponse {
         send(buildResponseData(code, outputStream.toByteArray()));
     }
 
+    @Override
     public Map<String, String> getHeader() {
         return header;
     }

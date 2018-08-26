@@ -6,16 +6,20 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Queue;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class FileCacheKit {
 
     private static File NOT_FOUND_FILE = new File(PathUtil.getTempPath() + "/" + UUID.randomUUID().toString());
     private static Queue<File> needDeleteFileQueue = new ConcurrentLinkedQueue<>();
-    private static ScheduledExecutorService scheduledThreadPoolExecutor = Executors.newSingleThreadScheduledExecutor();
+    private static ScheduledExecutorService scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread thread = new Thread(r);
+            thread.setName("file-cache-clean-thread");
+            return thread;
+        }
+    });
 
     static {
         scheduledThreadPoolExecutor.scheduleWithFixedDelay(new Runnable() {

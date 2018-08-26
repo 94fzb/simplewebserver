@@ -75,7 +75,6 @@ public class WebServerBuilder {
                     public void run() {
                         try {
                             Thread.currentThread().setName(ServerInfo.getName().toLowerCase() + "-main-thread");
-                            FileCacheKit.cleanByFlag(serverConfig.getPort());
                             WebServerBuilder.this.webServer.listener();
                         } catch (Exception e) {
                             LOGGER.log(Level.SEVERE, "", e);

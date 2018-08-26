@@ -1,60 +1,33 @@
 package com.hibegin.http.server.handler;
 
-import com.hibegin.common.util.EnvKit;
-import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.api.HttpResponse;
-import com.hibegin.http.server.ApplicationContext;
 
 import java.net.Socket;
-import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class CheckRequestRunnable implements Runnable {
 
-    private static final Logger LOGGER = LoggerUtil.getLogger(CheckRequestRunnable.class);
-
     private Map<Socket, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap;
     private ApplicationContext applicationContext;
-    private Thread thread;
 
     public CheckRequestRunnable(ApplicationContext applicationContext) {
         this.channelHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
         this.applicationContext = applicationContext;
     }
 
-    private int getRequestTimeout(){
+    private int getRequestTimeout() {
         return applicationContext.getServerConfig().getTimeout();
     }
 
     @Override
     public void run() {
-        if (EnvKit.isAndroid()) {
-            if (thread != null) {
-                thread.interrupt();
-            }
-        }
-        thread = new Thread() {
-            @Override
-            public void run() {
-                try {
-                    clearRequestListener(getClosedRequestSocketSet());
-                    clearRequestDecode(getClosedDecodedSocketSet());
-                } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, "e", e);
-                }
-            }
-        };
-        if (EnvKit.isAndroid()) {
-            thread.start();
-        } else {
-            thread.run();
-        }
+        clearRequestListener(getClosedRequestSocketSet());
+        clearRequestDecode(getClosedDecodedSocketSet());
     }
 
     private void clearRequestListener(Set<Socket> removeHttpRequestList) {

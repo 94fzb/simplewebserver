@@ -77,6 +77,7 @@ public class SimpleHttpRequest implements HttpRequest {
         return ((InetSocketAddress) handler.getChannel().socket().getRemoteSocketAddress()).getHostString();
     }
 
+    @Override
     public HttpMethod getMethod() {
         return method;
     }
@@ -233,6 +234,7 @@ public class SimpleHttpRequest implements HttpRequest {
         return requestConfig;
     }
 
+    @Override
     public Map<String, String[]> decodeParamMap() {
         Map<String, String[]> encodeMap = new HashMap<>();
         for (Map.Entry<String, String[]> entry : getParamMap().entrySet()) {
@@ -254,10 +256,12 @@ public class SimpleHttpRequest implements HttpRequest {
         return handler;
     }
 
+    @Override
     public long getCreateTime() {
         return createTime;
     }
 
+    @Override
     public ByteBuffer getInputByteBuffer() {
         byte[] splitBytes = HttpRequestDecoderImpl.SPLIT.getBytes();
         byte[] headerBytes = requestHeaderStr.getBytes();

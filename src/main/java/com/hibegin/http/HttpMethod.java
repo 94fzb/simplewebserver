@@ -6,10 +6,11 @@ public enum HttpMethod {
     CONNECT("CONNECT"), HEAD("HEAD"), TRACE("TRACE"), OPTIONS("OPTIONS");
     private String method;
 
-    private HttpMethod(String method) {
+    HttpMethod(String method) {
         this.method = method;
     }
 
+    @Override
     public String toString() {
         return method;
     }

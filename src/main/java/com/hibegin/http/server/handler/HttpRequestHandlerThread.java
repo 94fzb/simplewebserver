@@ -87,6 +87,5 @@ public class HttpRequestHandlerThread extends Thread {
         for (HttpRequestListener requestListener : request.getApplicationContext().getServerConfig().getHttpRequestListenerList()) {
             requestListener.destroy(getRequest(), getResponse());
         }
-        //LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
     }
 }

@@ -10,7 +10,7 @@ public class Router {
     private Map<String, Method> routerMap = new HashMap<String, Method>();
 
     public void addMapper(String urlPath, Class<? extends Controller> clazz) {
-        if (urlPath.equals("/")) {
+        if ("/".equals(urlPath)) {
             urlPath = "";
         }
         Method[] methods = clazz.getDeclaredMethods();

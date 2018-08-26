@@ -52,7 +52,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 if (fullDataStr.contains(SPLIT)) {
                     String httpHeader = fullDataStr.substring(0, fullDataStr.indexOf(SPLIT));
                     request.requestHeaderStr = httpHeader;
-                    String headerArr[] = httpHeader.split(CRLF);
+                    String[] headerArr = httpHeader.split(CRLF);
                     // parse HttpHeader
                     parseHttpProtocolHeader(headerArr);
                     int headerByteLength = httpHeader.getBytes().length + SPLIT.getBytes().length;
@@ -212,7 +212,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         }
         if (queryString != null) {
             Map<String, List<String>> tempParam = new HashMap<>();
-            String args[] = queryString.split("&");
+            String[] args = queryString.split("&");
             for (String string : args) {
                 int idx = string.indexOf("=");
                 if (idx != -1) {

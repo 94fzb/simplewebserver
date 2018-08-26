@@ -4,7 +4,7 @@ import java.io.File;
 
 public class EnvKit {
 
-    private static final boolean android;
+    private static final boolean ANDROID;
 
     static {
         boolean tmpFlag;
@@ -14,7 +14,7 @@ public class EnvKit {
         } catch (ClassNotFoundException e) {
             tmpFlag = false;
         }
-        android = tmpFlag;
+        ANDROID = tmpFlag;
     }
 
     public static void savePid(String pidFile) {
@@ -30,6 +30,6 @@ public class EnvKit {
     }
 
     public static boolean isAndroid() {
-        return android;
+        return ANDROID;
     }
 }

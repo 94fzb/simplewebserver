@@ -77,7 +77,7 @@ public class MethodInterceptor implements Interceptor {
             }
             if (controller == null) {
                 if (haveDefaultConstructor) {
-                    controller = (Controller) method.getDeclaringClass().newInstance();
+                    controller = (Controller) method.getDeclaringClass().getDeclaredConstructor().newInstance();
                     controller.request = request;
                     controller.response = response;
                 } else {

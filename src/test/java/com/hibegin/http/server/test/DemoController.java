@@ -7,7 +7,7 @@ import com.hibegin.http.server.web.Controller;
 
 public class DemoController extends Controller {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
         ServerConfig serverConfig = new ServerConfig();
         serverConfig.getRouter().addMapper("/", DemoController.class);
         new WebServerBuilder.Builder().serverConfig(serverConfig).build().startWithThread();

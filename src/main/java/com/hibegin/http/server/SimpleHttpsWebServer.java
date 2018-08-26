@@ -7,8 +7,8 @@ import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
-import com.hibegin.http.server.handler.SSLChannelFactory;
-import com.hibegin.http.server.handler.SSLReadWriteSelectorHandler;
+import com.hibegin.http.server.handler.SslChannelFactory;
+import com.hibegin.http.server.handler.SslReadWriteSelectorHandler;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
@@ -45,7 +45,7 @@ public class SimpleHttpsWebServer extends SimpleWebServer {
             throw new RuntimeException("keystore can't null or not exists");
         } else {
             try {
-                sslContext = SSLChannelFactory.getSSLContext(file, password);
+                sslContext = SslChannelFactory.getSSLContext(file, password);
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "", e);
             }
@@ -54,7 +54,7 @@ public class SimpleHttpsWebServer extends SimpleWebServer {
 
     @Override
     public ReadWriteSelectorHandler getReadWriteSelectorHandlerInstance(SocketChannel channel, SelectionKey key) throws IOException {
-        return new SSLReadWriteSelectorHandler(channel, key, sslContext);
+        return new SslReadWriteSelectorHandler(channel, key, sslContext);
     }
 
     @Override

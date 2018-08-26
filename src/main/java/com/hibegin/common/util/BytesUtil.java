@@ -10,7 +10,7 @@ public class BytesUtil {
         for (byte[] bs : bytes) {
             bytesSize += bs.length;
         }
-        byte nBytes[] = new byte[bytesSize];
+        byte[] nBytes = new byte[bytesSize];
         int size = 0;
         for (byte[] bs : bytes) {
             System.arraycopy(bs, 0, nBytes, size, bs.length);
@@ -20,7 +20,7 @@ public class BytesUtil {
     }
 
     public static byte[] subBytes(byte[] b, int start, int length) {
-        byte bytes[] = new byte[length];
+        byte[] bytes = new byte[length];
         System.arraycopy(b, start, bytes, 0, length);
         return bytes;
     }

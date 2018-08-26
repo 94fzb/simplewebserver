@@ -5,6 +5,7 @@ import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.config.ServerConfig;
+import com.hibegin.http.server.util.FileCacheKit;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
@@ -43,6 +44,8 @@ public class ApplicationContext {
 
     void init() {
         if (!init) {
+            //清空tmp目录
+            FileCacheKit.cleanByFlag(serverConfig.getPort());
             init = true;
             interceptors = new ArrayList<>();
             for (Class<? extends Interceptor> interceptorClazz : serverConfig.getInterceptors()) {
