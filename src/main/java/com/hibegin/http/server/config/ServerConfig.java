@@ -61,7 +61,7 @@ public class ServerConfig {
             requestExecutor = new ThreadPoolExecutor(10, 20, 1, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100), new ThreadFactory() {
                 @Override
                 public Thread newThread(Runnable r) {
-                    Thread thread = new Thread();
+                    Thread thread = new Thread(r);
                     thread.setName("request-handler-thread");
                     return thread;
                 }
@@ -123,7 +123,7 @@ public class ServerConfig {
             decodeExecutor = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors() + 1, 20, 1, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100), new ThreadFactory() {
                 @Override
                 public Thread newThread(Runnable r) {
-                    Thread thread = new Thread();
+                    Thread thread = new Thread(r);
                     thread.setName("request-decode-thread");
                     return thread;
                 }
