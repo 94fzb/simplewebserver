@@ -92,7 +92,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
      * @throws IOException
      */
     private boolean saveRequestBodyBytes(byte[] bytes) throws IOException {
-        if (bytes.length > 0) {
+        if (bytes.length > 0 || !isNeedEmptyRequestBody()) {
             if (request.tmpRequestBodyFile != null) {
                 try (FileOutputStream fileOutputStream = new FileOutputStream(request.tmpRequestBodyFile, true)) {
                     fileOutputStream.write(bytes);
@@ -233,7 +233,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         }
     }
 
-    private void dealRequestBodyData() throws FileNotFoundException {
+    private void dealRequestBodyData() throws IOException {
         byte[] requestBody = getRequestBodyBytes();
         if (requestBody != null) {
             if (request.getHeader("Content-Type") != null) {

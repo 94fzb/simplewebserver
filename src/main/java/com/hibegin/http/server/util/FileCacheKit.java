@@ -5,12 +5,10 @@ import com.hibegin.common.util.IOUtil;
 import java.io.File;
 import java.io.IOException;
 import java.util.Queue;
-import java.util.UUID;
 import java.util.concurrent.*;
 
 public class FileCacheKit {
 
-    private static File NOT_FOUND_FILE = new File(PathUtil.getTempPath() + "/" + UUID.randomUUID().toString());
     private static Queue<File> needDeleteFileQueue = new ConcurrentLinkedQueue<>();
     private static ScheduledExecutorService scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
         @Override
@@ -32,17 +30,13 @@ public class FileCacheKit {
         }, 0, 1, TimeUnit.SECONDS);
     }
 
-    public static File generatorRequestTempFile(int flag, byte[] bytes) {
-        if (bytes != null && bytes.length > 0) {
-            try {
-                File file = File.createTempFile("cache-", suffix(flag), new File(PathUtil.getTempPath()));
-                IOUtil.writeBytesToFile(bytes, file);
-                return file;
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+    public static File generatorRequestTempFile(int flag, byte[] bytes) throws IOException {
+        if (bytes == null) {
+            bytes = new byte[0];
         }
-        return NOT_FOUND_FILE;
+        File file = File.createTempFile("cache-", suffix(flag), new File(PathUtil.getTempPath()));
+        IOUtil.writeBytesToFile(bytes, file);
+        return file;
     }
 
     private static String suffix(int flag) {
