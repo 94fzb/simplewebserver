@@ -13,7 +13,7 @@ public interface HttpResponse {
 
     void renderText(String text);
 
-    void renderHtml(String urlPath);
+    void renderHtml(String htmlPath);
 
     void renderJson(Object obj);
 
@@ -27,7 +27,7 @@ public interface HttpResponse {
 
     void redirect(String url);
 
-    void forward(String url);
+    void forward(String uri);
 
     void renderFile(File file);
 
@@ -37,6 +37,14 @@ public interface HttpResponse {
 
     void write(InputStream inputStream, int code);
 
+    void write(ByteArrayOutputStream outputStream, int code);
+
+    /**
+     * 不包装HTTP协议，及直接写裸数据
+     *
+     * @param outputStream
+     * @param close
+     */
     void send(ByteArrayOutputStream outputStream, boolean close);
 
     Map<String, String> getHeader();

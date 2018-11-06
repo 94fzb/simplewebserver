@@ -8,6 +8,7 @@ public class RequestConfig {
     private boolean disableCookie;
     private String charSet = "UTF-8";
     private Router router;
+    private int maxRequestBodySize;
 
     public boolean isDisableCookie() {
         return disableCookie;
@@ -40,4 +41,17 @@ public class RequestConfig {
     public void setCharSet(String charSet) {
         this.charSet = charSet;
     }
+
+    public void setSsl(boolean ssl) {
+        isSsl = ssl;
+    }
+
+    public int getMaxRequestBodySize() {
+        return maxRequestBodySize;
+    }
+
+    public void setMaxRequestBodySize(int maxRequestBodySize) {
+        this.maxRequestBodySize = maxRequestBodySize;
+    }
+
 }

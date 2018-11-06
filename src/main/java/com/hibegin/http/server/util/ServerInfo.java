@@ -4,8 +4,6 @@ import com.hibegin.common.util.LoggerUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -20,26 +18,21 @@ public class ServerInfo {
 
     static {
         Properties properties = new Properties();
-        InputStream inputStream = ServerInfo.class.getResourceAsStream("/ServerInfo.properties");
+        InputStream inputStream = ServerInfo.class.getResourceAsStream("/META-INF/maven/com.hibegin/simplewebserver/pom.properties");
         if (inputStream != null) {
             try {
                 properties.load(inputStream);
-                name = properties.get("server.name").toString();
-                if (properties.get("server.version") != null && !"".equals(properties.get("server.version"))) {
-                    version = properties.get("server.version").toString();
+                if (properties.get("version") != null && !"".equals(properties.get("version"))) {
+                    version = properties.get("version").toString();
                 }
-                if (properties.get("server.buildTime") != null && !"".equals(properties.get("server.buildTime"))) {
-                    time = new SimpleDateFormat("yyyy-MM-dd hh:mm").parse(properties.get("server.buildTime").toString());
-                }
-            } catch (IOException | ParseException e) {
+            } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, "", e);
             }
+        } else {
+            version = "0.2-dev";
         }
         if (name == null) {
             name = "SimpleWebServer";
-        }
-        if (version == null) {
-            version = "0.2";
         }
         if (time == null) {
             time = new Date();

@@ -1,6 +1,5 @@
 package com.hibegin.http.server.impl;
 
-import com.google.gson.Gson;
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
@@ -29,10 +28,12 @@ public class SimpleHttpResponse implements HttpResponse {
     private static final String CRLF = "\r\n";
     private static final int RESPONSE_BYTES_BLANK_SIZE = 4096;
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleHttpResponse.class);
-    private Map<String, String> header = new HashMap<String, String>();
+    private Map<String, String> header = new HashMap<>();
     private HttpRequest request;
-    private List<Cookie> cookieList = new ArrayList<Cookie>();
+    private List<Cookie> cookieList = new ArrayList<>();
     private ResponseConfig responseConfig;
+    private static final int SEND_FILE_BLANK_LENGTH = 1024 * 1024;
+    private static final String SERVER_INFO = ServerInfo.getName() + "/" + ServerInfo.getVersion();
 
     public SimpleHttpResponse(HttpRequest request, ResponseConfig responseConfig) {
         this.request = request;
@@ -42,52 +43,51 @@ public class SimpleHttpResponse implements HttpResponse {
     @Override
     public void writeFile(File file) {
         if (file.exists()) {
+            FileInputStream fileInputStream = null;
             try {
                 if (file.isDirectory()) {
                     renderByStatusCode(302);
                     return;
                 }
-
+                fileInputStream = new FileInputStream(file);
                 String ext = file.getName().substring(file.getName().lastIndexOf(".") + 1);
                 // getMimeType
-                if (header.get("Content-Type") == null) {
-                    header.put("Content-Type", MimeTypeUtil.getMimeStrByExt(ext));
-                }
-
-                ByteArrayOutputStream fout = new ByteArrayOutputStream();
-                if (file.length() < 1024 * 1024) {
-                    fout.write(wrapperData(200, IOUtil.getByteByInputStream(new FileInputStream(file))));
-                    send(fout);
+                trySetResponseContentType(MimeTypeUtil.getMimeStrByExt(ext));
+                if (file.length() < SEND_FILE_BLANK_LENGTH) {
+                    send(buildResponseData(200, IOUtil.getByteByInputStream(fileInputStream)));
                 } else {
-                    fout.write(wrapperResponseHeader(200, file.length()));
-                    send(fout, false);
+                    send(wrapperResponseHeaderWithContentLength(200, file.length()), false);
                     //处理大文件
-                    FileInputStream fileInputStream = new FileInputStream(file);
-                    int length;
-                    byte tempByte[] = new byte[512 * 1204];
-                    while ((length = fileInputStream.read(tempByte)) != -1) {
-                        ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                        bout.write(tempByte, 0, length);
-                        send(bout, false);
+                    int length = SEND_FILE_BLANK_LENGTH;
+                    byte[] tempBytes = new byte[length];
+                    while ((length = fileInputStream.read(tempBytes)) != -1) {
+                        send(BytesUtil.subBytes(tempBytes, 0, length), false);
                     }
-                    fileInputStream.close();
-                    request.getHandler().close();
+                    //是否关闭流
+                    send(new byte[]{});
                 }
 
             } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, "", e);
+            } finally {
+                if (fileInputStream != null) {
+                    try {
+                        fileInputStream.close();
+                    } catch (IOException e) {
+                        //ignore
+                    }
+                }
             }
         } else {
             renderByStatusCode(404);
         }
     }
 
-    public void send(ByteArrayOutputStream outputStream, boolean close) {
+    private void send(byte[] bytes, boolean close) {
         try {
-            byte[] bytes = outputStream.toByteArray();
-            ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length);
-            byteBuffer.put(bytes);
-            request.getHandler().handleWrite(byteBuffer);
+            if (bytes.length > 0) {
+                request.getHandler().handleWrite(ByteBuffer.wrap(bytes));
+            }
             if (close) {
                 request.getHandler().close();
             }
@@ -96,64 +96,70 @@ public class SimpleHttpResponse implements HttpResponse {
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "send error", e);
             throw new InternalException("send error", e);
-        } finally {
-            try {
-                outputStream.close();
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "outputStream close exception ", e);
-            }
         }
     }
 
+    @Override
+    public void send(ByteArrayOutputStream outputStream, boolean close) {
+        send(outputStream.toByteArray(), close);
+    }
 
-    private void send(ByteArrayOutputStream byteArrayOutputStream) {
-        send(byteArrayOutputStream, true);
+
+    private void send(byte[] bytes) {
+        send(bytes, "close".equalsIgnoreCase(getHeader().get("Connection")));
     }
 
     @Override
     public void renderJson(Object obj) {
         try {
-            renderByMimeType("json", new Gson().toJson(obj).getBytes(responseConfig.getCharSet()));
-        } catch (UnsupportedEncodingException e) {
+            renderByMimeType("json", request.getServerConfig().getHttpJsonMessageConverter().toJson(obj).getBytes());
+        } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "", e);
+            throw new InternalException(e);
         }
     }
 
     /**
      * @return
-     * @throws IOException
      */
-    private byte[] wrapperData(Integer statusCode, byte[] data) throws IOException {
-        ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        bout.write(wrapperResponseHeader(statusCode, data.length));
-        if (data.length > 0) {
-            bout.write(convertGzipBytes(data));
+    private byte[] buildResponseData(Integer statusCode, byte[] data) {
+        byte[] headerBytes = wrapperResponseHeaderWithContentLength(statusCode, data.length);
+        if (data.length == 0) {
+            return headerBytes;
+        } else {
+            return BytesUtil.mergeBytes(headerBytes, tryConvertGzipBytes(data));
         }
-        return bout.toByteArray();
     }
 
-    private byte[] wrapperResponseHeader(Integer statusCode, long length) {
+    private byte[] wrapperResponseHeaderWithContentLength(Integer statusCode, long length) {
         header.put("Content-Length", length + "");
         return wrapperBaseResponseHeader(statusCode);
     }
 
     private byte[] wrapperBaseResponseHeader(int statusCode) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("HTTP/1.1 ").append(statusCode).append(" ").append(StatusCodeUtil.getStatusCodeDesc(statusCode)).append(CRLF);
         if (responseConfig.isGzip()) {
             header.put("Content-Encoding", "gzip");
             header.remove("Content-Length");
         }
 
-        header.put("Server", ServerInfo.getName() + "/" + ServerInfo.getVersion());
+        header.put("Server", SERVER_INFO);
         if (!getHeader().containsKey("Connection")) {
-            boolean keepAlive = request.getHeader("Connection") != null && "keep-alive".equalsIgnoreCase(request.getHeader("Connection"));
+            boolean keepAlive = request.getHeader("Connection") == null;
             if (keepAlive) {
+                String httpVersion = request.getHttpVersion();
+                if ("".equals(httpVersion.trim()) || "HTTP/1.0".equals(httpVersion)) {
+                    getHeader().put("Connection", "close");
+                } else {
+                    getHeader().put("Connection", "keep-alive");
+                }
+            } else if (!"close".equals(request.getHeader("Connection"))) {
                 getHeader().put("Connection", "keep-alive");
             } else {
                 getHeader().put("Connection", "close");
             }
         }
+        StringBuilder sb = new StringBuilder();
+        sb.append("HTTP/1.1 ").append(statusCode).append(" ").append(StatusCodeUtil.getStatusCodeDesc(statusCode)).append(CRLF);
         for (Entry<String, String> he : header.entrySet()) {
             sb.append(he.getKey()).append(": ").append(he.getValue()).append(CRLF);
         }
@@ -175,12 +181,12 @@ public class SimpleHttpResponse implements HttpResponse {
         return sb.toString().getBytes();
     }
 
-    private byte[] wrapperResponseHeader(Integer statusCode) {
+    private byte[] wrapperResponseHeaderWithContentLength(Integer statusCode) {
         header.put("Transfer-Encoding", "chunked");
         return wrapperBaseResponseHeader(statusCode);
     }
 
-    private byte[] convertGzipBytes(byte[] bytes) {
+    private byte[] tryConvertGzipBytes(byte[] bytes) {
         if (responseConfig.isGzip()) {
             try {
                 ByteArrayOutputStream bos = new ByteArrayOutputStream(bytes.length);
@@ -200,28 +206,16 @@ public class SimpleHttpResponse implements HttpResponse {
 
     private void renderByStatusCode(Integer errorCode) {
         if (errorCode > 399) {
-            ByteArrayOutputStream fout = new ByteArrayOutputStream();
-            try {
-                header.put("Content-Type", "text/html");
-                fout.write(wrapperData(errorCode, StringsUtil.getHtmlStrByStatusCode(errorCode).getBytes()));
-                send(fout);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "", e);
-            }
+            trySetResponseContentType("text/html");
+            send(buildResponseData(errorCode, StringsUtil.getHtmlStrByStatusCode(errorCode).getBytes()));
         } else if (errorCode >= 300 && errorCode < 400) {
-            ByteArrayOutputStream fout = new ByteArrayOutputStream();
-            try {
-                if (!header.containsKey("Location")) {
-                    String welcomeFile = request.getServerConfig().getWelcomeFile();
-                    if (welcomeFile == null || "".equals(welcomeFile.trim())) {
-                        header.put("Location", request.getScheme() + "://" + request.getHeader("Host") + "/" + request.getUri() + welcomeFile);
-                    }
+            if (!header.containsKey("Location")) {
+                String welcomeFile = request.getServerConfig().getWelcomeFile();
+                if (welcomeFile == null || "".equals(welcomeFile.trim())) {
+                    header.put("Location", request.getScheme() + "://" + request.getHeader("Host") + "/" + request.getUri() + welcomeFile);
                 }
-                fout.write(wrapperData(errorCode, new byte[]{}));
-                send(fout);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "", e);
             }
+            send(buildResponseData(errorCode, new byte[]{}));
         }
     }
 
@@ -231,8 +225,8 @@ public class SimpleHttpResponse implements HttpResponse {
     }
 
     @Override
-    public void renderHtml(String urlPath) {
-        writeFile(new File(PathUtil.getStaticPath() + urlPath));
+    public void renderHtml(String htmlPath) {
+        writeFile(new File(PathUtil.getStaticPath() + htmlPath));
     }
 
     @Override
@@ -250,14 +244,27 @@ public class SimpleHttpResponse implements HttpResponse {
     }
 
     private void renderByMimeType(String ext, byte[] body) {
-        ByteArrayOutputStream fout = new ByteArrayOutputStream();
-        header.put("Content-Type", MimeTypeUtil.getMimeStrByExt(ext) + ";charset=" + responseConfig.getCharSet());
-        try {
-            fout.write(wrapperData(200, body));
-            send(fout);
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "", e);
+        trySetResponseContentType(MimeTypeUtil.getMimeStrByExt(ext) + ";charset=" + responseConfig.getCharSet());
+        send(buildResponseData(200, body));
+    }
+
+    private void trySetResponseContentType(String contentType) {
+        if (getHeader("Content-Type") == null) {
+            header.put("Content-Type", contentType);
         }
+    }
+
+    private String getHeader(String key) {
+        String headerValue = header.get(key);
+        if (headerValue != null) {
+            return headerValue;
+        }
+        for (Map.Entry<String, String> entry : header.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(key)) {
+                return entry.getValue();
+            }
+        }
+        return null;
     }
 
     @Override
@@ -267,19 +274,13 @@ public class SimpleHttpResponse implements HttpResponse {
 
     @Override
     public void redirect(String url) {
-        ByteArrayOutputStream fout = new ByteArrayOutputStream();
         header.put("Location", url);
-        try {
-            fout.write(wrapperData(302, new byte[0]));
-            send(fout);
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "", e);
-        }
+        send(buildResponseData(302, new byte[0]));
     }
 
     @Override
-    public void forward(String url) {
-        redirect(request.getScheme() + "://" + request.getHeader("Host") + "/" + url);
+    public void forward(String uri) {
+        redirect(request.getScheme() + "://" + request.getHeader("Host") + "/" + uri);
     }
 
     @Override
@@ -294,7 +295,12 @@ public class SimpleHttpResponse implements HttpResponse {
 
     @Override
     public void renderFreeMarker(String name) {
-        renderHtmlStr(FreeMarkerUtil.renderToFM(name, request));
+        try {
+            renderHtmlStr(FreeMarkerUtil.renderToFM(name, request));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "", e);
+            throw new InternalException(e);
+        }
     }
 
     @Override
@@ -306,7 +312,7 @@ public class SimpleHttpResponse implements HttpResponse {
     public void write(InputStream inputStream, int code) {
         try {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            byteArrayOutputStream.write(wrapperResponseHeader(code));
+            byteArrayOutputStream.write(wrapperResponseHeaderWithContentLength(code));
             send(byteArrayOutputStream, false);
             if (inputStream != null) {
                 byte[] bytes = new byte[RESPONSE_BYTES_BLANK_SIZE];
@@ -323,7 +329,7 @@ public class SimpleHttpResponse implements HttpResponse {
                 ByteArrayOutputStream tmpOut = new ByteArrayOutputStream();
                 ChunkedOutputStream chunkedOutputStream = new ChunkedOutputStream(tmpOut);
                 chunkedOutputStream.close();
-                send(tmpOut);
+                send(tmpOut.toByteArray());
             }
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "", e);
@@ -338,7 +344,12 @@ public class SimpleHttpResponse implements HttpResponse {
         }
     }
 
+    @Override
+    public void write(ByteArrayOutputStream outputStream, int code) {
+        send(buildResponseData(code, outputStream.toByteArray()));
+    }
 
+    @Override
     public Map<String, String> getHeader() {
         return header;
     }
@@ -349,6 +360,7 @@ public class SimpleHttpResponse implements HttpResponse {
             renderByMimeType("text", text.getBytes(responseConfig.getCharSet()));
         } catch (UnsupportedEncodingException e) {
             LOGGER.log(Level.SEVERE, "", e);
+            throw new InternalException(e);
         }
     }
 }

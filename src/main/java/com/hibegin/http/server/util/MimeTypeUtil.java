@@ -13,13 +13,13 @@ import java.util.logging.Logger;
 public class MimeTypeUtil {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(MimeTypeUtil.class);
-    private static Map<String, String> map = new HashMap<String, String>();
+    private static Map<String, String> map = new HashMap<>();
 
 
     static {
         Properties prop = new Properties();
         try {
-            prop.load(MimeTypeUtil.class.getResourceAsStream("/conf/mimetype.properties"));
+            prop.load(MimeTypeUtil.class.getResourceAsStream("/mimetype.properties"));
             for (Entry<Object, Object> p : prop.entrySet()) {
                 map.put(p.getKey().toString(), p.getValue().toString());
             }
@@ -30,6 +30,10 @@ public class MimeTypeUtil {
 
 
     public static String getMimeStrByExt(String ext) {
-        return map.get(ext);
+        String type = map.get(ext);
+        if (type == null) {
+            return "application/octet-stream";
+        }
+        return type;
     }
 }

@@ -8,9 +8,9 @@ import java.util.zip.DeflaterInputStream;
 
 /**
  * @author mwyraz
- *         Wraps an input stream and compresses it's contents. Similiar to DeflateInputStream but adds GZIP-header and trailer
- *         See GzipOutputStream for details.
- *         LICENSE: Free to use. Contains some lines from GzipOutputStream, so oracle's license might apply as well!
+ * Wraps an input stream and compresses it's contents. Similiar to DeflateInputStream but adds GZIP-header and trailer
+ * See GzipOutputStream for details.
+ * LICENSE: Free to use. Contains some lines from GzipOutputStream, so oracle's license might apply as well!
  */
 public class GzipCompressingInputStream extends SequenceInputStream {
     public GzipCompressingInputStream(InputStream in) throws IOException {
@@ -53,10 +53,12 @@ public class GzipCompressingInputStream extends SequenceInputStream {
             state = StreamState.HEADER;
         }
 
+        @Override
         public boolean hasMoreElements() {
             return state != null;
         }
 
+        @Override
         public InputStream nextElement() {
             switch (state) {
                 case HEADER:
@@ -138,6 +140,7 @@ public class GzipCompressingInputStream extends SequenceInputStream {
             crcIn = in;
         }
 
+        @Override
         public void close() throws IOException {
             if (in != null) {
                 try {
@@ -155,7 +158,7 @@ public class GzipCompressingInputStream extends SequenceInputStream {
             return trailer;
         }
 
-        /*
+        /**
          * Writes GZIP member trailer to a byte array, starting at a given
          * offset.
          */
@@ -164,7 +167,7 @@ public class GzipCompressingInputStream extends SequenceInputStream {
             writeInt((int) crcIn.getByteCount(), buf, offset + 4); // Number of uncompr. bytes
         }
 
-        /*
+        /**
          * Writes integer in Intel byte order to a byte array, starting at a
          * given offset.
          */
@@ -173,7 +176,7 @@ public class GzipCompressingInputStream extends SequenceInputStream {
             writeShort((i >> 16) & 0xffff, buf, offset + 2);
         }
 
-        /*
+        /**
          * Writes short integer in Intel byte order to a byte array, starting
          * at a given offset
          */

@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class SessionUtil {
 
-    public static Map<String, HttpSession> sessionMap = new ConcurrentHashMap<String, HttpSession>();
+    public static Map<String, HttpSession> sessionMap = new ConcurrentHashMap<>();
 
     public static HttpSession getSessionById(String sessionID) {
         return sessionMap.get(sessionID);

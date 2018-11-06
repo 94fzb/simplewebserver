@@ -6,7 +6,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.security.KeyStore;
 
-public class SSLChannelFactory {
+public class SslChannelFactory {
 
     public static SSLContext getSSLContext(File file, String password) throws Exception {
         char[] passphrase = password.toCharArray();

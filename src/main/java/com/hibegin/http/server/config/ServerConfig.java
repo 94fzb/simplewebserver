@@ -1,34 +1,44 @@
 package com.hibegin.http.server.config;
 
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.server.SimpleWebServer;
 import com.hibegin.http.server.api.HttpRequestListener;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.web.Router;
 
+import java.io.InputStream;
 import java.lang.reflect.Constructor;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ServerConfig {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(ServerConfig.class);
-    private final Map<String, String> staticResourceMapper = new ConcurrentHashMap<>();
+    private final Map<String, Map.Entry<String, StaticResourceLoader>> staticResourceMapper = new ConcurrentHashMap<>();
     private final List<Class<? extends Interceptor>> interceptors = new ArrayList<>();
     private boolean isSsl;
     private String host = "0.0.0.0";
     private int port;
     private boolean disableCookie;
-    private int timeOut;
+    private int timeout;
     private boolean supportHttp2;
     private String welcomeFile = "index.html";
-    private Executor executor = Executors.newFixedThreadPool(10);
+    private Executor requestExecutor;
+    private Executor decodeExecutor;
+    private String sessionId = "JSESSIONID";
     private Router router = new Router();
+    private HttpJsonMessageConverter httpJsonMessageConverter;
+    private StaticResourceLoader defaultStaticResourceClassLoader = new StaticResourceLoader() {
+        @Override
+        public InputStream getInputStream(String path) {
+            return SimpleWebServer.class.getResourceAsStream(path);
+        }
+    };
     private List<HttpRequestListener> httpRequestListenerList = new ArrayList<>();
 
     public boolean isSsl() {
@@ -47,12 +57,38 @@ public class ServerConfig {
         this.port = port;
     }
 
-    public Executor getExecutor() {
-        return executor;
+    public Executor getRequestExecutor() {
+        if (requestExecutor == null) {
+            requestExecutor = new ThreadPoolExecutor(10, 20, 1, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100), new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread thread = new Thread(r);
+                    thread.setName("request-handler-thread");
+                    return thread;
+                }
+            });
+        }
+        return requestExecutor;
     }
 
-    public void setExecutor(Executor executor) {
-        this.executor = executor;
+    public HttpJsonMessageConverter getHttpJsonMessageConverter() {
+        return httpJsonMessageConverter;
+    }
+
+    public void setHttpJsonMessageConverter(HttpJsonMessageConverter httpJsonMessageConverter) {
+        this.httpJsonMessageConverter = httpJsonMessageConverter;
+    }
+
+    public void setRequestExecutor(Executor requestExecutor) {
+        this.requestExecutor = requestExecutor;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
     }
 
     public boolean isDisableCookie() {
@@ -63,12 +99,12 @@ public class ServerConfig {
         this.disableCookie = disableCookie;
     }
 
-    public int getTimeOut() {
-        return timeOut;
+    public int getTimeout() {
+        return timeout;
     }
 
-    public void setTimeOut(int timeOut) {
-        this.timeOut = timeOut;
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
     }
 
     public String getHost() {
@@ -91,22 +127,22 @@ public class ServerConfig {
         this.supportHttp2 = supportHttp2;
     }
 
-    public Interceptor getNextInterceptor(Class interceptor) {
-        try {
-            boolean flag = false;
-            for (Class interceptor1 : interceptors) {
-                if (flag) {
-                    return (Interceptor) interceptor1.newInstance();
+    public Executor getDecodeExecutor() {
+        if (decodeExecutor == null) {
+            decodeExecutor = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors() + 1, 20, 1, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100), new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread thread = new Thread(r);
+                    thread.setName("request-decode-thread");
+                    return thread;
                 }
-                if (interceptor.getSimpleName().equals(interceptor1.getSimpleName())) {
-                    flag = true;
-                }
-            }
-
-        } catch (InstantiationException | IllegalAccessException e) {
-            LOGGER.log(Level.SEVERE, "", e);
+            });
         }
-        return null;
+        return decodeExecutor;
+    }
+
+    public void setDecodeExecutor(Executor decodeExecutor) {
+        this.decodeExecutor = decodeExecutor;
     }
 
     public List<Class<? extends Interceptor>> getInterceptors() {
@@ -141,6 +177,10 @@ public class ServerConfig {
     }
 
     public void addStaticResourceMapper(String path, String locationPath) {
+        addStaticResourceMapper(path, locationPath, defaultStaticResourceClassLoader);
+    }
+
+    public void addStaticResourceMapper(String path, String locationPath, StaticResourceLoader resourceClassLoader) {
         String newPath = path;
         if (!path.endsWith("/")) {
             newPath = path + "/";
@@ -149,10 +189,10 @@ public class ServerConfig {
         if (!newLocationPath.endsWith("/")) {
             newLocationPath = newLocationPath + "/";
         }
-        staticResourceMapper.put(newPath, newLocationPath);
+        staticResourceMapper.put(newPath, new AbstractMap.SimpleEntry<>(newLocationPath, resourceClassLoader));
     }
 
-    public Map<String, String> getStaticResourceMapper() {
+    public Map<String, Map.Entry<String, StaticResourceLoader>> getStaticResourceMapper() {
         return staticResourceMapper;
     }
 

@@ -6,9 +6,10 @@ import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpRequestListener;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
-import com.hibegin.http.server.impl.ServerContext;
 import com.hibegin.http.server.impl.SimpleHttpRequest;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -18,50 +19,53 @@ public class HttpRequestHandlerThread extends Thread {
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpRequestHandlerThread.class);
 
     private HttpRequest request;
-    private ServerContext serverContext;
 
     private HttpResponse response;
-    private Socket socket;
-    private volatile boolean interrupted;
 
-    public HttpRequestHandlerThread(HttpRequest request, HttpResponse response, ServerContext serverContext) {
-        this.serverContext = serverContext;
+    HttpRequestHandlerThread(HttpRequest request, HttpResponse response) {
         this.request = request;
         this.response = response;
-        this.socket = request.getHandler().getChannel().socket();
+    }
+
+    private Socket getSocket() {
+        return request.getHandler().getChannel().socket();
     }
 
     @Override
     public void run() {
         try {
-            if (!serverContext.getServerConfig().getHttpRequestListenerList().isEmpty()) {
-                for (HttpRequestListener httpRequestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
-                    httpRequestListener.create(request, response);
-                }
+            for (HttpRequestListener httpRequestListener : request.getServerConfig().getHttpRequestListenerList()) {
+                httpRequestListener.create(request, response);
             }
-            for (Interceptor interceptor : serverContext.getInterceptors()) {
+            for (Interceptor interceptor : request.getApplicationContext().getInterceptors()) {
                 if (!interceptor.doInterceptor(request, response)) {
                     break;
                 }
             }
         } catch (Exception e) {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            try {
+                byteArrayOutputStream.write(LoggerUtil.recordStackTraceMsg(e).getBytes());
+            } catch (IOException e1) {
+                //e1.printStackTrace();
+            }
             LOGGER.log(Level.SEVERE, "dispose error ", e);
+            response.write(byteArrayOutputStream, 500);
         } finally {
             if (request.getMethod() != HttpMethod.CONNECT) {
-                boolean keepAlive = request.getHeader("Connection") != null && "keep-alive".equalsIgnoreCase(request.getHeader("Connection"));
-                if (keepAlive) {
-                    keepAlive = response.getHeader().get("Connection") != null && !"close".equalsIgnoreCase(response.getHeader().get("Connection"));
-                }
+                String responseConnection = response.getHeader().get("Connection");
+                boolean keepAlive = !"close".equalsIgnoreCase(responseConnection);
                 if (!keepAlive) {
                     // 渲染错误页面
-                    if (!socket.isClosed()) {
-                        LOGGER.log(Level.WARNING, "forget close stream " + socket.toString());
+                    if (!getSocket().isClosed()) {
+                        LOGGER.log(Level.WARNING, "forget close stream " + getSocket().toString());
                         response.renderCode(404);
                     }
+                    close();
+                    request.getApplicationContext().getHttpDeCoderMap().remove(getSocket());
                 }
-                serverContext.getHttpDeCoderMap().remove(socket);
-                close();
             }
+            //System.out.println("(System.nanoTime() - start) = " + (System.nanoTime() - request.getCreateTime()));
         }
     }
 
@@ -73,30 +77,15 @@ public class HttpRequestHandlerThread extends Thread {
         return response;
     }
 
-    @Override
-    public void interrupt() {
-        super.interrupt();
-        if (!interrupted) {
-            close();
+    public void close() {
+        if (getSocket().isClosed()) {
+            request.getApplicationContext().getHttpDeCoderMap().remove(getSocket());
         }
-    }
-
-    private void close() {
-        interrupted = true;
-        new Thread() {
-            @Override
-            public void run() {
-                //LOGGER.info(request.getMethod() + ": " + request.getUrl() + " " + (System.currentTimeMillis() - request.getCreateTime()) + " ms");
-                if (socket.isClosed()) {
-                    serverContext.getHttpDeCoderMap().remove(socket);
-                }
-                if (request instanceof SimpleHttpRequest) {
-                    ((SimpleHttpRequest) request).deleteTempUploadFiles();
-                }
-                for (HttpRequestListener requestListener : serverContext.getServerConfig().getHttpRequestListenerList()) {
-                    requestListener.destroy(getRequest(), getResponse());
-                }
-            }
-        }.start();
+        if (request instanceof SimpleHttpRequest) {
+            ((SimpleHttpRequest) request).deleteTempUploadFiles();
+        }
+        for (HttpRequestListener requestListener : request.getApplicationContext().getServerConfig().getHttpRequestListenerList()) {
+            requestListener.destroy(getRequest(), getResponse());
+        }
     }
 }

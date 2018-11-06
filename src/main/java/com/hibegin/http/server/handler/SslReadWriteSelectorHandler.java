@@ -1,35 +1,35 @@
 package com.hibegin.http.server.handler;
 /*
  * @(#)ChannelIOSecure.java	1.2 04/07/26
- * 
+ *
  * Copyright (c) 2004 Sun Microsystems, Inc. All Rights Reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * -Redistribution of source code must retain the above copyright notice, this
  *  list of conditions and the following disclaimer.
- * 
- * -Redistribution in binary form must reproduce the above copyright notice, 
+ *
+ * -Redistribution in binary form must reproduce the above copyright notice,
  *  this list of conditions and the following disclaimer in the documentation
  *  and/or other materials provided with the distribution.
- * 
- * Neither the name of Sun Microsystems, Inc. or the names of contributors may 
- * be used to endorse or promote products derived from this software without 
+ *
+ * Neither the name of Sun Microsystems, Inc. or the names of contributors may
+ * be used to endorse or promote products derived from this software without
  * specific prior written permission.
- * 
- * This software is provided "AS IS," without a warranty of any kind. ALL 
+ *
+ * This software is provided "AS IS," without a warranty of any kind. ALL
  * EXPRESS OR IMPLIED CONDITIONS, REPRESENTATIONS AND WARRANTIES, INCLUDING
  * ANY IMPLIED WARRANTY OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE
  * OR NON-INFRINGEMENT, ARE HEREBY EXCLUDED. SUN MIDROSYSTEMS, INC. ("SUN")
  * AND ITS LICENSORS SHALL NOT BE LIABLE FOR ANY DAMAGES SUFFERED BY LICENSEE
  * AS A RESULT OF USING, MODIFYING OR DISTRIBUTING THIS SOFTWARE OR ITS
- * DERIVATIVES. IN NO EVENT WILL SUN OR ITS LICENSORS BE LIABLE FOR ANY LOST 
- * REVENUE, PROFIT OR DATA, OR FOR DIRECT, INDIRECT, SPECIAL, CONSEQUENTIAL, 
- * INCIDENTAL OR PUNITIVE DAMAGES, HOWEVER CAUSED AND REGARDLESS OF THE THEORY 
- * OF LIABILITY, ARISING OUT OF THE USE OF OR INABILITY TO USE THIS SOFTWARE, 
+ * DERIVATIVES. IN NO EVENT WILL SUN OR ITS LICENSORS BE LIABLE FOR ANY LOST
+ * REVENUE, PROFIT OR DATA, OR FOR DIRECT, INDIRECT, SPECIAL, CONSEQUENTIAL,
+ * INCIDENTAL OR PUNITIVE DAMAGES, HOWEVER CAUSED AND REGARDLESS OF THE THEORY
+ * OF LIABILITY, ARISING OUT OF THE USE OF OR INABILITY TO USE THIS SOFTWARE,
  * EVEN IF SUN HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  * You acknowledge that this software is not designed, licensed or intended
  * for use in the design, construction, operation or maintenance of any
  * nuclear facility.
@@ -110,9 +110,9 @@ import java.util.logging.Logger;
  * @author Mark Reinhold
  * @version 1.2, 04/07/26
  */
-public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
+public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
-    private static final Logger LOGGER = LoggerUtil.getLogger(SSLReadWriteSelectorHandler.class);
+    private static final Logger LOGGER = LoggerUtil.getLogger(SslReadWriteSelectorHandler.class);
     /*
      * An empty ByteBuffer for use when one isn't available, say
      * as a source buffer during initial handshake wraps or for close
@@ -157,7 +157,7 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
     /*
      * Constructor for a secure ChannelIO variant.
      */
-    public SSLReadWriteSelectorHandler(SocketChannel sc, SelectionKey selectionKey,
+    public SslReadWriteSelectorHandler(SocketChannel sc, SelectionKey selectionKey,
                                        SSLContext sslContext) throws IOException {
         super(sc);
 
@@ -175,7 +175,9 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         int appBBSize = sslEngine.getSession().getApplicationBufferSize();
         requestBB = ByteBuffer.allocate(appBBSize);
 
-        while (!doHandshake(selectionKey)) ;
+        while (!doHandshake(selectionKey)) {
+
+        }
     }
 
     /*
@@ -213,10 +215,10 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             return true;
         }
 
-	/*
-     * Flush out the outgoing buffer, if there's anything left in
-	 * it.
-	 */
+        /*
+         * Flush out the outgoing buffer, if there's anything left in
+         * it.
+         */
         if (outNetBB.hasRemaining()) {
 
             if (!tryFlush(outNetBB)) {
@@ -227,9 +229,9 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
             switch (initialHSStatus) {
 
-	    /*
-         * Is this the last buffer?
-	     */
+                /*
+                 * Is this the last buffer?
+                 */
                 case FINISHED:
                     initialHSComplete = true;
                     // Fall-through to reregister need for a Read.
@@ -255,10 +257,10 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
                 needIO:
                 while (initialHSStatus == HandshakeStatus.NEED_UNWRAP) {
-        /*
-         * Don't need to resize requestBB, since no app data should
-		 * be generated here.
-		 */
+                    /*
+                     * Don't need to resize requestBB, since no app data should
+                     * be generated here.
+                     */
                     inNetBB.flip();
                     result = sslEngine.unwrap(inNetBB, requestBB);
                     inNetBB.compact();
@@ -285,9 +287,9 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                             break;
 
                         case BUFFER_UNDERFLOW:
-            /*
-             * Need to go reread the Channel for more data.
-		     */
+                            /*
+                             * Need to go reread the Channel for more data.
+                             */
                             if (sk != null) {
                                 sk.interestOps(SelectionKey.OP_READ);
                             }
@@ -299,9 +301,9 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                     }
                 }  // "needIO" block.
 
-	    /*
-         * Just transitioned from read to write.
-	     */
+                /*
+                 * Just transitioned from read to write.
+                 */
                 if (initialHSStatus != HandshakeStatus.NEED_WRAP) {
                     break;
                 }
@@ -309,9 +311,9 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                 // Fall through and fill the write buffers.
 
             case NEED_WRAP:
-        /*
-         * The flush above guarantees the out buffer to be empty
-	     */
+                /*
+                 * The flush above guarantees the out buffer to be empty
+                 */
                 outNetBB.clear();
                 result = sslEngine.wrap(hsBB, outNetBB);
                 outNetBB.flip();
@@ -352,10 +354,10 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
         Runnable runnable;
 
-	/*
-     * We could run this in a separate thread, but
-	 * do in the current for now.
-	 */
+        /*
+         * We could run this in a separate thread, but
+         * do in the current for now.
+         */
         while ((runnable = sslEngine.getDelegatedTask()) != null) {
             runnable.run();
         }
@@ -391,12 +393,12 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             result = sslEngine.unwrap(inNetBB, requestBB);
             inNetBB.compact();
 
-	    /*
-         * Could check here for a renegotation, but we're only
-	     * doing a simple read/write, and won't have enough state
-	     * transitions to do a complete handshake, so ignore that
-	     * possibility.
-	     */
+            /*
+             * Could check here for a renegotation, but we're only
+             * doing a simple read/write, and won't have enough state
+             * transitions to do a complete handshake, so ignore that
+             * possibility.
+             */
             switch (result.getStatus()) {
 
                 case BUFFER_UNDERFLOW:
@@ -433,9 +435,9 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             return retValue;
         }
 
-	/*
-     * The data buffer is empty, we can reuse the entire buffer.
-	 */
+        /*
+         * The data buffer is empty, we can reuse the entire buffer.
+         */
         outNetBB.clear();
 
         SSLEngineResult result = sslEngine.wrap(src, outNetBB);
@@ -456,11 +458,11 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                         result.getStatus());
         }
 
-	/*
-     * Try to flush the data, regardless of whether or not
-	 * it's been selected.  Odds of a write buffer being full
-	 * is less than a read buffer being empty.
-	 */
+        /*
+         * Try to flush the data, regardless of whether or not
+         * it's been selected.  Odds of a write buffer being full
+         * is less than a read buffer being empty.
+         */
         tryFlush(src);
         if (outNetBB.hasRemaining()) {
             tryFlush(outNetBB);
@@ -506,10 +508,10 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             return false;
         }
 
-	/*
-     * By RFC 2616, we can "fire and forget" our close_notify
-	 * message, so that's what we'll do here.
-	 */
+        /*
+         * By RFC 2616, we can "fire and forget" our close_notify
+         * message, so that's what we'll do here.
+         */
         outNetBB.clear();
         SSLEngineResult result = sslEngine.wrap(hsBB, outNetBB);
         if (result.getStatus() != Status.CLOSED) {
@@ -517,10 +519,10 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         }
         outNetBB.flip();
 
-	/*
-     * We won't wait for a select here, but if this doesn't work,
-	 * we'll cycle back through on the next select.
-	 */
+        /*
+         * We won't wait for a select here, but if this doesn't work,
+         * we'll cycle back through on the next select.
+         */
         if (outNetBB.hasRemaining()) {
             tryFlush(outNetBB);
         }
@@ -531,7 +533,6 @@ public class SSLReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
     @Override
     public void handleWrite(ByteBuffer byteBuffer) throws IOException {
-        byteBuffer.flip();
         while (byteBuffer.hasRemaining() && sc.isOpen()) {
             int len = doWrite(byteBuffer);
             if (len < 0) {

@@ -1,8 +1,11 @@
 package com.hibegin.http.server.api;
 
+import java.nio.ByteBuffer;
+import java.util.Map;
+
 public interface HttpRequestDeCoder {
 
-    boolean doDecode(byte[] bytes) throws Exception;
+    Map.Entry<Boolean, ByteBuffer> doDecode(ByteBuffer byteBuffer) throws Exception;
 
     HttpRequest getRequest();
 }

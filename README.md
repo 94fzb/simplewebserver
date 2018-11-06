@@ -1,39 +1,27 @@
 ﻿# SimpleWebServer
 
-- SimpleWebServer基于NIO实现一个款轻量级的Web应用服务器，jar包仅100kb
-- 具有，简易，灵活，更少的依赖，更多的扩展，更少的内存占用等特点
-- 能快速搭建Web项目，可运行在嵌入式，Android设备上
+> SimpleWebServer 是一款使用Java基于NIO编写的超轻量级开源Web Application Server
 
-## 功能
+是否遇到有时候想做一些小的Web程序，但是迫于Java运行环境过于繁琐而迟迟没有下手，那么现在除了SpringBoot，广大的Java程序员又多了一个选择
 
-- 1.实现对HTTP请求的处理，可用于展示一些静态页面
-- 2.支持文件上传，下载，Cookie/Session，Json
-- 3.路由请求配置
-- 4.freemarker 模板
-- 5.多线程支持
-- 6.支持 https
+### 轻量级
+并不基于servlet，源代码仅3000行左右，jar包仅 0.1m 左右，零依赖，无xml，极低的内存占用，所以不用担心程序能不能在嵌入式（树莓派）/Android 上能否正常运行
 
-## 快速开始
+### 完整
+Cookie，Interceptor，Json，模板，文件上传，基本常用API都有，使得写Web应用更容易
 
-### Maven依赖
+### 快速上手
+request, response, controller. interceptor 还是熟悉的配方，熟悉的味道
 
 ```xml
 <dependency>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.2.0</version>
+    <version>0.2.10</version>
 </dependency>
 ```
 
-### 快速启动一个Web服务
 ```java
-package com.hibegin.http.server.test;
-
-import com.hibegin.http.server.WebServerBuilder;
-import com.hibegin.http.server.config.ServerConfig;
-import com.hibegin.http.server.util.ServerInfo;
-import com.hibegin.http.server.web.Controller;
-
 public class DemoController extends Controller{
 
     public static void main(String[] args) {
@@ -43,18 +31,14 @@ public class DemoController extends Controller{
     }
 
     public void index() {
-        helloWorld();
-    }
-
-    public void helloWorld() {
-        getResponse().renderText("Hello world/v" + ServerInfo.getVersion());
+          getResponse().renderText("Hello world/v" + ServerInfo.getVersion());
     }
 }
 ```
+
 然后浏览器输入 http://localhost:6058
 
-
-## 打包
+### 打包
 
 **推荐使用 maven-assembly-plugin**
 
@@ -80,6 +64,11 @@ public class DemoController extends Controller{
 </build>
 ```
 
+`mvn clean compile assembly:single`
+
+### 性能
+简单与号称 “性能打爆网卡的tio” 对比，感兴趣移步到 https://gitee.com/94fzb/simplewebserver-performance
+
 ## Changelog
 
 [完整的版本变化日志](CHANGELOG.md)
@@ -87,9 +76,9 @@ public class DemoController extends Controller{
 ## TODO
 
 - 支持HTTP2.0基本协议（不包含服务端推送）
-- 实现多线程解码HTTP请求
+- ~~实现多线程解码HTTP请求~~
 - 提供类似 SpringMVC 通过注解完成 Restful API的编写
-- 提供多种 JSON 序列化工具包支持
+- ~~提供多种 JSON 序列化工具包支持~~
 - 提供HTTP错误码错误页面配置功能
 
 ## 其他

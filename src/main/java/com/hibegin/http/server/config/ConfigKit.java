@@ -27,28 +27,16 @@ public class ConfigKit {
         }
     }
 
-    public static Integer getMaxUploadSize() {
-        Object maxUploadSize = prop.get("server.maxUploadSize");
-        if (maxUploadSize != null) {
-            return Integer.parseInt(maxUploadSize.toString());
-        }
-        return 20971520;
+    public static Integer getMaxRequestBodySize() {
+        return getInt("server.maxRequestBodySize", 20971520);
     }
 
     public static Integer getServerPort() {
-        Object port = prop.get("server.port");
-        if (port != null) {
-            return Integer.parseInt(port.toString());
-        }
-        return 6058;
+        return getInt("server.port", 6058);
     }
 
     public static Integer getHttpsServerPort() {
-        Object port = prop.get("server.ssl.port");
-        if (port != null) {
-            return Integer.parseInt(port.toString());
-        }
-        return 6443;
+        return getInt("server.ssl.port", 6443);
     }
 
     public static boolean contains(String key) {
@@ -59,6 +47,14 @@ public class ConfigKit {
         Object obj = prop.get(key);
         if (obj != null) {
             return obj;
+        }
+        return defaultValue;
+    }
+
+    public static int getInt(String key, int defaultValue) {
+        Object obj = prop.get(key);
+        if (obj != null) {
+            return Integer.valueOf(obj + "");
         }
         return defaultValue;
     }

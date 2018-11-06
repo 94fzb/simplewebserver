@@ -1,10 +1,10 @@
 package com.hibegin.http.server.api;
 
+import com.hibegin.http.HttpMethod;
+import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
-import com.hibegin.http.HttpMethod;
-import com.hibegin.http.server.impl.ServerContext;
 import com.hibegin.http.server.web.cookie.Cookie;
 import com.hibegin.http.server.web.session.HttpSession;
 
@@ -65,7 +65,12 @@ public interface HttpRequest {
 
     ByteBuffer getRequestBodyByteBuffer();
 
+    ByteBuffer getRequestBodyByteBuffer(int offset);
+
+
     ServerConfig getServerConfig();
 
-    ServerContext getServerContext();
+    ApplicationContext getApplicationContext();
+
+    String getHttpVersion();
 }

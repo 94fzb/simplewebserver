@@ -5,9 +5,11 @@ import com.hibegin.http.server.config.AbstractServerConfig;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
+import com.hibegin.http.server.util.FileCacheKit;
 import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.MethodInterceptor;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class WebServerBuilder {
@@ -65,17 +67,26 @@ public class WebServerBuilder {
     }
 
     public boolean startWithThread() {
-        boolean created = create();
-        if (created) {
-            new Thread() {
-                @Override
-                public void run() {
-                    Thread.currentThread().setName(ServerInfo.getName() + "-main-thread");
-                    WebServerBuilder.this.webServer.listener();
-                }
-            }.start();
+        try {
+            boolean created = create();
+            if (created) {
+                new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.currentThread().setName(ServerInfo.getName().toLowerCase() + "-main-thread");
+                            WebServerBuilder.this.webServer.listener();
+                        } catch (Exception e) {
+                            LOGGER.log(Level.SEVERE, "", e);
+                        }
+                    }
+                }.start();
+            }
+            return created;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "", e);
         }
-        return created;
+        return false;
     }
 
     public static class Builder {

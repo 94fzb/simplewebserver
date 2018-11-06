@@ -7,18 +7,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * 提供给一些路径供程序更方便的调用
- *
- * @author Chun
  */
 public class PathUtil {
-
-    private static final Logger LOGGER = LoggerUtil.getLogger(PathUtil.class);
 
     private static String ROOT_PATH = "";
 
@@ -32,31 +28,17 @@ public class PathUtil {
         } else {
             String path;
             if (PathUtil.class.getResource("/") != null) {
-                String tPath = PathUtil.class.getResource("/").getPath();
+                URL url = PathUtil.class.getResource("/");
+                String tPath = url.getPath().replace("file:", "");
                 try {
                     path = URLDecoder.decode(tPath, "UTF-8");
                 } catch (UnsupportedEncodingException e) {
                     //e.printStackTrace();
                     path = tPath;
                 }
-                path = new File(path).getParentFile().getParentFile().toString();
+                path = new File(path).getParent();
             } else {
-                if (PathUtil.class.getProtectionDomain() != null) {
-                    String tPath = PathUtil.class.getProtectionDomain().getCodeSource().getLocation().getPath().replace("\\", "/");
-                    try {
-                        path = URLDecoder.decode(tPath, "UTF-8");
-                    } catch (UnsupportedEncodingException e) {
-                        //e.printStackTrace();
-                        path = tPath;
-                    }
-                    if ("/".equals(File.separator)) {
-                        path = path.substring(0, path.lastIndexOf('/'));
-                    } else {
-                        path = path.substring(1, path.lastIndexOf('/'));
-                    }
-                } else {
-                    path = "/";
-                }
+                path = System.getProperty("user.dir");
             }
             return path;
         }
@@ -78,7 +60,7 @@ public class PathUtil {
                     IOUtil.writeBytesToFile(IOUtil.getByteByInputStream(in), tempFile);
                     return tempFile;
                 } catch (IOException e) {
-                    LOGGER.log(Level.SEVERE, "", e);
+                    LoggerUtil.getLogger(PathUtil.class).log(Level.SEVERE, "", e);
                 }
             }
         }

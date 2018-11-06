@@ -2,11 +2,15 @@ package com.hibegin.http.server.handler;
 
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.server.api.HttpRequest;
 
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -16,6 +20,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     protected ByteBuffer requestBB;
     protected SocketChannel sc;
+    private final ReentrantLock lock = new ReentrantLock();
 
     public PlainReadWriteSelectorHandler(SocketChannel sc) {
         this.sc = sc;
@@ -24,13 +29,18 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     @Override
     public void handleWrite(ByteBuffer byteBuffer) throws IOException {
-        byteBuffer.flip();
-        while (byteBuffer.hasRemaining() && sc.isOpen()) {
-            int len = sc.write(byteBuffer);
-            if (len < 0) {
-                throw new EOFException();
+        lock.lock();
+        try {
+            while (byteBuffer.hasRemaining() && sc.isOpen()) {
+                int len = sc.write(byteBuffer);
+                if (len < 0) {
+                    throw new EOFException();
+                }
             }
+        } finally {
+            lock.unlock();
         }
+
     }
 
     @Override
@@ -55,6 +65,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
         }
     }
 
+    @Override
     public void close() {
         try {
             sc.close();
@@ -63,6 +74,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
         }
     }
 
+    @Override
     public SocketChannel getChannel() {
         return sc;
     }
