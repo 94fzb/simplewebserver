@@ -62,7 +62,6 @@ public class HttpRequestHandlerThread extends Thread {
                         response.renderCode(404);
                     }
                     close();
-                    request.getApplicationContext().getHttpDeCoderMap().remove(getSocket());
                 }
             }
             //System.out.println("(System.nanoTime() - start) = " + (System.nanoTime() - request.getCreateTime()));
@@ -78,9 +77,6 @@ public class HttpRequestHandlerThread extends Thread {
     }
 
     public void close() {
-        if (getSocket().isClosed()) {
-            request.getApplicationContext().getHttpDeCoderMap().remove(getSocket());
-        }
         if (request instanceof SimpleHttpRequest) {
             ((SimpleHttpRequest) request).deleteTempUploadFiles();
         }
