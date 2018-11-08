@@ -4,10 +4,7 @@ import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.api.ISocketServer;
-import com.hibegin.http.server.config.ConfigKit;
-import com.hibegin.http.server.config.RequestConfig;
-import com.hibegin.http.server.config.ResponseConfig;
-import com.hibegin.http.server.config.ServerConfig;
+import com.hibegin.http.server.config.*;
 import com.hibegin.http.server.handler.*;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
@@ -74,6 +71,9 @@ public class SimpleWebServer implements ISocketServer {
         }
         if (this.requestConfig.getRouter() == null) {
             this.requestConfig.setRouter(serverConf.getRouter());
+        }
+        if (this.serverConfig.getHttpJsonMessageConverter() == null) {
+            this.serverConfig.setHttpJsonMessageConverter(new GsonHttpJsonMessageConverter());
         }
         applicationContext.setServerConfig(serverConf);
         Runtime rt = Runtime.getRuntime();

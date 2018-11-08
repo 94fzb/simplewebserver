@@ -32,6 +32,7 @@ public class ServerConfig {
     private Executor decodeExecutor;
     private String sessionId = "JSESSIONID";
     private Router router = new Router();
+    private HttpJsonMessageConverter httpJsonMessageConverter;
     private StaticResourceLoader defaultStaticResourceClassLoader = new StaticResourceLoader() {
         @Override
         public InputStream getInputStream(String path) {
@@ -68,6 +69,14 @@ public class ServerConfig {
             });
         }
         return requestExecutor;
+    }
+
+    public HttpJsonMessageConverter getHttpJsonMessageConverter() {
+        return httpJsonMessageConverter;
+    }
+
+    public void setHttpJsonMessageConverter(HttpJsonMessageConverter httpJsonMessageConverter) {
+        this.httpJsonMessageConverter = httpJsonMessageConverter;
     }
 
     public void setRequestExecutor(Executor requestExecutor) {

@@ -265,8 +265,6 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 } else if ("application/x-www-form-urlencoded".equals(contentType)) {
                     parseUrlEncodedStrToMap(new String(requestBody));
                 }
-            } else {
-                parseUrlEncodedStrToMap(new String(requestBody));
             }
         }
     }

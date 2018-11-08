@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.2.29-SNAPSHOT</version>
+    <version>0.2.33-SNAPSHOT</version>
     <packaging>jar</packaging>
     <url>http://github.com/94fzb/simplewebserver</url>
 
@@ -32,8 +32,8 @@
         <connection>scm:git:https://github.com/94fzb/simplewebserver</connection>
         <developerConnection>scm:git:https://github.com/94fzb/simplewebserver</developerConnection>
         <url>https://github.com/94fzb/simplewebserver</url>
-      <tag>HEAD</tag>
-  </scm>
+        <tag>HEAD</tag>
+    </scm>
     <issueManagement>
         <system>Github Issue</system>
         <url>http://github.com/94fzb/simplewebserver</url>
@@ -48,17 +48,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>com.smoope.utils</groupId>
-                <artifactId>j2objc-maven-plugin</artifactId>
-                <version>1.1.4</version>
-                <configuration>
-                    <j2objcPath>${J2OBJC_PATH}</j2objcPath>
-                    <useArc>true</useArc>
-                    <noPackageDirectories>true</noPackageDirectories>
-                    <sourcePath>${project.basedir}/src/main/java</sourcePath>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -129,7 +118,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.7.0</version>
+                        <version>3.8.0</version>
                         <executions>
                             <execution>
                                 <id>default-compile</id>

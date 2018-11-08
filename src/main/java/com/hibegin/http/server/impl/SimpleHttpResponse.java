@@ -52,9 +52,7 @@ public class SimpleHttpResponse implements HttpResponse {
                 fileInputStream = new FileInputStream(file);
                 String ext = file.getName().substring(file.getName().lastIndexOf(".") + 1);
                 // getMimeType
-                if (header.get("Content-Type") == null) {
-                    header.put("Content-Type", MimeTypeUtil.getMimeStrByExt(ext));
-                }
+                trySetResponseContentType(MimeTypeUtil.getMimeStrByExt(ext));
                 if (file.length() < SEND_FILE_BLANK_LENGTH) {
                     send(buildResponseData(200, IOUtil.getByteByInputStream(fileInputStream)));
                 } else {
@@ -114,8 +112,7 @@ public class SimpleHttpResponse implements HttpResponse {
     @Override
     public void renderJson(Object obj) {
         try {
-            Object gson = Class.forName("com.google.gson.Gson").getDeclaredConstructor().newInstance();
-            renderByMimeType("json", ((String) Class.forName("com.google.gson.Gson").getMethod("toJson", Object.class).invoke(gson, obj)).getBytes());
+            renderByMimeType("json", request.getServerConfig().getHttpJsonMessageConverter().toJson(obj).getBytes());
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "", e);
             throw new InternalException(e);
@@ -209,7 +206,7 @@ public class SimpleHttpResponse implements HttpResponse {
 
     private void renderByStatusCode(Integer errorCode) {
         if (errorCode > 399) {
-            header.put("Content-Type", "text/html");
+            trySetResponseContentType("text/html");
             send(buildResponseData(errorCode, StringsUtil.getHtmlStrByStatusCode(errorCode).getBytes()));
         } else if (errorCode >= 300 && errorCode < 400) {
             if (!header.containsKey("Location")) {
@@ -247,8 +244,27 @@ public class SimpleHttpResponse implements HttpResponse {
     }
 
     private void renderByMimeType(String ext, byte[] body) {
-        header.put("Content-Type", MimeTypeUtil.getMimeStrByExt(ext) + ";charset=" + responseConfig.getCharSet());
+        trySetResponseContentType(MimeTypeUtil.getMimeStrByExt(ext) + ";charset=" + responseConfig.getCharSet());
         send(buildResponseData(200, body));
+    }
+
+    private void trySetResponseContentType(String contentType) {
+        if (getHeader("Content-Type") == null) {
+            header.put("Content-Type", contentType);
+        }
+    }
+
+    private String getHeader(String key) {
+        String headerValue = header.get(key);
+        if (headerValue != null) {
+            return headerValue;
+        }
+        for (Map.Entry<String, String> entry : header.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(key)) {
+                return entry.getValue();
+            }
+        }
+        return null;
     }
 
     @Override
