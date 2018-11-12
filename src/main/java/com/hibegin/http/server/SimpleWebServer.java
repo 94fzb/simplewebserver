@@ -35,8 +35,10 @@ public class SimpleWebServer implements ISocketServer {
     private RequestConfig requestConfig;
     private ResponseConfig responseConfig;
     private ApplicationContext applicationContext = new ApplicationContext();
-    private File pidFile;
-    private HttpDecodeRunnable httpDecodeRunnable;
+    private HttpDecodeThread httpDecodeThread;
+
+    private static File pidFile;
+    private static boolean tips = false;
 
     public SimpleWebServer() {
         this(null, null, null);
@@ -96,20 +98,10 @@ public class SimpleWebServer implements ISocketServer {
         }
         //开始初始化一些配置
         applicationContext.init();
-        LOGGER.info(ServerInfo.getName() + " is run version -> " + ServerInfo.getVersion());
+
+        tips();
         if (applicationContext.getServerConfig().getInterceptors().contains(MethodInterceptor.class)) {
             LOGGER.info(serverConfig.getRouter().toString());
-        }
-        try {
-            if (!EnvKit.isAndroid()) {
-                if (pidFile == null) {
-                    pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
-                }
-                EnvKit.savePid(pidFile.toString());
-                pidFile.deleteOnExit();
-            }
-        } catch (Throwable e) {
-            LOGGER.log(Level.WARNING, "save pid error " + e.getMessage());
         }
         startExecHttpRequestThread();
         while (selector.isOpen()) {
@@ -138,7 +130,7 @@ public class SimpleWebServer implements ISocketServer {
                                 }
                             }
                         } else if (key.isReadable()) {
-                            httpDecodeRunnable.doRead((SocketChannel) key.channel(), key);
+                            httpDecodeThread.doRead((SocketChannel) key.channel(), key);
                         }
                     } catch (IOException e) {
                         //ignore，这里基本都是系统抛出来的异常了，比如连接被异常关闭，SSL握手失败
@@ -156,6 +148,25 @@ public class SimpleWebServer implements ISocketServer {
         }
     }
 
+    private static void tips() {
+        if (!tips) {
+            tips = true;
+            LOGGER.info(ServerInfo.getName() + " is run version -> " + ServerInfo.getVersion());
+
+            try {
+                if (!EnvKit.isAndroid()) {
+                    if (pidFile == null) {
+                        pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
+                    }
+                    EnvKit.savePid(pidFile.toString());
+                    pidFile.deleteOnExit();
+                }
+            } catch (Throwable e) {
+                LOGGER.log(Level.WARNING, "save pid error " + e.getMessage());
+            }
+        }
+    }
+
     /**
      * 初始化处理请求的请求
      */
@@ -168,27 +179,15 @@ public class SimpleWebServer implements ISocketServer {
                 return thread;
             }
         });
-        ScheduledExecutorService httpDecodeExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread thread = new Thread(r);
-                thread.setName("http-decode-thread");
-                return thread;
-            }
-        });
         checkRequestRunnable = new CheckRequestRunnable(applicationContext);
-        httpDecodeRunnable = new HttpDecodeRunnable(applicationContext, this, requestConfig, responseConfig);
-        int httpDecodeCycle = 10;
-        if (EnvKit.isAndroid()) {
-            httpDecodeCycle = 100;
-        }
+        httpDecodeThread = new HttpDecodeThread(applicationContext, this, requestConfig, responseConfig);
+        httpDecodeThread.start();
         checkRequestExecutor.scheduleAtFixedRate(checkRequestRunnable, 0, 1000, TimeUnit.MILLISECONDS);
-        httpDecodeExecutor.scheduleAtFixedRate(httpDecodeRunnable, 0, httpDecodeCycle, TimeUnit.MILLISECONDS);
-        new Thread(ServerInfo.getName().toLowerCase() + "-http-request-eventloop-thread") {
+        new Thread(ServerInfo.getName().toLowerCase() + "-request-event-loop-thread") {
             @Override
             public void run() {
                 while (true) {
-                    HttpRequestHandlerThread requestHandlerThread = httpDecodeRunnable.getHttpRequestHandlerThread();
+                    HttpRequestHandlerThread requestHandlerThread = httpDecodeThread.getHttpRequestHandlerThread();
                     if (requestHandlerThread != null) {
                         Socket socket = requestHandlerThread.getRequest().getHandler().getChannel().socket();
                         if (requestHandlerThread.getRequest().getMethod() != HttpMethod.CONNECT) {
