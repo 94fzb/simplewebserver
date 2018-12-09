@@ -180,6 +180,10 @@ public class ServerConfig {
         addStaticResourceMapper(path, locationPath, defaultStaticResourceClassLoader);
     }
 
+    public StaticResourceLoader getDefaultStaticResourceClassLoader() {
+        return defaultStaticResourceClassLoader;
+    }
+
     public void addStaticResourceMapper(String path, String locationPath, StaticResourceLoader resourceClassLoader) {
         String newPath = path;
         if (!path.endsWith("/")) {
