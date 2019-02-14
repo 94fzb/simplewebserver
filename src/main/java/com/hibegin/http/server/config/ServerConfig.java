@@ -2,6 +2,7 @@ package com.hibegin.http.server.config;
 
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.SimpleWebServer;
+import com.hibegin.http.server.api.HttpRequestDecodeListener;
 import com.hibegin.http.server.api.HttpRequestListener;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.web.Router;
@@ -33,6 +34,7 @@ public class ServerConfig {
     private String sessionId = "JSESSIONID";
     private Router router = new Router();
     private HttpJsonMessageConverter httpJsonMessageConverter;
+    private HttpRequestDecodeListener httpRequestDecodeListener;
     private StaticResourceLoader defaultStaticResourceClassLoader = new StaticResourceLoader() {
         @Override
         public InputStream getInputStream(String path) {
@@ -129,7 +131,7 @@ public class ServerConfig {
 
     public Executor getDecodeExecutor() {
         if (decodeExecutor == null) {
-            decodeExecutor = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors() + 1, 20, 1, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100), new ThreadFactory() {
+            decodeExecutor = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors() + 1, 20, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100), new ThreadFactory() {
                 @Override
                 public Thread newThread(Runnable r) {
                     Thread thread = new Thread(r);
@@ -214,5 +216,13 @@ public class ServerConfig {
 
     public List<HttpRequestListener> getHttpRequestListenerList() {
         return httpRequestListenerList;
+    }
+
+    public HttpRequestDecodeListener getHttpRequestDecodeListener() {
+        return httpRequestDecodeListener;
+    }
+
+    public void setHttpRequestDecodeListener(HttpRequestDecodeListener httpRequestDecodeListener) {
+        this.httpRequestDecodeListener = httpRequestDecodeListener;
     }
 }

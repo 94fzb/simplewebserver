@@ -101,6 +101,9 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 //first record use full request buffer
                 request.tmpRequestBodyFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort(), bytes);
             }
+            if (request.getApplicationContext().getServerConfig().getHttpRequestDecodeListener() != null) {
+                request.getApplicationContext().getServerConfig().getHttpRequestDecodeListener().decodeRequestBodyBytesAfter(request, bytes);
+            }
             return request.tmpRequestBodyFile.length() == dataLength;
         }
         return false;
