@@ -2,13 +2,10 @@ package com.hibegin.http.server.handler;
 
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.LoggerUtil;
-import com.hibegin.http.server.api.HttpRequest;
 
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -21,6 +18,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
     protected ByteBuffer requestBB;
     protected SocketChannel sc;
     private final ReentrantLock lock = new ReentrantLock();
+    private static final int MAX_REQUEST_BB_SIZE = 64 * 1024;
 
     public PlainReadWriteSelectorHandler(SocketChannel sc) {
         this.sc = sc;
@@ -56,10 +54,11 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
         throw new EOFException();
     }
 
-    protected void resizeRequestBB(int remaining) {
+    void resizeRequestBB(int remaining) {
         if (requestBB.remaining() < remaining) {
-            // Expand buffer for large request
-            requestBB = ByteBuffer.allocate(requestBB.capacity() * 2);
+            int bbSize = requestBB.capacity() * 2;
+            //Expand buffer for large request
+            requestBB = ByteBuffer.allocate(bbSize > MAX_REQUEST_BB_SIZE ? MAX_REQUEST_BB_SIZE : bbSize);
         } else {
             requestBB = ByteBuffer.allocate(requestBB.capacity());
         }

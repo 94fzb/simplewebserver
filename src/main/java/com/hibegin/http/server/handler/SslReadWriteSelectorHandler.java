@@ -113,48 +113,48 @@ import java.util.logging.Logger;
 public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(SslReadWriteSelectorHandler.class);
-    /*
+    /**
      * An empty ByteBuffer for use when one isn't available, say
      * as a source buffer during initial handshake wraps or for close
      * operations.
      */
     private static ByteBuffer hsBB = ByteBuffer.allocate(0);
-    private SSLEngine sslEngine = null;
-    /*
+    private SSLEngine sslEngine;
+    /**
      * All I/O goes through these buffers.
-     * <P>
+     * <p>
      * It might be nice to use a cache of ByteBuffers so we're
      * not alloc/dealloc'ing ByteBuffer's for each new SSLEngine.
-     * <P>
+     * <p>
      * We use our superclass' requestBB for our application input buffer.
      * Outbound application data is supplied to us by our callers.
      */
     private ByteBuffer inNetBB;
     private ByteBuffer outNetBB;
-    /*
+    /**
      * The FileChannel we're currently transferTo'ing (reading).
      */
     private ByteBuffer fileChannelBB = null;
 
-    /*
+    /**
      * During our initial handshake, keep track of the next
      * SSLEngine operation that needs to occur:
-     *
-     *     NEED_WRAP/NEED_UNWRAP
-     *
+     * <p>
+     * NEED_WRAP/NEED_UNWRAP
+     * <p>
      * Once the initial handshake has completed, we can short circuit
      * handshake checks with initialHSComplete.
      */
     private HandshakeStatus initialHSStatus;
     private boolean initialHSComplete;
 
-    /*
+    /**
      * We have received the shutdown request by our caller, and have
      * closed our outbound side.
      */
     private boolean shutdown = false;
 
-    /*
+    /**
      * Constructor for a secure ChannelIO variant.
      */
     public SslReadWriteSelectorHandler(SocketChannel sc, SelectionKey selectionKey,
@@ -180,9 +180,9 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         }
     }
 
-    /*
+    /**
      * Writes bb to the SocketChannel.
-     * <P>
+     * <p>
      * Returns true when the ByteBuffer has no remaining data.
      */
     private boolean tryFlush(ByteBuffer bb) throws IOException {
@@ -190,22 +190,22 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         return !bb.hasRemaining();
     }
 
-    /*
+    /**
      * Perform any handshaking processing.
-     * <P>
+     * <p>
      * If a SelectionKey is passed, register for selectable
      * operations.
-     * <P>
+     * <p>
      * In the blocking case, our caller will keep calling us until
      * we finish the handshake.  Our reads/writes will block as expected.
-     * <P>
+     * <p>
      * In the non-blocking case, we just received the selection notification
      * that this channel is ready for whatever the operation is, so give
      * it a try.
-     * <P>
+     * <p>
      * return:
-     *		true when handshake is done.
-     *		false while handshake is in progress
+     * true when handshake is done.
+     * false while handshake is in progress
      */
     boolean doHandshake(SelectionKey sk) throws IOException {
 
@@ -347,11 +347,10 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         return initialHSComplete;
     }
 
-    /*
+    /**
      * Do all the outstanding handshake tasks in the current Thread.
      */
     private SSLEngineResult.HandshakeStatus doTasks() {
-
         Runnable runnable;
 
         /*
@@ -364,16 +363,17 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         return sslEngine.getHandshakeStatus();
     }
 
-    /*
+    /**
      * Read the channel for more information, then unwrap the
      * (hopefully application) data we get.
-     * <P>
+     * <p>
      * If we run out of data, we'll return to our caller (possibly using
      * a Selector) to get notification that more is available.
-     * <P>
+     * <p>
      * Each call to this method will perform at most one underlying read().
      */
-    ByteBuffer read() throws IOException {
+    @Override
+    public ByteBuffer handleRead() throws IOException {
         SSLEngineResult result;
 
         if (!initialHSComplete) {
@@ -383,12 +383,14 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         int pos = requestBB.position();
 
         if (sc.read(inNetBB) == -1) {
-            sslEngine.closeInbound();  // probably throws exception
+            // probably throws exception
+            sslEngine.closeInbound();
             throw new EOFException();
         }
 
         do {
-            resizeRequestBB(inNetBB.remaining());    // guarantees enough room for unwrap
+            // guarantees enough room for unwrap
+            resizeRequestBB(inNetBB.remaining());
             inNetBB.flip();
             result = sslEngine.unwrap(inNetBB, requestBB);
             inNetBB.compact();
@@ -420,10 +422,10 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         return byteBuffer;
     }
 
-    /*
+    /**
      * Try to flush out any existing outbound data, then try to wrap
      * anything new contained in the src buffer.
-     * <P>
+     * <p>
      * Return the number of bytes actually consumed from the buffer,
      * but the data may actually be still sitting in the output buffer,
      * waiting to be flushed.
@@ -445,17 +447,13 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
         outNetBB.flip();
 
-        switch (result.getStatus()) {
-
-            case OK:
-                if (result.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
-                    doTasks();
-                }
-                break;
-
-            default:
-                throw new IOException("sslEngine error during data write: " +
-                        result.getStatus());
+        if (result.getStatus() == Status.OK) {
+            if (result.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
+                doTasks();
+            }
+        } else {
+            throw new IOException("sslEngine error during data write: " +
+                    result.getStatus());
         }
 
         /*
@@ -471,12 +469,12 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         return retValue;
     }
 
-    /*
+    /**
      * Flush any remaining data.
-     * <P>
+     * <p>
      * Return true when the fileChannelBB and outNetBB are empty.
      */
-    boolean dataFlush() throws IOException {
+    private boolean dataFlush() throws IOException {
         boolean fileFlushed = true;
 
         if ((fileChannelBB != null) && fileChannelBB.hasRemaining()) {
@@ -489,15 +487,15 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         return (fileFlushed && !outNetBB.hasRemaining());
     }
 
-    /*
+    /**
      * Begin the shutdown process.
-     * <P>
+     * <p>
      * Close out the SSLEngine if not already done so, then
      * wrap our outgoing close_notify message and try to send it on.
-     * <P>
+     * <p>
      * Return true when we're done passing the shutdown messsages.
      */
-    boolean shutdown() throws IOException {
+    private boolean shutdown() throws IOException {
 
         if (!shutdown) {
             sslEngine.closeOutbound();
@@ -539,11 +537,6 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                 throw new EOFException();
             }
         }
-    }
-
-    @Override
-    public ByteBuffer handleRead() throws IOException {
-        return read();
     }
 
     @Override
