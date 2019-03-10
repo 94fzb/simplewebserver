@@ -12,4 +12,6 @@ public interface ReadWriteSelectorHandler {
     void close();
 
     SocketChannel getChannel();
+
+    void flushRequestBB();
 }

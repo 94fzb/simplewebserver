@@ -374,52 +374,58 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
      */
     @Override
     public ByteBuffer handleRead() throws IOException {
-        SSLEngineResult result;
+        readLock.lock();
+        try {
+            checkRequestBB();
+            SSLEngineResult result;
 
-        if (!initialHSComplete) {
-            throw new IllegalStateException();
-        }
-
-        int pos = requestBB.position();
-
-        if (sc.read(inNetBB) == -1) {
-            // probably throws exception
-            sslEngine.closeInbound();
-            throw new EOFException();
-        }
-
-        do {
-            // guarantees enough room for unwrap
-            resizeRequestBB(inNetBB.remaining());
-            inNetBB.flip();
-            result = sslEngine.unwrap(inNetBB, requestBB);
-            inNetBB.compact();
-
-            /*
-             * Could check here for a renegotation, but we're only
-             * doing a simple read/write, and won't have enough state
-             * transitions to do a complete handshake, so ignore that
-             * possibility.
-             */
-            switch (result.getStatus()) {
-
-                case BUFFER_UNDERFLOW:
-                case OK:
-                    if (result.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
-                        doTasks();
-                    }
-                    break;
-
-                default:
-                    throw new IOException("sslEngine error during data read: " +
-                            result.getStatus());
+            if (!initialHSComplete) {
+                throw new IllegalStateException();
             }
-        } while ((inNetBB.position() != 0) &&
-                result.getStatus() != Status.BUFFER_UNDERFLOW);
-        int readLength = requestBB.position() - pos;
-        ByteBuffer byteBuffer = ByteBuffer.allocate(readLength);
-        byteBuffer.put(BytesUtil.subBytes(requestBB.array(), pos, readLength));
-        return byteBuffer;
+
+            int pos = requestBB.position();
+
+            if (sc.read(inNetBB) == -1) {
+                // probably throws exception
+                sslEngine.closeInbound();
+                throw new EOFException();
+            }
+
+            do {
+                // guarantees enough room for unwrap
+                resizeRequestBB(inNetBB.remaining());
+                inNetBB.flip();
+                result = sslEngine.unwrap(inNetBB, requestBB);
+                inNetBB.compact();
+
+                /*
+                 * Could check here for a renegotation, but we're only
+                 * doing a simple read/write, and won't have enough state
+                 * transitions to do a complete handshake, so ignore that
+                 * possibility.
+                 */
+                switch (result.getStatus()) {
+
+                    case BUFFER_UNDERFLOW:
+                    case OK:
+                        if (result.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
+                            doTasks();
+                        }
+                        break;
+
+                    default:
+                        throw new IOException("sslEngine error during data read: " +
+                                result.getStatus());
+                }
+            } while ((inNetBB.position() != 0) &&
+                    result.getStatus() != Status.BUFFER_UNDERFLOW);
+            int readLength = requestBB.position() - pos;
+            ByteBuffer byteBuffer = ByteBuffer.allocate(readLength);
+            byteBuffer.put(BytesUtil.subBytes(requestBB.array(), pos, readLength));
+            return byteBuffer;
+        } finally {
+            readLock.unlock();
+        }
     }
 
     /**
@@ -531,11 +537,16 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
     @Override
     public void handleWrite(ByteBuffer byteBuffer) throws IOException {
-        while (byteBuffer.hasRemaining() && sc.isOpen()) {
-            int len = doWrite(byteBuffer);
-            if (len < 0) {
-                throw new EOFException();
+        writeLock.lock();
+        try {
+            while (byteBuffer.hasRemaining() && sc.isOpen()) {
+                int len = doWrite(byteBuffer);
+                if (len < 0) {
+                    throw new EOFException();
+                }
             }
+        } finally {
+            writeLock.unlock();
         }
     }
 

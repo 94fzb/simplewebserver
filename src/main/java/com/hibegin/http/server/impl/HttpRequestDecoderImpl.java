@@ -81,6 +81,9 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 result = new AbstractMap.SimpleEntry<>(flag, ByteBuffer.allocate(0));
             }
         }
+        if (result.getKey()) {
+            request.getHandler().flushRequestBB();
+        }
         return result;
     }
 

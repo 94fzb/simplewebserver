@@ -14,20 +14,21 @@ import java.util.logging.Logger;
 public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(PlainReadWriteSelectorHandler.class);
-
+    private static final int MAX_REQUEST_BB_SIZE = 8 * 1024;
+    private static final int INIT_REQUEST_BB_SIZE = 1024;
+    final ReentrantLock writeLock = new ReentrantLock();
+    final ReentrantLock readLock = new ReentrantLock();
     protected ByteBuffer requestBB;
     protected SocketChannel sc;
-    private final ReentrantLock lock = new ReentrantLock();
-    private static final int MAX_REQUEST_BB_SIZE = 64 * 1024;
 
     public PlainReadWriteSelectorHandler(SocketChannel sc) {
         this.sc = sc;
-        this.requestBB = ByteBuffer.allocate(1024);
+        this.requestBB = ByteBuffer.allocate(INIT_REQUEST_BB_SIZE);
     }
 
     @Override
     public void handleWrite(ByteBuffer byteBuffer) throws IOException {
-        lock.lock();
+        writeLock.lock();
         try {
             while (byteBuffer.hasRemaining() && sc.isOpen()) {
                 int len = sc.write(byteBuffer);
@@ -36,22 +37,34 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
                 }
             }
         } finally {
-            lock.unlock();
+            writeLock.unlock();
         }
 
     }
 
     @Override
     public ByteBuffer handleRead() throws IOException {
-        int length = sc.read(requestBB);
-        if (length != -1) {
-            ByteBuffer byteBuffer = ByteBuffer.allocate(length);
-            byteBuffer.put(BytesUtil.subBytes(requestBB.array(), 0, length));
-            resizeRequestBB(length);
-            return byteBuffer;
+        readLock.lock();
+        try {
+            checkRequestBB();
+            int length = sc.read(requestBB);
+            if (length != -1) {
+                ByteBuffer byteBuffer = ByteBuffer.allocate(length);
+                byteBuffer.put(BytesUtil.subBytes(requestBB.array(), 0, length));
+                resizeRequestBB(length);
+                return byteBuffer;
+            }
+            close();
+            throw new EOFException();
+        } finally {
+            readLock.unlock();
         }
-        close();
-        throw new EOFException();
+    }
+
+    void checkRequestBB() {
+        if (requestBB.capacity() == 0) {
+            requestBB = ByteBuffer.allocate(INIT_REQUEST_BB_SIZE);
+        }
     }
 
     void resizeRequestBB(int remaining) {
@@ -76,5 +89,12 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
     @Override
     public SocketChannel getChannel() {
         return sc;
+    }
+
+    @Override
+    public void flushRequestBB() {
+        readLock.lock();
+        requestBB = ByteBuffer.allocate(0);
+        readLock.unlock();
     }
 }
