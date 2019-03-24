@@ -17,7 +17,10 @@ import java.net.Socket;
 import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.*;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -129,7 +132,7 @@ public class SimpleWebServer implements ISocketServer {
                         } else if (key.isReadable()) {
                             httpDecodeThread.doRead((SocketChannel) key.channel(), key);
                         }
-                    } catch (CancellationException | IOException e) {
+                    } catch (CancelledKeyException | IOException e) {
                         //ignore，这里基本都是系统抛出来的异常了，比如连接被异常关闭，SSL握手失败
                     } catch (Exception e) {
                         LOGGER.log(Level.SEVERE, "", e);
