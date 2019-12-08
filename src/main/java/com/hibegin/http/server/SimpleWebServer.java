@@ -114,7 +114,7 @@ public class SimpleWebServer implements ISocketServer {
                     try {
                         SelectionKey key = iterator.next();
                         SocketChannel channel = null;
-                        if (key.isAcceptable()) {
+                        if (key.isValid() && key.isAcceptable()) {
                             ServerSocketChannel server = (ServerSocketChannel) key.channel();
                             try {
                                 channel = server.accept();
@@ -129,7 +129,7 @@ public class SimpleWebServer implements ISocketServer {
                                     channel.close();
                                 }
                             }
-                        } else if (key.isReadable()) {
+                        } else if (key.isValid() && key.isReadable()) {
                             httpDecodeThread.doRead((SocketChannel) key.channel(), key);
                         }
                     } catch (CancelledKeyException | IOException e) {

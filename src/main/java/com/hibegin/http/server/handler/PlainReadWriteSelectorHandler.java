@@ -56,6 +56,9 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
             }
             close();
             throw new EOFException();
+        } catch (IOException e) {
+            close();
+            throw e;
         } finally {
             readLock.unlock();
         }

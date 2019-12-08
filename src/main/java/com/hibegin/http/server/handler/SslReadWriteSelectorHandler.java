@@ -423,6 +423,9 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             ByteBuffer byteBuffer = ByteBuffer.allocate(readLength);
             byteBuffer.put(BytesUtil.subBytes(requestBB.array(), pos, readLength));
             return byteBuffer;
+        } catch (IOException e) {
+            close();
+            throw e;
         } finally {
             readLock.unlock();
         }
