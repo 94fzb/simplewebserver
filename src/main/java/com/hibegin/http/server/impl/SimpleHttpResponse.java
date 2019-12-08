@@ -92,6 +92,7 @@ public class SimpleHttpResponse implements HttpResponse {
                 request.getHandler().close();
             }
         } catch (IOException e) {
+            request.getHandler().close();
             //LOGGER.log(Level.WARNING, "send error " + e.getMessage());
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "send error", e);

@@ -54,7 +54,6 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
                 resizeRequestBB(length);
                 return byteBuffer;
             }
-            close();
             throw new EOFException();
         } catch (IOException e) {
             close();
