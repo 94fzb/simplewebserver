@@ -29,7 +29,7 @@ public class ServerInfo {
                 LOGGER.log(Level.SEVERE, "", e);
             }
         } else {
-            version = "0.2-dev";
+            version = "0.2.41";
         }
         if (name == null) {
             name = "SimpleWebServer";
