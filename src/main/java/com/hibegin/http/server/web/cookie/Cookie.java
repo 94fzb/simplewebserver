@@ -88,6 +88,9 @@ public class Cookie {
         } else {
             cookieStr = name + "=" + value + ";" + "Path=" + path + ";Expires=" + expireDate;
         }
+        if (domain != null && domain.trim().length() > 0) {
+            cookieStr += ";" + "Domain=" + domain;
+        }
         if (httpOnly) {
             cookieStr += ";HttpOnly";
         }
