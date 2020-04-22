@@ -1,4 +1,4 @@
-﻿# SimpleWebServer
+# SimpleWebServer
 
 > SimpleWebServer 是一款使用Java基于NIO编写的超轻量级开源Web Application Server
 
@@ -17,7 +17,7 @@ request, response, controller. interceptor 还是熟悉的配方，熟悉的味�
 <dependency>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.2.10</version>
+    <version>0.2.42</version>
 </dependency>
 ```
 
