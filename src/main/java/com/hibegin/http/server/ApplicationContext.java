@@ -24,7 +24,7 @@ public class ApplicationContext {
 
     private ServerConfig serverConfig;
 
-    private Map<Socket, Map.Entry<HttpRequestDeCoder, HttpResponse>> httpDeCoderMap = new ConcurrentHashMap<>();
+    private final Map<Socket, Map.Entry<HttpRequestDeCoder, HttpResponse>> httpDeCoderMap = new ConcurrentHashMap<>();
 
     public Map<Socket, Map.Entry<HttpRequestDeCoder, HttpResponse>> getHttpDeCoderMap() {
         return httpDeCoderMap;

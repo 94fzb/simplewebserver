@@ -33,15 +33,15 @@ public class HttpDecodeThread extends Thread {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpDecodeThread.class);
 
-    private ApplicationContext applicationContext;
-    private Map<SocketChannel, LinkedBlockingDeque<RequestEvent>> socketChannelBlockingQueueConcurrentHashMap = new ConcurrentHashMap<>();
-    private SimpleWebServer simpleWebServer;
-    private RequestConfig requestConfig;
-    private ResponseConfig responseConfig;
-    private ServerConfig serverConfig;
-    private Set<SocketChannel> workingChannel = new CopyOnWriteArraySet<>();
+    private final ApplicationContext applicationContext;
+    private final Map<SocketChannel, LinkedBlockingDeque<RequestEvent>> socketChannelBlockingQueueConcurrentHashMap = new ConcurrentHashMap<>();
+    private final SimpleWebServer simpleWebServer;
+    private final RequestConfig requestConfig;
+    private final ResponseConfig responseConfig;
+    private final ServerConfig serverConfig;
+    private final Set<SocketChannel> workingChannel = new CopyOnWriteArraySet<>();
 
-    private BlockingQueue<HttpRequestHandlerThread> httpRequestHandlerThreadBlockingQueue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<HttpRequestHandlerRunnable> httpRequestHandlerRunnableBlockingQueue = new LinkedBlockingQueue<>();
 
     public HttpDecodeThread(ApplicationContext applicationContext, SimpleWebServer simpleWebServer, RequestConfig requestConfig, ResponseConfig responseConfig) {
         this.applicationContext = applicationContext;
@@ -116,7 +116,7 @@ public class HttpDecodeThread extends Thread {
                     if (serverConfig.isSupportHttp2()) {
                         renderUpgradeHttp2Response(codecEntry.getValue());
                     } else {
-                        httpRequestHandlerThreadBlockingQueue.add(new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue()));
+                        httpRequestHandlerRunnableBlockingQueue.add(new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()));
                         if (codecEntry.getKey().getRequest().getMethod() != HttpMethod.CONNECT) {
                             HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, applicationContext, codecEntry.getKey().getRequest().getHandler());
                             codecEntry = new AbstractMap.SimpleEntry<HttpRequestDeCoder, HttpResponse>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig));
@@ -130,20 +130,20 @@ public class HttpDecodeThread extends Thread {
             handleException(key, codecEntry.getKey(), null, 400);
         } catch (UnSupportMethodException | IOException e) {
             LOGGER.log(Level.SEVERE, "", e);
-            handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue()), 400);
+            handleException(key, codecEntry.getKey(), new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()), 400);
         } catch (RequestBodyTooLargeException e) {
-            handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue()), 413);
+            handleException(key, codecEntry.getKey(), new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()), 413);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "", e);
-            handleException(key, codecEntry.getKey(), new HttpRequestHandlerThread(codecEntry.getKey().getRequest(), codecEntry.getValue()), 500);
+            handleException(key, codecEntry.getKey(), new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()), 500);
         } finally {
             file.delete();
         }
     }
 
-    public HttpRequestHandlerThread getHttpRequestHandlerThread() {
+    public HttpRequestHandlerRunnable getHttpRequestHandlerThread() {
         try {
-            return httpRequestHandlerThreadBlockingQueue.take();
+            return httpRequestHandlerRunnableBlockingQueue.take();
         } catch (InterruptedException e) {
             LOGGER.log(Level.SEVERE, "", e);
         }
@@ -190,13 +190,12 @@ public class HttpDecodeThread extends Thread {
         httpResponse.send(bout, true);
     }
 
-    private void handleException(SelectionKey key, HttpRequestDeCoder codec, HttpRequestHandlerThread httpRequestHandlerThread, int errorCode) {
+    private void handleException(SelectionKey key, HttpRequestDeCoder codec, HttpRequestHandlerRunnable httpRequestHandlerRunnable, int errorCode) {
         try {
-            if (httpRequestHandlerThread != null && codec != null && codec.getRequest() != null) {
-                if (!httpRequestHandlerThread.getRequest().getHandler().getChannel().socket().isClosed()) {
-                    httpRequestHandlerThread.getResponse().renderCode(errorCode);
+            if (httpRequestHandlerRunnable != null && codec != null && codec.getRequest() != null) {
+                if (!httpRequestHandlerRunnable.getRequest().getHandler().getChannel().socket().isClosed()) {
+                    httpRequestHandlerRunnable.getResponse().renderCode(errorCode);
                 }
-                httpRequestHandlerThread.interrupt();
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "error", e);

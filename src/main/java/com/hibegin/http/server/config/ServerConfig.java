@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -62,10 +63,13 @@ public class ServerConfig {
     public Executor getRequestExecutor() {
         if (requestExecutor == null) {
             requestExecutor = new ThreadPoolExecutor(10, 20, 1, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100), new ThreadFactory() {
+                final AtomicInteger threadNumber = new AtomicInteger(1);
+                final String namePrefix = "http-nio-" + getPort() + "-exec-";
+
                 @Override
                 public Thread newThread(Runnable r) {
                     Thread thread = new Thread(r);
-                    thread.setName("request-handler-thread");
+                    thread.setName(namePrefix + threadNumber.getAndIncrement());
                     return thread;
                 }
             });

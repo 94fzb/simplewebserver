@@ -17,6 +17,7 @@ public class DemoController extends Controller {
     }
 
     public void index() {
+        //System.out.println("Thread.currentThread() = " + Thread.currentThread().getName());
         helloWorld();
     }
 

@@ -28,10 +28,10 @@ public class SimpleHttpResponse implements HttpResponse {
     private static final String CRLF = "\r\n";
     private static final int RESPONSE_BYTES_BLANK_SIZE = 4096;
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleHttpResponse.class);
-    private Map<String, String> header = new HashMap<>();
-    private HttpRequest request;
-    private List<Cookie> cookieList = new ArrayList<>();
-    private ResponseConfig responseConfig;
+    private final Map<String, String> header = new HashMap<>();
+    private final HttpRequest request;
+    private final List<Cookie> cookieList = new ArrayList<>();
+    private final ResponseConfig responseConfig;
     private static final int SEND_FILE_BLANK_LENGTH = 1024 * 1024;
     private static final String SERVER_INFO = ServerInfo.getName() + "/" + ServerInfo.getVersion();
 

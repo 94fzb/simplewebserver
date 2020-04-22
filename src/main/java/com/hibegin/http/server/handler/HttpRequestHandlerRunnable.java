@@ -14,15 +14,15 @@ import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class HttpRequestHandlerThread extends Thread {
+public class HttpRequestHandlerRunnable implements Runnable {
 
-    private static final Logger LOGGER = LoggerUtil.getLogger(HttpRequestHandlerThread.class);
+    private static final Logger LOGGER = LoggerUtil.getLogger(HttpRequestHandlerRunnable.class);
 
-    private HttpRequest request;
+    private final HttpRequest request;
 
-    private HttpResponse response;
+    private final HttpResponse response;
 
-    HttpRequestHandlerThread(HttpRequest request, HttpResponse response) {
+    HttpRequestHandlerRunnable(HttpRequest request, HttpResponse response) {
         this.request = request;
         this.response = response;
     }

@@ -16,7 +16,7 @@ import java.util.logging.Logger;
 
 public class CheckRequestRunnable implements Runnable {
 
-    private Map<Socket, HttpRequestHandlerThread> channelHttpRequestHandlerThreadMap;
+    private Map<Socket, HttpRequestHandlerRunnable> channelHttpRequestHandlerThreadMap;
     private ApplicationContext applicationContext;
     private static final Logger LOGGER = LoggerUtil.getLogger(CheckRequestRunnable.class);
 
@@ -67,7 +67,7 @@ public class CheckRequestRunnable implements Runnable {
 
     private Set<Socket> getClosedRequestSocketSet() {
         Set<Socket> socketChannels = new CopyOnWriteArraySet<>();
-        for (Map.Entry<Socket, HttpRequestHandlerThread> entry : channelHttpRequestHandlerThreadMap.entrySet()) {
+        for (Map.Entry<Socket, HttpRequestHandlerRunnable> entry : channelHttpRequestHandlerThreadMap.entrySet()) {
             Socket socket = entry.getKey();
             if (socket.isClosed()) {
                 socketChannels.add(entry.getKey());
@@ -99,7 +99,7 @@ public class CheckRequestRunnable implements Runnable {
         }
     }
 
-    public Map<Socket, HttpRequestHandlerThread> getChannelHttpRequestHandlerThreadMap() {
+    public Map<Socket, HttpRequestHandlerRunnable> getChannelHttpRequestHandlerThreadMap() {
         return channelHttpRequestHandlerThreadMap;
     }
 }

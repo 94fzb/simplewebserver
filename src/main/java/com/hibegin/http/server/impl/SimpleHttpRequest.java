@@ -30,11 +30,11 @@ public class SimpleHttpRequest implements HttpRequest {
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleHttpRequest.class);
     private Cookie[] cookies;
     private HttpSession session;
-    private RequestConfig requestConfig;
-    private ApplicationContext applicationContext;
+    private final RequestConfig requestConfig;
+    private final ApplicationContext applicationContext;
     private Map<String, Object> attr;
-    private ReadWriteSelectorHandler handler;
-    private long createTime;
+    private final ReadWriteSelectorHandler handler;
+    private final long createTime;
     private InputStream inputStream;
 
     protected Map<String, String> header = new HashMap<>();

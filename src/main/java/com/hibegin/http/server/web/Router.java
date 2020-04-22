@@ -7,7 +7,7 @@ import java.util.Map;
 
 public class Router {
 
-    private Map<String, Method> routerMap = new HashMap<String, Method>();
+    private final Map<String, Method> routerMap = new HashMap<String, Method>();
 
     public void addMapper(String urlPath, Class<? extends Controller> clazz) {
         if ("/".equals(urlPath)) {

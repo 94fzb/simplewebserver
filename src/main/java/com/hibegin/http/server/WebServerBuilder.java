@@ -16,9 +16,9 @@ public class WebServerBuilder {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(WebServerBuilder.class);
 
-    private RequestConfig requestConfig;
+    private final RequestConfig requestConfig;
 
-    private ResponseConfig responseConfig;
+    private final ResponseConfig responseConfig;
 
     private ServerConfig serverConfig;
 
