@@ -15,7 +15,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <freemarker.version>2.3.23</freemarker.version>
-        <gson.version>2.8.1</gson.version>
+        <gson.version>2.8.6</gson.version>
         <maven.compiler.target>1.9</maven.compiler.target>
         <maven.compiler.source>1.9</maven.compiler.source>
         <java9.sourceDirectory>${project.basedir}/src/main/java9</java9.sourceDirectory>
@@ -25,7 +25,7 @@
     <developers>
         <developer>
             <email>xchun90@163.com</email>
-            <url>http://blog.94fzb.com</url>
+            <url>http://xiaochun.zrlog.com</url>
         </developer>
     </developers>
     <scm>
@@ -51,7 +51,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.7.0</version>
+                <version>3.8.0</version>
                 <executions>
                     <execution>
                         <id>default-compile</id>
@@ -219,26 +219,8 @@
                     </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-toolchains-plugin</artifactId>
-                        <configuration>
-                            <toolchains>
-                                <jdk>
-                                    <version>1.9</version>
-                                    <vendor>oracle</vendor>
-                                </jdk>
-                            </toolchains>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>toolchain</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.6</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -268,6 +250,67 @@
                             <useReleaseProfile>false</useReleaseProfile>
                             <releaseProfiles>release</releaseProfiles>
                             <goals>deploy nexus-staging:release</goals>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>pl.project13.maven</groupId>
+                        <artifactId>git-commit-id-plugin</artifactId>
+                        <version>4.0.0</version>
+                        <executions>
+                            <execution>
+                                <id>get-the-git-infos</id>
+                                <goals>
+                                    <goal>revision</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>validate-the-git-infos</id>
+                                <goals>
+                                    <goal>validateRevision</goal>
+                                </goals>
+                                <!-- *NOTE*: The default phase of validateRevision is verify, but in case you want to change it, you can do so by adding the phase here -->
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <!-- If you'd like to tell the plugin where your .git directory is, use this setting, otherwise we'll perform a search trying to figure out the right directory. It's better to add it explicitly IMHO. -->
+                            <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+                            <prefix>git</prefix>
+                            <dateFormat>yyyy-MM-dd'T'HH:mm:ssZ</dateFormat>
+                            <dateFormatTimeZone>${user.timezone}</dateFormatTimeZone>
+                            <verbose>false</verbose>
+                            <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                            <generateGitPropertiesFilename>${project.build.outputDirectory}/${project.name}-git.properties</generateGitPropertiesFilename>
+                            <format>properties</format>
+                            <skipPoms>true</skipPoms>
+                            <injectAllReactorProjects>false</injectAllReactorProjects>
+                            <failOnNoGitDirectory>true</failOnNoGitDirectory>
+                            <failOnUnableToExtractRepoInfo>true</failOnUnableToExtractRepoInfo>
+                            <skip>false</skip>
+                            <runOnlyOnce>false</runOnlyOnce>
+                            <useNativeGit>true</useNativeGit>
+                            <abbrevLength>7</abbrevLength>
+                            <commitIdGenerationMode>flat</commitIdGenerationMode>
+                            <gitDescribe>
+                                <skip>false</skip>
+                                <always>false</always>
+                                <abbrev>7</abbrev>
+                                <dirty>-dirty</dirty>
+                                <match>*</match>
+                                <tags>false</tags>
+                                <forceLongFormat>false</forceLongFormat>
+                            </gitDescribe>
+                            <validationProperties>
+                                <validationProperty>
+                                    <name>validating project version</name>
+                                    <value>${project.version}</value>
+                                    <shouldMatchTo>
+                                        <![CDATA[^.*(?<!-SNAPSHOT)$]]>
+                                    </shouldMatchTo>
+                                </validationProperty>
+                            </validationProperties>
+                            <validationShouldFailIfNoMatch>true</validationShouldFailIfNoMatch>
+                            <evaluateOnCommit>HEAD</evaluateOnCommit>
                         </configuration>
                     </plugin>
                 </plugins>

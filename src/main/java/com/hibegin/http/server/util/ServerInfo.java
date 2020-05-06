@@ -12,27 +12,25 @@ import java.util.logging.Logger;
 public class ServerInfo {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(FreeMarkerUtil.class);
-    private static String name;
+    private static final String name = "SimpleWebServer";
     private static String version;
     private static Date time;
 
     static {
         Properties properties = new Properties();
-        InputStream inputStream = ServerInfo.class.getResourceAsStream("/META-INF/maven/com.hibegin/simplewebserver/pom.properties");
+        InputStream inputStream = ServerInfo.class.getClassLoader().getResourceAsStream(name + "-git.properties");
         if (inputStream != null) {
             try {
                 properties.load(inputStream);
-                if (properties.get("version") != null && !"".equals(properties.get("version"))) {
-                    version = properties.get("version").toString();
+                String key = "git.build.version";
+                if (properties.get(key) != null && !"".equals(properties.get(key))) {
+                    version = properties.get(key).toString();
                 }
             } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, "", e);
             }
         } else {
-            version = "0.2.41";
-        }
-        if (name == null) {
-            name = "SimpleWebServer";
+            version = "0.2.45";
         }
         if (time == null) {
             time = new Date();
