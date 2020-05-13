@@ -1,3 +1,2 @@
-mvn clean install
-zip target/*sources.jar -d module-info.java
+mvn clean package
 cp target/*sources.jar $ProxyClient_IOS_LIB/simplewebserver-sources.jar
