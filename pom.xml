@@ -247,6 +247,7 @@
                     <failOnUnableToExtractRepoInfo>true</failOnUnableToExtractRepoInfo>
                     <skip>false</skip>
                     <runOnlyOnce>false</runOnlyOnce>
+                    <offline>true</offline>
                     <useNativeGit>true</useNativeGit>
                     <abbrevLength>7</abbrevLength>
                     <commitIdGenerationMode>flat</commitIdGenerationMode>
