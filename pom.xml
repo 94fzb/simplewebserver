@@ -259,15 +259,6 @@
                         <tags>false</tags>
                         <forceLongFormat>false</forceLongFormat>
                     </gitDescribe>
-                    <validationProperties>
-                        <validationProperty>
-                            <name>validating project version</name>
-                            <value>${project.version}</value>
-                            <shouldMatchTo>
-                                <![CDATA[^.*(?<!-SNAPSHOT)$]]>
-                            </shouldMatchTo>
-                        </validationProperty>
-                    </validationProperties>
                     <validationShouldFailIfNoMatch>true</validationShouldFailIfNoMatch>
                     <evaluateOnCommit>HEAD</evaluateOnCommit>
                 </configuration>
