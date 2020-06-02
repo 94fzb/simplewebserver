@@ -1,7 +1,6 @@
 package com.hibegin.http.server.impl;
 
 import com.hibegin.common.util.BytesUtil;
-import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.io.ChunkedOutputStream;
 import com.hibegin.http.io.GzipCompressingInputStream;
@@ -21,7 +20,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.GZIPOutputStream;
 
 public class SimpleHttpResponse implements HttpResponse {
 
@@ -32,7 +30,6 @@ public class SimpleHttpResponse implements HttpResponse {
     private final HttpRequest request;
     private final List<Cookie> cookieList = new ArrayList<>();
     private final ResponseConfig responseConfig;
-    private static final int SEND_FILE_BLANK_LENGTH = 1024 * 1024;
     private static final String SERVER_INFO = ServerInfo.getName() + "/" + ServerInfo.getVersion();
 
     public SimpleHttpResponse(HttpRequest request, ResponseConfig responseConfig) {
@@ -53,20 +50,7 @@ public class SimpleHttpResponse implements HttpResponse {
                 String ext = file.getName().substring(file.getName().lastIndexOf(".") + 1);
                 // getMimeType
                 trySetResponseContentType(MimeTypeUtil.getMimeStrByExt(ext));
-                if (file.length() < SEND_FILE_BLANK_LENGTH) {
-                    send(buildResponseData(200, IOUtil.getByteByInputStream(fileInputStream)));
-                } else {
-                    send(wrapperResponseHeaderWithContentLength(200, file.length()), false);
-                    //处理大文件
-                    int length = SEND_FILE_BLANK_LENGTH;
-                    byte[] tempBytes = new byte[length];
-                    while ((length = fileInputStream.read(tempBytes)) != -1) {
-                        send(BytesUtil.subBytes(tempBytes, 0, length), false);
-                    }
-                    //是否关闭流
-                    send(new byte[]{});
-                }
-
+                write(fileInputStream, 200, file.length());
             } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, "", e);
             } finally {
@@ -120,29 +104,7 @@ public class SimpleHttpResponse implements HttpResponse {
         }
     }
 
-    /**
-     * @return
-     */
-    private byte[] buildResponseData(Integer statusCode, byte[] data) {
-        byte[] headerBytes = wrapperResponseHeaderWithContentLength(statusCode, data.length);
-        if (data.length == 0) {
-            return headerBytes;
-        } else {
-            return BytesUtil.mergeBytes(headerBytes, tryConvertGzipBytes(data));
-        }
-    }
-
-    private byte[] wrapperResponseHeaderWithContentLength(Integer statusCode, long length) {
-        header.put("Content-Length", length + "");
-        return wrapperBaseResponseHeader(statusCode);
-    }
-
     private byte[] wrapperBaseResponseHeader(int statusCode) {
-        if (responseConfig.isGzip()) {
-            header.put("Content-Encoding", "gzip");
-            header.remove("Content-Length");
-        }
-
         header.put("Server", SERVER_INFO);
         if (!getHeader().containsKey("Connection")) {
             boolean keepAlive = request.getHeader("Connection") == null;
@@ -182,41 +144,17 @@ public class SimpleHttpResponse implements HttpResponse {
         return sb.toString().getBytes();
     }
 
-    private byte[] wrapperResponseHeaderWithContentLength(Integer statusCode) {
-        header.put("Transfer-Encoding", "chunked");
-        return wrapperBaseResponseHeader(statusCode);
-    }
-
-    private byte[] tryConvertGzipBytes(byte[] bytes) {
-        if (responseConfig.isGzip()) {
-            try {
-                ByteArrayOutputStream bos = new ByteArrayOutputStream(bytes.length);
-                GZIPOutputStream gzip = new GZIPOutputStream(bos);
-                gzip.write(bytes);
-                gzip.close();
-                byte[] compressed = bos.toByteArray();
-                bos.close();
-                return compressed;
-            } catch (IOException e) {
-                throw new InternalException("convertGzipBytes error ", e);
-            }
-
-        }
-        return bytes;
-    }
-
     private void renderByStatusCode(Integer errorCode) {
         if (errorCode > 399) {
-            trySetResponseContentType("text/html");
-            send(buildResponseData(errorCode, StringsUtil.getHtmlStrByStatusCode(errorCode).getBytes()));
-        } else if (errorCode >= 300 && errorCode < 400) {
+            renderByMimeType("html", StringsUtil.getHtmlStrByStatusCode(errorCode).getBytes(), errorCode);
+        } else if (errorCode > 299) {
             if (!header.containsKey("Location")) {
                 String welcomeFile = request.getServerConfig().getWelcomeFile();
                 if (welcomeFile == null || "".equals(welcomeFile.trim())) {
                     header.put("Location", request.getScheme() + "://" + request.getHeader("Host") + "/" + request.getUri() + welcomeFile);
                 }
             }
-            send(buildResponseData(errorCode, new byte[]{}));
+            renderByMimeType("", new byte[0], errorCode);
         }
     }
 
@@ -245,8 +183,14 @@ public class SimpleHttpResponse implements HttpResponse {
     }
 
     private void renderByMimeType(String ext, byte[] body) {
-        trySetResponseContentType(MimeTypeUtil.getMimeStrByExt(ext) + ";charset=" + responseConfig.getCharSet());
-        send(buildResponseData(200, body));
+        renderByMimeType(ext, body, 200);
+    }
+
+    private void renderByMimeType(String ext, byte[] body, int code) {
+        if (ext != null && ext.length() > 0) {
+            trySetResponseContentType(MimeTypeUtil.getMimeStrByExt(ext) + ";charset=" + responseConfig.getCharSet());
+        }
+        write(new ByteArrayInputStream(body), code, body.length);
     }
 
     private void trySetResponseContentType(String contentType) {
@@ -276,7 +220,7 @@ public class SimpleHttpResponse implements HttpResponse {
     @Override
     public void redirect(String url) {
         header.put("Location", url);
-        send(buildResponseData(302, new byte[0]));
+        renderByMimeType("", new byte[0], 302);
     }
 
     @Override
@@ -311,22 +255,56 @@ public class SimpleHttpResponse implements HttpResponse {
 
     @Override
     public void write(InputStream inputStream, int code) {
+        write(inputStream, code, -1);
+    }
+
+    private boolean needChunked(long bodyLength) {
+        if (bodyLength == 0) {
+            return false;
+        }
+        if (bodyLength < 0) {
+            return true;
+        }
+        return responseConfig.isGzip();
+    }
+
+    private byte[] toChunked(byte[] inputBytes) throws IOException {
+        ByteArrayOutputStream tmpOut = new ByteArrayOutputStream();
+        ChunkedOutputStream chunkedOutputStream = new ChunkedOutputStream(tmpOut);
+        chunkedOutputStream.write(inputBytes);
+        return tmpOut.toByteArray();
+    }
+
+    private void write(InputStream inputStream, int code, long bodyLength) {
         try {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            byteArrayOutputStream.write(wrapperResponseHeaderWithContentLength(code));
-            send(byteArrayOutputStream, false);
-            if (inputStream != null) {
-                byte[] bytes = new byte[RESPONSE_BYTES_BLANK_SIZE];
-                int length;
-                if (responseConfig.isGzip()) {
+            if (needChunked(bodyLength)) {
+                header.put("Transfer-Encoding", "chunked");
+                header.remove("Content-Length");
+            } else {
+                header.put("Content-Length", bodyLength + "");
+            }
+            if (responseConfig.isGzip()) {
+                header.put("Content-Encoding", "gzip");
+                if (inputStream != null) {
                     inputStream = new GzipCompressingInputStream(inputStream);
                 }
-                while ((length = inputStream.read(bytes)) != -1) {
-                    ByteArrayOutputStream tmpOut = new ByteArrayOutputStream();
-                    ChunkedOutputStream chunkedOutputStream = new ChunkedOutputStream(tmpOut);
-                    chunkedOutputStream.write(BytesUtil.subBytes(bytes, 0, length));
-                    send(tmpOut, false);
+            }
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            byteArrayOutputStream.write(wrapperBaseResponseHeader(code));
+            send(byteArrayOutputStream, false);
+            if (inputStream == null) {
+                return;
+            }
+            byte[] bytes = new byte[RESPONSE_BYTES_BLANK_SIZE];
+            int length;
+            while ((length = inputStream.read(bytes)) != -1) {
+                if (needChunked(bodyLength)) {
+                    send(toChunked(BytesUtil.subBytes(bytes, 0, length)), false);
+                } else {
+                    send(BytesUtil.subBytes(bytes, 0, length), false);
                 }
+            }
+            if (needChunked(bodyLength)) {
                 ByteArrayOutputStream tmpOut = new ByteArrayOutputStream();
                 ChunkedOutputStream chunkedOutputStream = new ChunkedOutputStream(tmpOut);
                 chunkedOutputStream.close();
@@ -347,7 +325,7 @@ public class SimpleHttpResponse implements HttpResponse {
 
     @Override
     public void write(ByteArrayOutputStream outputStream, int code) {
-        send(buildResponseData(code, outputStream.toByteArray()));
+        write(new ByteArrayInputStream(outputStream.toByteArray()), code);
     }
 
     @Override
