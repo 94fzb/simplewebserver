@@ -72,8 +72,6 @@ public class LoggerUtil {
 
     /**
      * 记录完善的异常日志信息(包括堆栈信息)
-     *
-     * @param e Exception
      */
     public static String recordStackTraceMsg(Exception e) {
         StringWriter stringWriter = new StringWriter();
