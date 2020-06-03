@@ -73,7 +73,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
         if (requestBB.remaining() < remaining) {
             int bbSize = requestBB.capacity() * 2;
             //Expand buffer for large request
-            requestBB = ByteBuffer.allocate(bbSize > MAX_REQUEST_BB_SIZE ? MAX_REQUEST_BB_SIZE : bbSize);
+            requestBB = ByteBuffer.allocate(Math.min(bbSize, MAX_REQUEST_BB_SIZE));
         } else {
             requestBB = ByteBuffer.allocate(requestBB.capacity());
         }
