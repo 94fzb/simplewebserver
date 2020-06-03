@@ -26,11 +26,11 @@ public class SimpleHttpResponse implements HttpResponse {
     private static final String CRLF = "\r\n";
     private static final int RESPONSE_BYTES_BLANK_SIZE = 4096;
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleHttpResponse.class);
+    private static final String SERVER_INFO = ServerInfo.getName() + "/" + ServerInfo.getVersion();
     private final Map<String, String> header = new TreeMap<>();
     private final HttpRequest request;
     private final List<Cookie> cookieList = new ArrayList<>();
     private final ResponseConfig responseConfig;
-    private static final String SERVER_INFO = ServerInfo.getName() + "/" + ServerInfo.getVersion();
 
     public SimpleHttpResponse(HttpRequest request, ResponseConfig responseConfig) {
         this.request = request;
@@ -294,7 +294,7 @@ public class SimpleHttpResponse implements HttpResponse {
                     inputStream = new GzipCompressingInputStream(inputStream);
                 }
             } else {
-                header.put("Content-Length", bodyLength + "");
+                header.put("Content-Length", Math.max(bodyLength, 0) + "");
             }
             send(wrapperBaseResponseHeader(code), false);
             if (inputStream == null) {
