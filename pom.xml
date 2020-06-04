@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.2.54-SNAPSHOT</version>
+    <version>0.2.53-SNAPSHOT</version>
     <packaging>jar</packaging>
     <url>http://github.com/94fzb/simplewebserver</url>
 
@@ -205,7 +205,7 @@
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                     <useReleaseProfile>false</useReleaseProfile>
                     <releaseProfiles>release</releaseProfiles>
-                    <goals>deploy</goals>
+                    <goals>deploy nexus-staging:release</goals>
                 </configuration>
             </plugin>
             <plugin>
