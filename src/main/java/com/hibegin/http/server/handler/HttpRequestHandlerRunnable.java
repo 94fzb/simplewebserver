@@ -54,11 +54,11 @@ public class HttpRequestHandlerRunnable implements Runnable {
         } finally {
             if (request.getMethod() != HttpMethod.CONNECT) {
                 String responseConnection = response.getHeader().get("Connection");
-                boolean keepAlive = !"close".equalsIgnoreCase(responseConnection);
-                if (!keepAlive) {
+                boolean needClose = "close".equalsIgnoreCase(responseConnection);
+                if (needClose) {
                     // 渲染错误页面
                     if (!getSocket().isClosed()) {
-                        LOGGER.log(Level.WARNING, "forget close stream " + getSocket().toString());
+                        LOGGER.log(Level.WARNING, request.getUri() + " forget close stream " + getSocket().toString());
                         response.renderCode(404);
                     }
                     close();
