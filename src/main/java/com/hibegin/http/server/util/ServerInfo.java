@@ -30,7 +30,7 @@ public class ServerInfo {
                 LOGGER.log(Level.SEVERE, "", e);
             }
         } else {
-            version = "0.2.45";
+            version = "0.2.53";
         }
         if (time == null) {
             time = new Date();

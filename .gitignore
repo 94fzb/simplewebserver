@@ -4,6 +4,7 @@
 **/log
 *.pid
 *.jar
+!.mvn/wrapper/maven-wrapper.jar
 *.iml
 **/target
 **/temp/**
@@ -16,5 +17,3 @@
 pom.xml.releaseBackup
 release.properties
 pom.xml.next
-src/main/resources/ServerInfo.properties
-.*
