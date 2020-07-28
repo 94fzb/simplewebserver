@@ -16,8 +16,8 @@ import java.util.logging.Logger;
 
 public class CheckRequestRunnable implements Runnable {
 
-    private Map<Socket, HttpRequestHandlerRunnable> channelHttpRequestHandlerThreadMap;
-    private ApplicationContext applicationContext;
+    private final Map<Socket, HttpRequestHandlerRunnable> channelHttpRequestHandlerThreadMap;
+    private final ApplicationContext applicationContext;
     private static final Logger LOGGER = LoggerUtil.getLogger(CheckRequestRunnable.class);
 
     public CheckRequestRunnable(ApplicationContext applicationContext) {

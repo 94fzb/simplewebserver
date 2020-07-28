@@ -298,6 +298,7 @@ public class SimpleHttpResponse implements HttpResponse {
             }
             send(wrapperBaseResponseHeader(code), false);
             if (inputStream == null) {
+                send(new byte[0]);
                 return;
             }
             byte[] bytes = new byte[RESPONSE_BYTES_BLANK_SIZE];
@@ -314,6 +315,8 @@ public class SimpleHttpResponse implements HttpResponse {
                 ChunkedOutputStream chunkedOutputStream = new ChunkedOutputStream(tmpOut);
                 chunkedOutputStream.close();
                 send(tmpOut.toByteArray());
+            } else {
+                send(new byte[0]);
             }
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "", e);
