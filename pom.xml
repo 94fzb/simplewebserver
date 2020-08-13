@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.2.55-SNAPSHOT</version>
+    <version>0.2.60-SNAPSHOT</version>
     <packaging>jar</packaging>
     <url>http://github.com/94fzb/simplewebserver</url>
 
@@ -102,6 +102,9 @@
                             <includes>
                                 <include>module-info.java</include>
                             </includes>
+                            <excludes>
+                                <exclude>com/hibegin/*</exclude>
+                            </excludes>
                         </configuration>
                     </execution>
                 </executions>
