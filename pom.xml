@@ -103,7 +103,7 @@
                                 <include>module-info.java</include>
                             </includes>
                             <excludes>
-                                <exclude>com/hibegin/*</exclude>
+                                <exclude>com/hibegin/**</exclude>
                             </excludes>
                         </configuration>
                     </execution>
