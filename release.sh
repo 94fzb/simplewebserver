@@ -1,1 +1,1 @@
-./mvnw   -DdefaultCompileVersion=1.7  release:clean && ./mvnw -DdefaultCompileVersion=1.7  release:prepare && ./mvnw -DdefaultCompileVersion=1.7 release:perform
+./mvnw release:clean && ./mvnw  release:prepare && ./mvnw release:perform
