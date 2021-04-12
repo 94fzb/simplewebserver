@@ -37,10 +37,8 @@ public class IOUtil {
     }
 
     public static void writeBytesToFile(byte[] bytes, File file) {
-        try {
-            FileOutputStream out = new FileOutputStream(file);
+        try (FileOutputStream out = new FileOutputStream(file);) {
             out.write(bytes);
-            out.close();
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "", e);
         }
