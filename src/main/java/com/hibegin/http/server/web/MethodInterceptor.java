@@ -18,7 +18,7 @@ public class MethodInterceptor implements Interceptor {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(MethodInterceptor.class);
 
-    private boolean handleByStaticResource(HttpRequest request, HttpResponse response) {
+    private void handleByStaticResource(HttpRequest request, HttpResponse response) {
         for (Map.Entry<String, Map.Entry<String, StaticResourceLoader>> entry :
                 request.getServerConfig().getStaticResourceMapper().entrySet()) {
             if (request.getUri().startsWith(entry.getKey())) {
@@ -33,11 +33,11 @@ public class MethodInterceptor implements Interceptor {
                                 MimeTypeUtil.getMimeStrByExt(path.substring(path.lastIndexOf(".") + 1)));
                     }
                     response.write(inputStream);
-                    return true;
+                    return;
                 }
             }
         }
-        return false;
+        response.renderCode(404);
     }
 
     @Override
@@ -45,7 +45,8 @@ public class MethodInterceptor implements Interceptor {
         Router router = request.getRequestConfig().getRouter();
         Method method = router.getMethod(request.getUri());
         if (method == null) {
-            return !handleByStaticResource(request, response);
+            handleByStaticResource(request, response);
+            return false;
         }
         Controller controller = null;
         Constructor[] constructors = method.getDeclaringClass().getConstructors();
