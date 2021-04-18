@@ -27,7 +27,11 @@ public class Router {
     }
 
     public Method getMethod(String url) {
-        return getRouterMap().get(url);
+        Method method = getRouterMap().get(url);
+        if (method == null && url.contains("-")) {
+            method = getRouterMap().get(url.substring(0, url.indexOf("-")));
+        }
+        return method;
     }
 
     public Map<String, Method> getRouterMap() {
