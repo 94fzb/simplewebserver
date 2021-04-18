@@ -46,7 +46,7 @@ public class MethodInterceptor implements Interceptor {
         Method method = router.getMethod(request.getUri());
         if (method == null) {
             handleByStaticResource(request, response);
-            return true;
+            return false;
         }
         Controller controller = null;
         Constructor[] constructors = method.getDeclaringClass().getConstructors();
