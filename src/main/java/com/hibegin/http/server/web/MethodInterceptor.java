@@ -1,6 +1,7 @@
 package com.hibegin.http.server.web;
 
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.server.api.HttpErrorHandle;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
@@ -37,7 +38,12 @@ public class MethodInterceptor implements Interceptor {
                 }
             }
         }
-        response.renderCode(404);
+        HttpErrorHandle errorHandle = request.getServerConfig().getErrorHandle(404);
+        if (errorHandle == null) {
+            response.renderCode(404);
+        } else {
+            errorHandle.doHandle(request, response);
+        }
     }
 
     @Override

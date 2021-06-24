@@ -79,7 +79,7 @@ public class DemoController extends Controller{
 - ~~实现多线程解码HTTP请求~~
 - 提供类似 SpringMVC 通过注解完成 Restful API的编写
 - ~~提供多种 JSON 序列化工具包支持~~
-- 提供HTTP错误码错误页面配置功能
+- ~~提供HTTP错误码错误页面配置功能~~
 
 ## 其他
 

@@ -2,6 +2,7 @@ package com.hibegin.http.server.config;
 
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.SimpleWebServer;
+import com.hibegin.http.server.api.HttpErrorHandle;
 import com.hibegin.http.server.api.HttpRequestDecodeListener;
 import com.hibegin.http.server.api.HttpRequestListener;
 import com.hibegin.http.server.api.Interceptor;
@@ -33,16 +34,17 @@ public class ServerConfig {
     private Executor requestExecutor;
     private Executor decodeExecutor;
     private String sessionId = "JSESSIONID";
-    private Router router = new Router();
+    private final Router router = new Router();
     private HttpJsonMessageConverter httpJsonMessageConverter;
     private HttpRequestDecodeListener httpRequestDecodeListener;
-    private StaticResourceLoader defaultStaticResourceClassLoader = new StaticResourceLoader() {
+    private final Map<Integer, HttpErrorHandle> httpErrorHandleMap = new ConcurrentHashMap<>();
+    private final StaticResourceLoader defaultStaticResourceClassLoader = new StaticResourceLoader() {
         @Override
         public InputStream getInputStream(String path) {
             return SimpleWebServer.class.getResourceAsStream(path);
         }
     };
-    private List<HttpRequestListener> httpRequestListenerList = new ArrayList<>();
+    private final List<HttpRequestListener> httpRequestListenerList = new ArrayList<>();
 
     public boolean isSsl() {
         return isSsl;
@@ -162,6 +164,7 @@ public class ServerConfig {
                 for (Class<? extends Interceptor> inter : interceptors) {
                     if (interceptor.toString().equals(inter.toString())) {
                         flag = true;
+                        break;
                     }
                 }
                 if (!flag) {
@@ -214,7 +217,7 @@ public class ServerConfig {
         this.welcomeFile = welcomeFile;
     }
 
-    public void addReqeustListener(HttpRequestListener httpRequestListener) {
+    public void addRequestListener(HttpRequestListener httpRequestListener) {
         httpRequestListenerList.add(httpRequestListener);
     }
 
@@ -228,5 +231,13 @@ public class ServerConfig {
 
     public void setHttpRequestDecodeListener(HttpRequestDecodeListener httpRequestDecodeListener) {
         this.httpRequestDecodeListener = httpRequestDecodeListener;
+    }
+
+    public void addErrorHandle(Integer errorCode, HttpErrorHandle errorHandle) {
+        httpErrorHandleMap.put(errorCode, errorHandle);
+    }
+
+    public HttpErrorHandle getErrorHandle(Integer errorCode) {
+        return httpErrorHandleMap.get(errorCode);
     }
 }
