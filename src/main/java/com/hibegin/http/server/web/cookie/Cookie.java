@@ -14,6 +14,7 @@ public class Cookie {
     private Date expireDate;
     private boolean create;
     private boolean httpOnly;
+    private String sameSite;
 
     public Cookie(boolean create) {
         this.setCreate(create);
@@ -91,6 +92,9 @@ public class Cookie {
         if (domain != null && domain.trim().length() > 0) {
             cookieStr += ";" + "Domain=" + domain;
         }
+        if (sameSite != null && !sameSite.trim().equals("")) {
+            cookieStr += ";" + "SameSite=" + sameSite;
+        }
         if (httpOnly) {
             cookieStr += ";HttpOnly";
         }
@@ -119,5 +123,13 @@ public class Cookie {
 
     public void setExpireDate(Date expireDate) {
         this.expireDate = expireDate;
+    }
+
+    public String getSameSite() {
+        return sameSite;
+    }
+
+    public void setSameSite(String sameSite) {
+        this.sameSite = sameSite;
     }
 }
