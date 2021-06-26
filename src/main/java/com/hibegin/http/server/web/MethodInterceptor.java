@@ -7,7 +7,11 @@ import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.config.StaticResourceLoader;
 import com.hibegin.http.server.util.MimeTypeUtil;
+import com.hibegin.http.server.util.PathUtil;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -19,7 +23,8 @@ public class MethodInterceptor implements Interceptor {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(MethodInterceptor.class);
 
-    private void handleByStaticResource(HttpRequest request, HttpResponse response) {
+    private void handleByStaticResource(HttpRequest request, HttpResponse response) throws FileNotFoundException {
+        InputStream inputStream = null;
         for (Map.Entry<String, Map.Entry<String, StaticResourceLoader>> entry :
                 request.getServerConfig().getStaticResourceMapper().entrySet()) {
             if (request.getUri().startsWith(entry.getKey())) {
@@ -27,16 +32,25 @@ public class MethodInterceptor implements Interceptor {
                 if (request.getUri().endsWith("/")) {
                     path += request.getServerConfig().getWelcomeFile();
                 }
-                InputStream inputStream = entry.getValue().getValue().getInputStream(entry.getValue().getKey() + path);
+                inputStream = entry.getValue().getValue().getInputStream(entry.getValue().getKey() + path);
                 if (inputStream != null) {
-                    if (path.contains(".")) {
-                        response.addHeader("Content-Type",
-                                MimeTypeUtil.getMimeStrByExt(path.substring(path.lastIndexOf(".") + 1)));
-                    }
-                    response.write(inputStream);
-                    return;
+                    break;
                 }
             }
+        }
+        if (inputStream == null) {
+            File file = new File(PathUtil.getStaticPath() + "/" + request.getUri());
+            if (file.exists()) {
+                inputStream = new FileInputStream(file);
+            }
+        }
+        if (inputStream != null) {
+            if (request.getUri().contains(".")) {
+                response.addHeader("Content-Type",
+                        MimeTypeUtil.getMimeStrByExt(request.getUri().substring(request.getUri().lastIndexOf(".") + 1)));
+            }
+            response.write(inputStream);
+            return;
         }
         HttpErrorHandle errorHandle = request.getServerConfig().getErrorHandle(404);
         if (errorHandle == null) {
