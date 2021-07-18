@@ -16,12 +16,24 @@ public class GsonHttpJsonMessageConverter implements HttpJsonMessageConverter {
     private Method formJson;
 
     public GsonHttpJsonMessageConverter() {
+        if (!imported()) {
+            return;
+        }
         try {
             gson = Class.forName("com.google.gson.Gson").getDeclaredConstructor().newInstance();
             formJson = Class.forName("com.google.gson.Gson").getMethod("fromJson", String.class, Type.class);
             toJson = Class.forName("com.google.gson.Gson").getMethod("toJson", Object.class);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "", e);
+        }
+    }
+
+    public static boolean imported() {
+        try {
+            Class.forName("com.google.gson.Gson").getDeclaredConstructor().newInstance();
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 

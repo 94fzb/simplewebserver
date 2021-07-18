@@ -75,7 +75,9 @@ public class SimpleWebServer implements ISocketServer {
             this.requestConfig.setRouter(serverConf.getRouter());
         }
         if (this.serverConfig.getHttpJsonMessageConverter() == null) {
-            this.serverConfig.setHttpJsonMessageConverter(new GsonHttpJsonMessageConverter());
+            if (GsonHttpJsonMessageConverter.imported()) {
+                this.serverConfig.setHttpJsonMessageConverter(new GsonHttpJsonMessageConverter());
+            }
         }
         applicationContext.setServerConfig(serverConf);
         Runtime rt = Runtime.getRuntime();
