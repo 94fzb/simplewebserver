@@ -149,7 +149,7 @@ public class HttpDecodeRunnable implements Runnable {
             if (codecEntry == null) {
                 handler = simpleWebServer.getReadWriteSelectorHandlerInstance(channel, key);
                 HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, applicationContext, handler);
-                codecEntry = new AbstractMap.SimpleEntry<>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig));
+                codecEntry = new AbstractMap.SimpleEntry<HttpRequestDeCoder, HttpResponse>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig));
                 applicationContext.getHttpDeCoderMap().put(channel.socket(), codecEntry);
             } else {
                 handler = codecEntry.getKey().getRequest().getHandler();
