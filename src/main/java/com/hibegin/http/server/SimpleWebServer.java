@@ -35,7 +35,7 @@ public class SimpleWebServer implements ISocketServer {
     private final RequestConfig requestConfig;
     private final ResponseConfig responseConfig;
     private final ApplicationContext applicationContext = new ApplicationContext();
-    private HttpDecodeThread httpDecodeThread;
+    private HttpDecodeRunnable httpDecodeRunnable;
 
     private static File pidFile;
     private static boolean tips = false;
@@ -132,7 +132,7 @@ public class SimpleWebServer implements ISocketServer {
                                 }
                             }
                         } else if (key.isValid() && key.isReadable()) {
-                            httpDecodeThread.doRead((SocketChannel) key.channel(), key);
+                            httpDecodeRunnable.doRead((SocketChannel) key.channel(), key);
                         }
                     } catch (CancelledKeyException | IOException e) {
                         //ignore，这里基本都是系统抛出来的异常了，比如连接被异常关闭，SSL握手失败
@@ -181,15 +181,24 @@ public class SimpleWebServer implements ISocketServer {
                 return thread;
             }
         });
+        ScheduledExecutorService httpDecodeRunnableExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread thread = new Thread(r);
+                thread.setName("http-decode-thread");
+                return thread;
+            }
+        });
+        httpDecodeRunnable = new HttpDecodeRunnable(applicationContext, this, requestConfig, responseConfig);
+        //1ms for cpu
+        httpDecodeRunnableExecutor.scheduleAtFixedRate(httpDecodeRunnable, 0, 1, TimeUnit.MILLISECONDS);
         checkRequestRunnable = new CheckRequestRunnable(applicationContext);
-        httpDecodeThread = new HttpDecodeThread(applicationContext, this, requestConfig, responseConfig);
-        httpDecodeThread.start();
         checkRequestExecutor.scheduleAtFixedRate(checkRequestRunnable, 0, 1000, TimeUnit.MILLISECONDS);
         new Thread(ServerInfo.getName().toLowerCase() + "-request-event-loop-thread") {
             @Override
             public void run() {
                 while (true) {
-                    HttpRequestHandlerRunnable httpRequestHandlerRunnable = httpDecodeThread.getHttpRequestHandlerThread();
+                    HttpRequestHandlerRunnable httpRequestHandlerRunnable = httpDecodeRunnable.getHttpRequestHandlerThread();
                     if (httpRequestHandlerRunnable != null) {
                         Socket socket = httpRequestHandlerRunnable.getRequest().getHandler().getChannel().socket();
                         if (httpRequestHandlerRunnable.getRequest().getMethod() != HttpMethod.CONNECT) {

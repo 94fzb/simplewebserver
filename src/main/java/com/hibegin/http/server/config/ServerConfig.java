@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -138,10 +139,13 @@ public class ServerConfig {
     public Executor getDecodeExecutor() {
         if (decodeExecutor == null) {
             decodeExecutor = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors() + 1, 20, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100), new ThreadFactory() {
+
+                private final AtomicLong count = new AtomicLong();
+
                 @Override
                 public Thread newThread(Runnable r) {
                     Thread thread = new Thread(r);
-                    thread.setName("request-decode-thread");
+                    thread.setName("request-decode-thread-" + count.getAndIncrement());
                     return thread;
                 }
             });
