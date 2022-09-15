@@ -6,7 +6,7 @@
     <artifactId>simplewebserver</artifactId>
     <version>0.3.2-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <url>http://github.com/94fzb/simplewebserver</url>
+    <url>https://github.com/94fzb/simplewebserver</url>
 
     <name>SimpleWebServer</name>
     <description>Simple, flexible, less dependent, more extended. Less memory footprint, can quickly build Web project.
@@ -25,7 +25,7 @@
     <developers>
         <developer>
             <email>xchun90@163.com</email>
-            <url>http://xiaochun.zrlog.com</url>
+            <url>https://xiaochun.zrlog.com</url>
         </developer>
     </developers>
     <scm>
@@ -36,12 +36,12 @@
     </scm>
     <issueManagement>
         <system>Github Issue</system>
-        <url>http://github.com/94fzb/simplewebserver</url>
+        <url>https://github.com/94fzb/simplewebserver</url>
     </issueManagement>
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
-            <url>http://apache.org/licenses/LICENSE-2.0.txt</url>
+            <url>https://apache.org/licenses/LICENSE-2.0.txt</url>
         </license>
     </licenses>
 
