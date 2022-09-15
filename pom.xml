@@ -129,10 +129,10 @@
                         <id>compile-java11</id>
                         <phase>compile</phase>
                         <configuration>
-                            <tasks>
+                            <target>
                                 <mkdir dir="${java11.build.outputDirectory}" />
                                 <javac srcdir="${java11.sourceDirectory}" destdir="${java11.build.outputDirectory}" classpath="${project.build.outputDirectory}" includeantruntime="false" source="11" target="11" />
-                            </tasks>
+                            </target>
                         </configuration>
                         <goals>
                             <goal>run</goal>
