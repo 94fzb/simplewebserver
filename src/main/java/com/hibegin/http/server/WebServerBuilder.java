@@ -8,6 +8,7 @@ import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.MethodInterceptor;
 
+import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -66,20 +67,21 @@ public class WebServerBuilder {
     }
 
     public boolean startWithThread() {
+        startWithThread(runnable -> {
+            Thread thread = new Thread(runnable);
+            thread.setName(ServerInfo.getName().toLowerCase() + "-main-thread");
+            return thread;
+        });
+        return false;
+    }
+
+    public boolean startWithThread(ThreadFactory threadFactory) {
         try {
             boolean created = create();
             if (created) {
-                new Thread() {
-                    @Override
-                    public void run() {
-                        try {
-                            Thread.currentThread().setName(ServerInfo.getName().toLowerCase() + "-main-thread");
-                            WebServerBuilder.this.webServer.listener();
-                        } catch (Exception e) {
-                            LOGGER.log(Level.SEVERE, "", e);
-                        }
-                    }
-                }.start();
+                threadFactory.newThread(() -> {
+                    WebServerBuilder.this.webServer.listener();
+                }).start();
             }
             return created;
         } catch (Exception e) {
