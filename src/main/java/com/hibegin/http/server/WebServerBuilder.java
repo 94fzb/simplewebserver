@@ -35,6 +35,11 @@ public class WebServerBuilder {
         return webServer;
     }
 
+    public SimpleWebServer startInBackground(ThreadFactory threadFactory) {
+        startWithThread(threadFactory);
+        return webServer;
+    }
+
     public void start() {
         if (create()) {
             webServer.listener();
