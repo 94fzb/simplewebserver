@@ -16,8 +16,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <freemarker.version>2.3.23</freemarker.version>
         <gson.version>2.9.1</gson.version>
-        <maven.compiler.target>1.7</maven.compiler.target>
-        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <maven.compiler.source>8</maven.compiler.source>
         <java11.sourceDirectory>${project.basedir}/src/main/java11</java11.sourceDirectory>
         <java11.build.outputDirectory>${project.build.directory}/classes-java11</java11.build.outputDirectory>
         <maven.test.skip>true</maven.test.skip>
@@ -32,7 +32,8 @@
         <connection>scm:git:https://github.com/94fzb/simplewebserver</connection>
         <developerConnection>scm:git:https://github.com/94fzb/simplewebserver</developerConnection>
         <url>https://github.com/94fzb/simplewebserver</url>
-    </scm>
+      <tag>simplewebserver-0.3.3</tag>
+  </scm>
     <issueManagement>
         <system>Github Issue</system>
         <url>https://github.com/94fzb/simplewebserver</url>
