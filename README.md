@@ -1,5 +1,7 @@
 # SimpleWebServer
 
+[![Maven Central](https://img.shields.io/maven-central/v/com.hibegin/simplewebserver.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.hibegin%22%20AND%20a:%22simplewebserver%22)
+
 > SimpleWebServer 是一款使用Java基于NIO编写的超轻量级开源Web Application Server
 
 是否遇到有时候想做一些小的Web程序，但是迫于Java运行环境过于繁琐而迟迟没有下手，那么现在除了SpringBoot，广大的Java程序员又多了一个选择
@@ -17,7 +19,7 @@ request, response, controller. interceptor 还是熟悉的配方，熟悉的味�
 <dependency>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.2.42</version>
+    <version>0.3.4</version>
 </dependency>
 ```
 
