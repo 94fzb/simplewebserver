@@ -16,6 +16,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.channels.*;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -36,6 +37,8 @@ public class SimpleWebServer implements ISocketServer {
     private final ResponseConfig responseConfig;
     private final ApplicationContext applicationContext = new ApplicationContext();
     private HttpDecodeRunnable httpDecodeRunnable;
+
+    private ServerSocketChannel serverChannel;
 
     private static File pidFile;
     private static boolean tips = false;
@@ -224,11 +227,13 @@ public class SimpleWebServer implements ISocketServer {
 
     @Override
     public void destroy() {
-        if (selector == null) {
-            return;
-        }
         try {
-            selector.close();
+            if (Objects.nonNull(selector)) {
+                selector.close();
+            }
+            if (Objects.nonNull(serverChannel)) {
+                serverChannel.socket().close();
+            }
             LOGGER.info(ServerInfo.getName() + " close success");
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "close selector error");
@@ -243,7 +248,7 @@ public class SimpleWebServer implements ISocketServer {
     @Override
     public boolean create(int port) {
         try {
-            final ServerSocketChannel serverChannel = ServerSocketChannel.open();
+            serverChannel = ServerSocketChannel.open();
             serverChannel.socket().bind(new InetSocketAddress(serverConfig.getHost(), port));
             serverChannel.configureBlocking(false);
             selector = Selector.open();
