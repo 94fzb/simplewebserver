@@ -34,15 +34,15 @@ public class CheckRequestRunnable implements Runnable {
 
     private void clearRequestListener(Set<SocketChannel> removeHttpRequestList) {
         for (SocketChannel socket : removeHttpRequestList) {
+            try {
+                socket.socket().close();
+                socket.close();
+            } catch (IOException e) {
+                //ignore
+            }
             if (channelHttpRequestHandlerThreadMap.get(socket) != null) {
                 channelHttpRequestHandlerThreadMap.get(socket).close();
                 channelHttpRequestHandlerThreadMap.remove(socket);
-                try {
-                    socket.socket().close();
-                    socket.close();
-                } catch (IOException e) {
-                    //ignore
-                }
             }
         }
     }
