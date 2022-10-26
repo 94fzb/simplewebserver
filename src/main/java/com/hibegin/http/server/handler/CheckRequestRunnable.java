@@ -1,31 +1,26 @@
 package com.hibegin.http.server.handler;
 
-import com.hibegin.common.util.EnvKit;
-import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.api.HttpResponse;
 
+import java.io.IOException;
 import java.net.Socket;
+import java.nio.channels.SocketChannel;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class CheckRequestRunnable implements Runnable {
 
-    private final Map<Socket, HttpRequestHandlerRunnable> channelHttpRequestHandlerThreadMap;
+    private final Map<SocketChannel, HttpRequestHandlerRunnable> channelHttpRequestHandlerThreadMap;
     private final ApplicationContext applicationContext;
-    private static final Logger LOGGER = LoggerUtil.getLogger(CheckRequestRunnable.class);
 
     public CheckRequestRunnable(ApplicationContext applicationContext) {
         this.channelHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
         this.applicationContext = applicationContext;
     }
-
-    private Thread thread;
 
     private int getRequestTimeout() {
         return applicationContext.getServerConfig().getTimeout();
@@ -33,47 +28,35 @@ public class CheckRequestRunnable implements Runnable {
 
     @Override
     public void run() {
-        if (EnvKit.isAndroid()) {
-            if (thread != null) {
-                thread.interrupt();
-            }
-        }
-        thread = new Thread() {
-            @Override
-            public void run() {
-                try {
-                    clearRequestListener(getClosedRequestSocketSet());
-                    clearRequestDecode(getClosedDecodedSocketSet());
-                } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, "e", e);
-                }
-            }
-        };
-        if (EnvKit.isAndroid()) {
-            thread.start();
-        } else {
-            thread.run();
-        }
+        clearRequestListener(getClosedRequestSocketSet());
+        clearRequestDecode(getClosedDecodedSocketSet());
     }
 
-    private void clearRequestListener(Set<Socket> removeHttpRequestList) {
-        for (Socket socket : removeHttpRequestList) {
+    private void clearRequestListener(Set<SocketChannel> removeHttpRequestList) {
+        for (SocketChannel socket : removeHttpRequestList) {
             if (channelHttpRequestHandlerThreadMap.get(socket) != null) {
                 channelHttpRequestHandlerThreadMap.get(socket).close();
                 channelHttpRequestHandlerThreadMap.remove(socket);
+                try {
+                    socket.socket().close();
+                    socket.close();
+                } catch (IOException e) {
+                    //ignore
+                }
             }
         }
     }
 
-    private Set<Socket> getClosedRequestSocketSet() {
-        Set<Socket> socketChannels = new CopyOnWriteArraySet<>();
-        for (Map.Entry<Socket, HttpRequestHandlerRunnable> entry : channelHttpRequestHandlerThreadMap.entrySet()) {
-            Socket socket = entry.getKey();
-            if (socket.isClosed()) {
+    private Set<SocketChannel> getClosedRequestSocketSet() {
+        Set<SocketChannel> socketChannels = new CopyOnWriteArraySet<>();
+        for (Map.Entry<SocketChannel, HttpRequestHandlerRunnable> entry : channelHttpRequestHandlerThreadMap.entrySet()) {
+            SocketChannel socketChannel = entry.getKey();
+            if (!socketChannel.isOpen()) {
                 socketChannels.add(entry.getKey());
+                continue;
             }
             if (getRequestTimeout() > 0) {
-                if (System.currentTimeMillis() - entry.getValue().getRequest().getCreateTime() > getRequestTimeout() * 1000) {
+                if (System.currentTimeMillis() - entry.getValue().getRequest().getCreateTime() > getRequestTimeout() * 1000L) {
                     entry.getValue().getResponse().renderCode(504);
                     socketChannels.add(entry.getKey());
                 }
@@ -99,7 +82,7 @@ public class CheckRequestRunnable implements Runnable {
         }
     }
 
-    public Map<Socket, HttpRequestHandlerRunnable> getChannelHttpRequestHandlerThreadMap() {
+    public Map<SocketChannel, HttpRequestHandlerRunnable> getChannelHttpRequestHandlerThreadMap() {
         return channelHttpRequestHandlerThreadMap;
     }
 }

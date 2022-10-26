@@ -200,10 +200,10 @@ public class SimpleWebServer implements ISocketServer {
         new Thread(ServerInfo.getName().toLowerCase() + "-request-event-loop-thread") {
             @Override
             public void run() {
-                while (true) {
+                while (!Thread.interrupted()) {
                     HttpRequestHandlerRunnable httpRequestHandlerRunnable = httpDecodeRunnable.getHttpRequestHandlerThread();
                     if (httpRequestHandlerRunnable != null) {
-                        Socket socket = httpRequestHandlerRunnable.getRequest().getHandler().getChannel().socket();
+                        SocketChannel socket = httpRequestHandlerRunnable.getRequest().getHandler().getChannel();
                         if (httpRequestHandlerRunnable.getRequest().getMethod() != HttpMethod.CONNECT) {
                             HttpRequestHandlerRunnable oldHttpRequestHandlerRunnable = checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().get(socket);
                             //清除老的请求
