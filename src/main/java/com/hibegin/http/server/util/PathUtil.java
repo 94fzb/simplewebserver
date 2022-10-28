@@ -6,6 +6,9 @@ import com.hibegin.common.util.LoggerUtil;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLDecoder;
 import java.util.logging.Level;
 
 /**
@@ -23,11 +26,21 @@ public class PathUtil {
         if (ROOT_PATH != null && ROOT_PATH.length() > 0) {
             return ROOT_PATH;
         } else {
-            try {
-                return new File(".").getCanonicalPath();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+            String path;
+            if (PathUtil.class.getResource("/") != null) {
+                URL url = PathUtil.class.getResource("/");
+                String tPath = url.getPath().replace("file:", "");
+                try {
+                    path = URLDecoder.decode(tPath, "UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    //e.printStackTrace();
+                    path = tPath;
+                }
+                path = new File(path).getParent();
+            } else {
+                path = System.getProperty("user.dir");
             }
+            return path;
         }
     }
 
