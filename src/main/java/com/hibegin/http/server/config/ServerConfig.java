@@ -6,14 +6,12 @@ import com.hibegin.http.server.api.HttpErrorHandle;
 import com.hibegin.http.server.api.HttpRequestDecodeListener;
 import com.hibegin.http.server.api.HttpRequestListener;
 import com.hibegin.http.server.api.Interceptor;
+import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.Router;
 
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -36,6 +34,20 @@ public class ServerConfig {
     private Executor decodeExecutor;
     private String sessionId = "JSESSIONID";
     private final Router router = new Router();
+
+    private String serverInfo;
+
+    public String getServerInfo() {
+        if (Objects.isNull(serverInfo) || serverInfo.trim().length() == 0) {
+            return ServerInfo.getName() + "/" + ServerInfo.getVersion();
+        }
+        return serverInfo;
+    }
+
+    public void setServerInfo(String serverInfo) {
+        this.serverInfo = serverInfo;
+    }
+
     private HttpJsonMessageConverter httpJsonMessageConverter;
     private HttpRequestDecodeListener httpRequestDecodeListener;
     private final Map<Integer, HttpErrorHandle> httpErrorHandleMap = new ConcurrentHashMap<>();

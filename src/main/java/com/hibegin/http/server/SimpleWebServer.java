@@ -118,22 +118,11 @@ public class SimpleWebServer implements ISocketServer {
                 while (iterator.hasNext()) {
                     try {
                         SelectionKey key = iterator.next();
-                        SocketChannel channel = null;
                         if (key.isValid() && key.isAcceptable()) {
                             ServerSocketChannel server = (ServerSocketChannel) key.channel();
-                            try {
-                                channel = server.accept();
-                                if (channel != null) {
-                                    channel.configureBlocking(false);
-                                    channel.register(selector, SelectionKey.OP_READ);
-                                }
-                            } catch (IOException e) {
-                                LOGGER.log(Level.SEVERE, "accept connect error", e);
-                                if (channel != null) {
-                                    key.cancel();
-                                    channel.close();
-                                }
-                            }
+                            SocketChannel channel = server.accept();
+                            channel.configureBlocking(false);
+                            channel.register(selector, SelectionKey.OP_READ);
                         } else if (key.isValid() && key.isReadable()) {
                             httpDecodeRunnable.doRead((SocketChannel) key.channel(), key);
                         }

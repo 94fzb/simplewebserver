@@ -26,7 +26,6 @@ public class SimpleHttpResponse implements HttpResponse {
     private static final String CRLF = "\r\n";
     private static final int RESPONSE_BYTES_BLANK_SIZE = 4096;
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleHttpResponse.class);
-    private static final String SERVER_INFO = ServerInfo.getName() + "/" + ServerInfo.getVersion();
     private final Map<String, String> header = new TreeMap<>();
     private final HttpRequest request;
     private final List<Cookie> cookieList = new ArrayList<>();
@@ -105,7 +104,7 @@ public class SimpleHttpResponse implements HttpResponse {
     }
 
     private byte[] wrapperBaseResponseHeader(int statusCode) {
-        header.put("Server", SERVER_INFO);
+        header.put("Server", request.getServerConfig().getServerInfo());
         if (!getHeader().containsKey("Connection")) {
             boolean keepAlive = request.getHeader("Connection") == null;
             if (keepAlive) {
@@ -144,9 +143,13 @@ public class SimpleHttpResponse implements HttpResponse {
         return sb.toString().getBytes();
     }
 
+    private String getHtmlStrByStatusCode(int statusCode) {
+        return "<html><head><title>" + statusCode + " " + StatusCodeUtil.getStatusCodeDesc(statusCode) + "</title></head><body><center><h1>" + statusCode + " " + StatusCodeUtil.getStatusCodeDesc(statusCode) + "</h1></center><hr><center>" + request.getServerConfig().getServerInfo() + "</center></body></html>";
+    }
+
     private void renderByStatusCode(int errorCode) {
         if (errorCode > 399) {
-            renderByMimeType("html", StringsUtil.getHtmlStrByStatusCode(errorCode).getBytes(), errorCode);
+            renderByMimeType("html", getHtmlStrByStatusCode(errorCode).getBytes(), errorCode);
         } else if (errorCode > 299) {
             if (!header.containsKey("Location")) {
                 String welcomeFile = request.getServerConfig().getWelcomeFile();
