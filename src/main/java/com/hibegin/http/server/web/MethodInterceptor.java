@@ -14,6 +14,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.logging.Level;
@@ -95,7 +96,16 @@ public class MethodInterceptor implements Interceptor {
                 return false;
             }
         }
-        method.invoke(controller);
+        try {
+            method.invoke(controller);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (!(cause instanceof Error)) {
+                throw new RuntimeException(cause);
+            } else {
+                throw (Error) cause;
+            }
+        }
         return true;
     }
 }
