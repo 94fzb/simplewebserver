@@ -136,7 +136,7 @@ public class SimpleWebServer implements ISocketServer {
                 }
             } catch (CancelledKeyException e) {
                 //ignore
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "", e);
             }
         }
@@ -155,7 +155,7 @@ public class SimpleWebServer implements ISocketServer {
                     EnvKit.savePid(pidFile.toString());
                     pidFile.deleteOnExit();
                 }
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 LOGGER.log(Level.WARNING, "save pid error " + e.getMessage());
             }
         }

@@ -19,7 +19,7 @@ request, response, controller. interceptor 还是熟悉的配方，熟悉的味�
 <dependency>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.3.7</version>
+    <version>0.3.11</version>
 </dependency>
 ```
 
