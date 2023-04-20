@@ -13,7 +13,6 @@ import com.hibegin.http.server.web.MethodInterceptor;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.Objects;
@@ -236,9 +235,14 @@ public class SimpleWebServer implements ISocketServer {
 
     @Override
     public boolean create(int port) {
+        return create(serverConfig.getHost(), port);
+    }
+
+    @Override
+    public boolean create(String hostname, int port) {
         try {
             serverChannel = ServerSocketChannel.open();
-            serverChannel.socket().bind(new InetSocketAddress(serverConfig.getHost(), port));
+            serverChannel.socket().bind(new InetSocketAddress(hostname, port));
             serverChannel.configureBlocking(false);
             selector = Selector.open();
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);

@@ -61,7 +61,7 @@ public class WebServerBuilder {
         }
         boolean createSuccess;
         if (serverConfig.getPort() != 0) {
-            createSuccess = simpleWebServer.create(serverConfig.getPort());
+            createSuccess = simpleWebServer.create(serverConfig.getHost(), serverConfig.getPort());
         } else {
             createSuccess = simpleWebServer.create();
         }
