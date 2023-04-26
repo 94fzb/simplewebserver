@@ -36,6 +36,14 @@ public class IOUtil {
         return new String(getByteByInputStream(in));
     }
 
+    public static byte[] getByteByFile(File file) {
+        try {
+            return Files.readAllBytes(file.toPath());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static void writeStrToFile(String str, File file) {
         writeBytesToFile(str.getBytes(), file);
     }
