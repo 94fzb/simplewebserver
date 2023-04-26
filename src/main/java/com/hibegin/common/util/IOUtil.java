@@ -1,6 +1,10 @@
 package com.hibegin.common.util;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,8 +41,8 @@ public class IOUtil {
     }
 
     public static void writeBytesToFile(byte[] bytes, File file) {
-        try (FileOutputStream out = new FileOutputStream(file);) {
-            out.write(bytes);
+        try {
+            Files.write(file.toPath(), bytes);
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "", e);
         }
