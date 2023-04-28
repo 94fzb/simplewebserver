@@ -18,10 +18,7 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -202,6 +199,10 @@ public class SimpleHttpRequest implements HttpRequest {
 
     @Override
     public String getScheme() {
+        String proto = getHeader("X-Forwarded-Proto");
+        if(Objects.nonNull(proto)){
+            return proto;
+        }
         return requestConfig.isSsl() ? "https" : "http";
     }
 
