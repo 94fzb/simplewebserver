@@ -43,7 +43,7 @@ public class MethodInterceptor implements Interceptor {
             File file = new File(PathUtil.getStaticPath() + "/" + request.getUri());
             if (file.exists() && file.isFile()) {
                 inputStream = new FileInputStream(file);
-            } else if(file.exists() && file.isFile()){
+            } else if (file.exists() && file.isFile()) {
                 file = new File(PathUtil.getStaticPath() + "/" + request.getUri() + "/index.html");
                 inputStream = new FileInputStream(file);
             }

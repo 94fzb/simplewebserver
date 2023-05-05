@@ -14,7 +14,8 @@ public class Pid {
                 method.setAccessible(true);
                 return Long.valueOf(((String) method.invoke(runtimeMXBean)).split("@")[0]);
             }
-        } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+        } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException |
+                 NoSuchMethodException e) {
             e.printStackTrace();
         }
         return -1;

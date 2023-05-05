@@ -19,7 +19,6 @@ public class LoggerUtil {
     private static final String LOG_FOLDER_NAME = "log";
     private static final String LOG_FILE_SUFFIX = ".log";
     private static FileHandler fileHandler;
-    private static final Logger LOGGER = LoggerUtil.getLogger(LoggerUtil.class);
 
     static {
         try {
@@ -32,7 +31,7 @@ public class LoggerUtil {
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "", e);
         }
-    }
+    }    private static final Logger LOGGER = LoggerUtil.getLogger(LoggerUtil.class);
 
     private LoggerUtil() {
     }
@@ -80,4 +79,6 @@ public class LoggerUtil {
         StringBuffer buffer = stringWriter.getBuffer();
         return buffer.toString();
     }
+
+
 }

@@ -22,6 +22,10 @@ public class RequestConfig {
         return isSsl;
     }
 
+    public void setSsl(boolean ssl) {
+        isSsl = ssl;
+    }
+
     public void setIsSsl(boolean isSsl) {
         this.isSsl = isSsl;
     }
@@ -40,10 +44,6 @@ public class RequestConfig {
 
     public void setCharSet(String charSet) {
         this.charSet = charSet;
-    }
-
-    public void setSsl(boolean ssl) {
-        isSsl = ssl;
     }
 
     public int getMaxRequestBodySize() {

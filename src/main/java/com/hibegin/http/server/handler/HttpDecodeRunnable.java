@@ -193,11 +193,15 @@ public class HttpDecodeRunnable implements Runnable {
             LOGGER.log(Level.SEVERE, "error", e);
         } finally {
             try {
+                key.cancel();
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "error", e);
+            }
+            try {
                 key.channel().close();
             } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, "error", e);
             }
-            key.cancel();
         }
     }
 }

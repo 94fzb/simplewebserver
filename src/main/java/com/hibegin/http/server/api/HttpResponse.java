@@ -43,7 +43,7 @@ public interface HttpResponse {
      * 不包装HTTP协议，及直接写裸数据
      *
      * @param outputStream 出入的流
-     * @param close 发送完数据后，是否关闭连接
+     * @param close        发送完数据后，是否关闭连接
      */
     void send(ByteArrayOutputStream outputStream, boolean close);
 

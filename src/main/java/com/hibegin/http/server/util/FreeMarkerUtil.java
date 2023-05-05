@@ -20,7 +20,8 @@ public class FreeMarkerUtil {
     static {
         try {
             cfg = Class.forName("freemarker.template.Configuration").getDeclaredConstructor().newInstance();
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException e) {
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException |
+                 ClassNotFoundException e) {
             LOGGER.log(Level.WARNING, "load freemarker error", e);
         }
     }

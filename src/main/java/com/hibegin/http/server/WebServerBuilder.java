@@ -95,6 +95,10 @@ public class WebServerBuilder {
         return false;
     }
 
+    public SimpleWebServer getWebServer() {
+        return webServer;
+    }
+
     public static class Builder {
 
         private RequestConfig requestConfig;
@@ -131,9 +135,5 @@ public class WebServerBuilder {
         public WebServerBuilder build() {
             return new WebServerBuilder(this);
         }
-    }
-
-    public SimpleWebServer getWebServer() {
-        return webServer;
     }
 }

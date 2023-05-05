@@ -25,15 +25,10 @@ import java.util.logging.Logger;
 public class SimpleHttpRequest implements HttpRequest {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleHttpRequest.class);
-    private Cookie[] cookies;
-    private HttpSession session;
     private final RequestConfig requestConfig;
     private final ApplicationContext applicationContext;
-    private Map<String, Object> attr;
     private final ReadWriteSelectorHandler handler;
     private final long createTime;
-    private InputStream inputStream;
-
     protected Map<String, String> header = new HashMap<>();
     protected Map<String, String[]> paramMap;
     protected String uri;
@@ -42,6 +37,10 @@ public class SimpleHttpRequest implements HttpRequest {
     protected Map<String, File> files;
     protected File tmpRequestBodyFile;
     protected String requestHeaderStr;
+    private Cookie[] cookies;
+    private HttpSession session;
+    private Map<String, Object> attr;
+    private InputStream inputStream;
 
     protected SimpleHttpRequest(ReadWriteSelectorHandler handler, ApplicationContext applicationContext, RequestConfig requestConfig) {
         this.requestConfig = requestConfig;
@@ -200,7 +199,7 @@ public class SimpleHttpRequest implements HttpRequest {
     @Override
     public String getScheme() {
         String proto = getHeader("X-Forwarded-Proto");
-        if(Objects.nonNull(proto)){
+        if (Objects.nonNull(proto)) {
             return proto;
         }
         return requestConfig.isSsl() ? "https" : "http";

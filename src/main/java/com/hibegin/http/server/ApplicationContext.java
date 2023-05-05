@@ -19,12 +19,10 @@ import java.util.logging.Logger;
 public class ApplicationContext {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(ApplicationContext.class);
+    private final Map<Socket, Map.Entry<HttpRequestDeCoder, HttpResponse>> httpDeCoderMap = new ConcurrentHashMap<>();
     private boolean init;
     private List<Interceptor> interceptors;
-
     private ServerConfig serverConfig;
-
-    private final Map<Socket, Map.Entry<HttpRequestDeCoder, HttpResponse>> httpDeCoderMap = new ConcurrentHashMap<>();
 
     public Map<Socket, Map.Entry<HttpRequestDeCoder, HttpResponse>> getHttpDeCoderMap() {
         return httpDeCoderMap;

@@ -23,6 +23,15 @@ public class ServerConfig {
     private static final Logger LOGGER = LoggerUtil.getLogger(ServerConfig.class);
     private final Map<String, Map.Entry<String, StaticResourceLoader>> staticResourceMapper = new ConcurrentHashMap<>();
     private final List<Class<? extends Interceptor>> interceptors = new ArrayList<>();
+    private final Router router = new Router();
+    private final Map<Integer, HttpErrorHandle> httpErrorHandleMap = new ConcurrentHashMap<>();
+    private final StaticResourceLoader defaultStaticResourceClassLoader = new StaticResourceLoader() {
+        @Override
+        public InputStream getInputStream(String path) {
+            return SimpleWebServer.class.getResourceAsStream(path);
+        }
+    };
+    private final List<HttpRequestListener> httpRequestListenerList = new ArrayList<>();
     private boolean isSsl;
     private String host = "0.0.0.0";
     private int port;
@@ -33,9 +42,9 @@ public class ServerConfig {
     private Executor requestExecutor;
     private Executor decodeExecutor;
     private String sessionId = "JSESSIONID";
-    private final Router router = new Router();
-
     private String serverInfo;
+    private HttpJsonMessageConverter httpJsonMessageConverter;
+    private HttpRequestDecodeListener httpRequestDecodeListener;
 
     public String getServerInfo() {
         if (Objects.isNull(serverInfo) || serverInfo.trim().length() == 0) {
@@ -47,17 +56,6 @@ public class ServerConfig {
     public void setServerInfo(String serverInfo) {
         this.serverInfo = serverInfo;
     }
-
-    private HttpJsonMessageConverter httpJsonMessageConverter;
-    private HttpRequestDecodeListener httpRequestDecodeListener;
-    private final Map<Integer, HttpErrorHandle> httpErrorHandleMap = new ConcurrentHashMap<>();
-    private final StaticResourceLoader defaultStaticResourceClassLoader = new StaticResourceLoader() {
-        @Override
-        public InputStream getInputStream(String path) {
-            return SimpleWebServer.class.getResourceAsStream(path);
-        }
-    };
-    private final List<HttpRequestListener> httpRequestListenerList = new ArrayList<>();
 
     public boolean isSsl() {
         return isSsl;
@@ -92,16 +90,16 @@ public class ServerConfig {
         return requestExecutor;
     }
 
+    public void setRequestExecutor(Executor requestExecutor) {
+        this.requestExecutor = requestExecutor;
+    }
+
     public HttpJsonMessageConverter getHttpJsonMessageConverter() {
         return httpJsonMessageConverter;
     }
 
     public void setHttpJsonMessageConverter(HttpJsonMessageConverter httpJsonMessageConverter) {
         this.httpJsonMessageConverter = httpJsonMessageConverter;
-    }
-
-    public void setRequestExecutor(Executor requestExecutor) {
-        this.requestExecutor = requestExecutor;
     }
 
     public String getSessionId() {

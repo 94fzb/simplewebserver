@@ -28,19 +28,16 @@ public class SimpleWebServer implements ISocketServer {
 
 
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleWebServer.class);
-    private CheckRequestRunnable checkRequestRunnable;
-
-    private Selector selector;
+    private static File pidFile;
+    private static boolean tips = false;
     private final ServerConfig serverConfig;
     private final RequestConfig requestConfig;
     private final ResponseConfig responseConfig;
     private final ApplicationContext applicationContext = new ApplicationContext();
+    private CheckRequestRunnable checkRequestRunnable;
+    private Selector selector;
     private HttpDecodeRunnable httpDecodeRunnable;
-
     private ServerSocketChannel serverChannel;
-
-    private static File pidFile;
-    private static boolean tips = false;
 
     public SimpleWebServer() {
         this(null, null, null);
@@ -91,6 +88,25 @@ public class SimpleWebServer implements ISocketServer {
         });
     }
 
+    private static void tips() {
+        if (!tips) {
+            tips = true;
+            LOGGER.info(ServerInfo.getName() + " is run version -> " + ServerInfo.getVersion());
+
+            try {
+                if (!EnvKit.isAndroid()) {
+                    if (pidFile == null) {
+                        pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
+                    }
+                    EnvKit.savePid(pidFile.toString());
+                    pidFile.deleteOnExit();
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "save pid error " + e.getMessage());
+            }
+        }
+    }
+
     public ReadWriteSelectorHandler getReadWriteSelectorHandlerInstance(SocketChannel channel, SelectionKey key) throws IOException {
         return new PlainReadWriteSelectorHandler(channel);
     }
@@ -137,25 +153,6 @@ public class SimpleWebServer implements ISocketServer {
                 //ignore
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "", e);
-            }
-        }
-    }
-
-    private static void tips() {
-        if (!tips) {
-            tips = true;
-            LOGGER.info(ServerInfo.getName() + " is run version -> " + ServerInfo.getVersion());
-
-            try {
-                if (!EnvKit.isAndroid()) {
-                    if (pidFile == null) {
-                        pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
-                    }
-                    EnvKit.savePid(pidFile.toString());
-                    pidFile.deleteOnExit();
-                }
-            } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "save pid error " + e.getMessage());
             }
         }
     }
