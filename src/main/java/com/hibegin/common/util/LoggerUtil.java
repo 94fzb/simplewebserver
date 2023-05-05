@@ -16,6 +16,7 @@ import java.util.logging.SimpleFormatter;
 public class LoggerUtil {
 
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    private static final Logger LOGGER = LoggerUtil.getLogger(LoggerUtil.class);
     private static final String LOG_FOLDER_NAME = "log";
     private static final String LOG_FILE_SUFFIX = ".log";
     private static FileHandler fileHandler;
@@ -31,7 +32,7 @@ public class LoggerUtil {
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "", e);
         }
-    }    private static final Logger LOGGER = LoggerUtil.getLogger(LoggerUtil.class);
+    }
 
     private LoggerUtil() {
     }
@@ -79,6 +80,8 @@ public class LoggerUtil {
         StringBuffer buffer = stringWriter.getBuffer();
         return buffer.toString();
     }
+
+
 
 
 }
