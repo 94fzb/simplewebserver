@@ -9,6 +9,7 @@ import com.hibegin.http.server.config.StaticResourceLoader;
 import com.hibegin.http.server.execption.NotFindResourceException;
 import com.hibegin.http.server.util.MimeTypeUtil;
 import com.hibegin.http.server.util.PathUtil;
+import com.hibegin.http.server.util.StatusCodeUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -60,7 +61,7 @@ public class MethodInterceptor implements Interceptor {
         if (errorHandle == null) {
             response.renderCode(404);
         } else {
-            errorHandle.doHandle(request, response, new NotFindResourceException());
+            errorHandle.doHandle(request, response, new NotFindResourceException(StatusCodeUtil.getStatusCodeDesc(404)));
         }
     }
 
