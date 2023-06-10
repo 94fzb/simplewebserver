@@ -6,6 +6,7 @@ import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.config.StaticResourceLoader;
+import com.hibegin.http.server.execption.NotFindResourceException;
 import com.hibegin.http.server.util.MimeTypeUtil;
 import com.hibegin.http.server.util.PathUtil;
 
@@ -17,6 +18,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,8 +28,7 @@ public class MethodInterceptor implements Interceptor {
 
     private void handleByStaticResource(HttpRequest request, HttpResponse response) throws FileNotFoundException {
         InputStream inputStream = null;
-        for (Map.Entry<String, Map.Entry<String, StaticResourceLoader>> entry :
-                request.getServerConfig().getStaticResourceMapper().entrySet()) {
+        for (Map.Entry<String, Map.Entry<String, StaticResourceLoader>> entry : request.getServerConfig().getStaticResourceMapper().entrySet()) {
             if (request.getUri().startsWith(entry.getKey())) {
                 String path = request.getUri().substring(entry.getKey().length());
                 if (request.getUri().endsWith("/")) {
@@ -50,8 +51,7 @@ public class MethodInterceptor implements Interceptor {
         }
         if (inputStream != null) {
             if (request.getUri().contains(".")) {
-                response.addHeader("Content-Type",
-                        MimeTypeUtil.getMimeStrByExt(request.getUri().substring(request.getUri().lastIndexOf(".") + 1)));
+                response.addHeader("Content-Type", MimeTypeUtil.getMimeStrByExt(request.getUri().substring(request.getUri().lastIndexOf(".") + 1)));
             }
             response.write(inputStream);
             return;
@@ -60,7 +60,7 @@ public class MethodInterceptor implements Interceptor {
         if (errorHandle == null) {
             response.renderCode(404);
         } else {
-            errorHandle.doHandle(request, response);
+            errorHandle.doHandle(request, response, new NotFindResourceException());
         }
     }
 
@@ -91,14 +91,19 @@ public class MethodInterceptor implements Interceptor {
                 controller.request = request;
                 controller.response = response;
             } else {
-                LOGGER.log(Level.WARNING, method.getDeclaringClass().getSimpleName() + " not find default " +
-                        "constructor");
+                LOGGER.log(Level.WARNING, method.getDeclaringClass().getSimpleName() + " not find default " + "constructor");
                 return false;
             }
         }
         try {
             method.invoke(controller);
         } catch (InvocationTargetException e) {
+            HttpErrorHandle errorHandle = request.getServerConfig().getErrorHandle(500);
+            if (Objects.nonNull(errorHandle)) {
+                errorHandle.doHandle(request, response, e.getCause());
+                return true;
+            }
+
             Throwable cause = e.getCause();
             if (!(cause instanceof Error)) {
                 throw new RuntimeException(cause);
