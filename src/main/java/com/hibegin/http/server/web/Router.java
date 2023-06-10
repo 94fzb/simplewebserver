@@ -1,5 +1,7 @@
 package com.hibegin.http.server.web;
 
+import com.hibegin.common.util.LoggerUtil;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
@@ -23,6 +25,12 @@ public class Router {
             getRouterMap().put(urlPath + "/", clazz.getMethod("index"));
         } catch (NoSuchMethodException | SecurityException e) {
             //LOGGER.log(Level.SEVERE, "", e);
+        }
+        try {
+            //for graalvm
+            Class.forName(clazz.getName()).getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            LoggerUtil.getLogger(Router.class).warning(clazz.getSimpleName() + " not find default " + "constructor");
         }
     }
 

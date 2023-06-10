@@ -92,8 +92,7 @@ public class MethodInterceptor implements Interceptor {
                 controller.request = request;
                 controller.response = response;
             } else {
-                LOGGER.log(Level.WARNING, method.getDeclaringClass().getSimpleName() + " not find default " + "constructor");
-                return false;
+                throw new RuntimeException( method.getDeclaringClass().getSimpleName() + " not find default " + "constructor");
             }
         }
         try {
