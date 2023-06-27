@@ -42,11 +42,11 @@ public class MethodInterceptor implements Interceptor {
             }
         }
         if (inputStream == null) {
-            File file = new File(PathUtil.getStaticPath() + "/" + request.getUri());
+            File file = PathUtil.getStaticFile(request.getUri());
             if (file.exists() && file.isFile()) {
                 inputStream = new FileInputStream(file);
-            } else if (file.exists() && file.isFile()) {
-                file = new File(PathUtil.getStaticPath() + "/" + request.getUri() + "/index.html");
+            } else if (file.exists() && file.isDirectory()) {
+                file = PathUtil.getStaticFile(request.getUri() + "/" + request.getServerConfig().getWelcomeFile());
                 inputStream = new FileInputStream(file);
             }
         }
@@ -92,7 +92,7 @@ public class MethodInterceptor implements Interceptor {
                 controller.request = request;
                 controller.response = response;
             } else {
-                throw new RuntimeException( method.getDeclaringClass().getSimpleName() + " not find default " + "constructor");
+                throw new RuntimeException(method.getDeclaringClass().getSimpleName() + " not find default " + "constructor");
             }
         }
         try {

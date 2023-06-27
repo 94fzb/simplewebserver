@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.Objects;
 import java.util.logging.Level;
 
@@ -24,7 +25,7 @@ public class PathUtil {
     }
 
     public static String getRootPath() {
-        if (ROOT_PATH != null && ROOT_PATH.length() > 0) {
+        if (ROOT_PATH != null && !ROOT_PATH.isEmpty()) {
             return ROOT_PATH;
         }
         URL url = PathUtil.class.getResource("/");
@@ -40,7 +41,7 @@ public class PathUtil {
     }
 
     public static File getConfFile(String file) {
-        File nFile = new File(getConfPath() + file);
+        File nFile = safeAppendFilePath(getConfPath(), file);
         if (nFile.exists()) {
             return nFile;
         } else {
@@ -58,13 +59,30 @@ public class PathUtil {
         return null;
     }
 
+    public static File safeAppendFilePath(String basePath, String appendFilePath) {
+        Path resolvedPath = new File(basePath).toPath().resolve(new File(basePath + "/" + appendFilePath).toPath()).normalize();
+        if (!resolvedPath.startsWith(basePath)) {
+            throw new IllegalArgumentException("Invalid file path " + appendFilePath);
+        }
+        return resolvedPath.toFile();
+    }
+
     public static String getStaticPath() {
         return getRootPath() + "/static/";
+    }
+
+    public static File getStaticFile(String filename) {
+        return safeAppendFilePath(getStaticPath(), filename);
     }
 
     public static String getTempPath() {
         String str = getRootPath() + "/temp/";
         new File(str).mkdirs();
         return str;
+    }
+
+    public static void main(String[] args) {
+        File file = getStaticFile("../etc/password");
+        System.out.println("file = " + file);
     }
 }

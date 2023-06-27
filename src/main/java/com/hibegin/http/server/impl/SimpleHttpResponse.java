@@ -171,7 +171,7 @@ public class SimpleHttpResponse implements HttpResponse {
 
     @Override
     public void renderHtml(String htmlPath) {
-        writeFile(new File(PathUtil.getStaticPath() + htmlPath));
+        writeFile(PathUtil.getStaticFile(htmlPath));
     }
 
     @Override
