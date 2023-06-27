@@ -16,11 +16,8 @@ import com.hibegin.http.server.web.cookie.Cookie;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -193,7 +190,7 @@ public class SimpleHttpResponse implements HttpResponse {
     }
 
     private void renderByMimeType(String ext, byte[] body, int code) {
-        if (ext != null && ext.length() > 0) {
+        if (ext != null && !ext.isEmpty()) {
             trySetResponseContentType(MimeTypeUtil.getMimeStrByExt(ext) + ";charset=" + responseConfig.getCharSet());
         }
         if (body != null && body.length > 0) {
@@ -278,7 +275,18 @@ public class SimpleHttpResponse implements HttpResponse {
         if (bodyLength == 0) {
             return false;
         }
-        return responseConfig.isGzip();
+        return isGzip();
+    }
+
+    private boolean isGzip() {
+        if (!responseConfig.isEnableGzip()) {
+            return false;
+        }
+        String contentType = getHeader("Content-Type");
+        if (Objects.isNull(contentType) || contentType.trim().isEmpty()) {
+            return false;
+        }
+        return responseConfig.getGzipMimeTypes().stream().anyMatch(contentType::contains);
     }
 
     private byte[] toChunked(byte[] inputBytes) throws IOException {
@@ -295,7 +303,7 @@ public class SimpleHttpResponse implements HttpResponse {
                 header.put("Transfer-Encoding", "chunked");
                 header.remove("Content-Length");
                 //启动gzip
-                if (responseConfig.isGzip()) {
+                if (isGzip()) {
                     header.put("Content-Encoding", "gzip");
                     inputStream = new GzipCompressingInputStream(inputStream);
                 }

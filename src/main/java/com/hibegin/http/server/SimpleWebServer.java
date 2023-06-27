@@ -253,11 +253,10 @@ public class SimpleWebServer implements ISocketServer {
 
     private ResponseConfig getDefaultResponseConfig() {
         ResponseConfig config = new ResponseConfig();
-        config.setCharSet("UTF-8");
-        if (responseConfig == null) {
-            config.setIsGzip(false);
-        } else {
-            config.setIsGzip(responseConfig.isGzip());
+        if (Objects.nonNull(responseConfig)) {
+            config.setEnableGzip(responseConfig.isEnableGzip());
+            config.setGzipMimeTypes(responseConfig.getGzipMimeTypes());
+            config.setCharSet(responseConfig.getCharSet());
         }
         config.setDisableCookie(serverConfig.isDisableCookie());
         return config;

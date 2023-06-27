@@ -1,17 +1,29 @@
 package com.hibegin.http.server.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ResponseConfig {
 
-    private boolean isGzip;
+    private boolean enableGzip;
     private boolean disableCookie;
     private String charSet = "UTF-8";
+    private List<String> gzipMimeTypes = new ArrayList<>();
 
-    public boolean isGzip() {
-        return isGzip;
+    public boolean isEnableGzip() {
+        return enableGzip;
     }
 
-    public void setIsGzip(boolean isGzip) {
-        this.isGzip = isGzip;
+    public void setEnableGzip(boolean enableGzip) {
+        this.enableGzip = enableGzip;
+    }
+
+    public List<String> getGzipMimeTypes() {
+        return gzipMimeTypes;
+    }
+
+    public void setGzipMimeTypes(List<String> gzipMimeTypes) {
+        this.gzipMimeTypes = gzipMimeTypes;
     }
 
     public boolean isDisableCookie() {
