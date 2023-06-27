@@ -27,38 +27,36 @@ public class MethodInterceptor implements Interceptor {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(MethodInterceptor.class);
 
-    private void handleByStaticResource(HttpRequest request, HttpResponse response) throws FileNotFoundException {
-        InputStream inputStream = null;
+    private void handleByStaticResource(HttpRequest request, HttpResponse response) {
         for (Map.Entry<String, Map.Entry<String, StaticResourceLoader>> entry : request.getServerConfig().getStaticResourceMapper().entrySet()) {
             if (request.getUri().startsWith(entry.getKey())) {
                 String path = request.getUri().substring(entry.getKey().length());
                 if (request.getUri().endsWith("/")) {
                     path += request.getServerConfig().getWelcomeFile();
                 }
-                inputStream = entry.getValue().getValue().getInputStream(entry.getValue().getKey() + path);
-                if (inputStream != null) {
-                    break;
+                InputStream inputStream = entry.getValue().getValue().getInputStream(entry.getValue().getKey() + path);
+                if (Objects.isNull(inputStream)) {
+                    continue;
+                }
+                if (request.getUri().contains(".")) {
+                    response.addHeader("Content-Type", MimeTypeUtil.getMimeStrByExt(request.getUri().substring(request.getUri().lastIndexOf(".") + 1)));
+                    response.write(inputStream);
+                    return;
                 }
             }
         }
-        if (inputStream == null) {
-            File file = PathUtil.getStaticFile(request.getUri());
-            if (file.exists() && file.isFile()) {
-                inputStream = new FileInputStream(file);
-            } else if (file.exists() && file.isDirectory()) {
-                File welcomeFile = PathUtil.getStaticFile(request.getUri() + "/" + request.getServerConfig().getWelcomeFile());
-                if (welcomeFile.exists()) {
-                    inputStream = new FileInputStream(welcomeFile);
-                }
-            }
-        }
-        if (inputStream != null) {
-            if (request.getUri().contains(".")) {
-                response.addHeader("Content-Type", MimeTypeUtil.getMimeStrByExt(request.getUri().substring(request.getUri().lastIndexOf(".") + 1)));
-            }
-            response.write(inputStream);
+        File file = PathUtil.getStaticFile(request.getUri());
+        if (file.exists() && file.isFile()) {
+            response.writeFile(file);
             return;
+        } else if (file.exists() && file.isDirectory()) {
+            File welcomeFile = PathUtil.getStaticFile(request.getUri() + "/" + request.getServerConfig().getWelcomeFile());
+            if (welcomeFile.exists()) {
+                response.writeFile(welcomeFile);
+                return;
+            }
         }
+
         HttpErrorHandle errorHandle = request.getServerConfig().getErrorHandle(404);
         if (errorHandle == null) {
             response.renderCode(404);
