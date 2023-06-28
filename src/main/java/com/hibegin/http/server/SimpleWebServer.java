@@ -120,13 +120,14 @@ public class SimpleWebServer implements ISocketServer {
         applicationContext.init();
 
         tips();
-        if (applicationContext.getServerConfig().getInterceptors().contains(MethodInterceptor.class)) {
-            LOGGER.info(serverConfig.getRouter().toString());
-        }
         startExecHttpRequestThread();
         while (selector.isOpen()) {
             try {
-                selector.select();
+                if (selector.selectNow() <= 0) {
+                    //not message, skip. to optimize high cpu
+                    Thread.sleep(1);
+                    continue;
+                }
                 Set<SelectionKey> keys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = keys.iterator();
 

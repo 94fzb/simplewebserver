@@ -47,7 +47,7 @@ public class ServerConfig {
     private HttpRequestDecodeListener httpRequestDecodeListener;
 
     public String getServerInfo() {
-        if (Objects.isNull(serverInfo) || serverInfo.trim().length() == 0) {
+        if (Objects.isNull(serverInfo) || serverInfo.trim().isEmpty()) {
             return ServerInfo.getName() + "/" + ServerInfo.getVersion();
         }
         return serverInfo;
