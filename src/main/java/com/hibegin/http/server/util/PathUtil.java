@@ -56,7 +56,7 @@ public class PathUtil {
                 }
             }
         }
-        return null;
+        return nFile;
     }
 
     public static File safeAppendFilePath(String basePath, String appendFilePath) {
