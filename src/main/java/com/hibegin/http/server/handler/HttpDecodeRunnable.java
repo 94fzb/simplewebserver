@@ -121,7 +121,6 @@ public class HttpDecodeRunnable implements Runnable {
             //do nothing
             handleException(key, codecEntry.getKey(), null, 400);
         } catch (UnSupportMethodException | IOException e) {
-            LOGGER.log(Level.SEVERE, "", e);
             handleException(key, codecEntry.getKey(), new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()), 400);
         } catch (RequestBodyTooLargeException e) {
             handleException(key, codecEntry.getKey(), new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()), 413);
