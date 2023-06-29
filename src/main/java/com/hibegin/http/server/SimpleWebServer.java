@@ -118,9 +118,7 @@ public class SimpleWebServer implements ISocketServer {
         }
         //开始初始化一些配置
         applicationContext.init();
-
-        tips();
-        startExecHttpRequestThread();
+        startExecHttpRequestThread(serverChannel.socket().getLocalPort());
         while (selector.isOpen()) {
             try {
                 if (selector.selectNow() <= 0) {
@@ -161,12 +159,12 @@ public class SimpleWebServer implements ISocketServer {
     /**
      * 初始化处理请求的请求
      */
-    private void startExecHttpRequestThread() {
+    private void startExecHttpRequestThread(int serverPort) {
         ScheduledExecutorService checkRequestExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
                 Thread thread = new Thread(r);
-                thread.setName("check-request-thread");
+                thread.setName("check-request-thread-" + serverPort);
                 return thread;
             }
         });
@@ -174,7 +172,7 @@ public class SimpleWebServer implements ISocketServer {
             @Override
             public Thread newThread(Runnable r) {
                 Thread thread = new Thread(r);
-                thread.setName("http-decode-thread");
+                thread.setName("http-decode-thread-" + serverPort);
                 return thread;
             }
         });
@@ -183,7 +181,7 @@ public class SimpleWebServer implements ISocketServer {
         httpDecodeRunnableExecutor.scheduleAtFixedRate(httpDecodeRunnable, 0, 1, TimeUnit.MILLISECONDS);
         checkRequestRunnable = new CheckRequestRunnable(applicationContext);
         checkRequestExecutor.scheduleAtFixedRate(checkRequestRunnable, 0, 1000, TimeUnit.MILLISECONDS);
-        new Thread(ServerInfo.getName().toLowerCase() + "-request-event-loop-thread") {
+        new Thread(ServerInfo.getName().toLowerCase() + "-request-event-loop-thread-" + serverPort) {
             @Override
             public void run() {
                 while (!Thread.interrupted()) {
@@ -245,9 +243,10 @@ public class SimpleWebServer implements ISocketServer {
             selector = Selector.open();
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
             LOGGER.info(ServerInfo.getName() + " listening on port -> " + port);
+            tips();
             return true;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Create server error " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Create server " + port + " error " + e.getMessage());
             return false;
         }
     }
