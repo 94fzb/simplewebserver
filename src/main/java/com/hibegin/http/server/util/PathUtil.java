@@ -14,19 +14,19 @@ import java.util.Objects;
 import java.util.logging.Level;
 
 /**
- * 提供给一些路径供程序更方便的调用，优先读取环境变量
- * SWS_CONF_PATH，SWS_STATIC_PATH，SWS_CACHE_PATH，SWS_TEMP_PATH，SWS_LOG_PATH，SWS_ROOT_PATH
+ * 提供给一些路径供程序更方便的调用，优先读取系统变量
+ * sws.conf.path，sws.static.path，sws.cache.path，sws.temp.path，sws.log.path，sws.root.path
  */
 public class PathUtil {
 
     private static String ROOT_PATH = "";
 
     public static String getConfPath() {
-        return Objects.requireNonNullElse(System.getenv("SWS_CONF_PATH"), getRootPath() + "/conf/");
+        return Objects.requireNonNullElse(System.getProperty("sws.conf.path"), getRootPath() + "/conf/");
     }
 
     public static String getRootPath() {
-        String rootPathByEnv = System.getenv("SWS_ROOT_PATH");
+        String rootPathByEnv = System.getProperty("sws.root.path");
         if (Objects.nonNull(rootPathByEnv)) {
             return rootPathByEnv;
         }
@@ -73,15 +73,15 @@ public class PathUtil {
     }
 
     public static String getStaticPath() {
-        return Objects.requireNonNullElse(System.getenv("SWS_STATIC_PATH"), getRootPath() + "/static/");
+        return Objects.requireNonNullElse(System.getProperty("sws.static.path"), getRootPath() + "/static/");
     }
 
     public static String getCachePath() {
-        return Objects.requireNonNullElse(System.getenv("SWS_CACHE_PATH"), getRootPath() + "/cache/");
+        return Objects.requireNonNullElse(System.getProperty("sws.cache.path"), getRootPath() + "/cache/");
     }
 
     public static String getLogPath() {
-        return Objects.requireNonNullElse(System.getenv("SWS_LOG_PATH"), getRootPath() + "/log/");
+        return Objects.requireNonNullElse(System.getProperty("sws.log.path"), getRootPath() + "/log/");
     }
 
     public static File getStaticFile(String filename) {
@@ -89,7 +89,7 @@ public class PathUtil {
     }
 
     public static String getTempPath() {
-        String str = Objects.requireNonNullElse(System.getenv("SWS_TEMP_PATH"), getRootPath() + "/temp/");
+        String str = Objects.requireNonNullElse(System.getProperty("sws.temp.path"), getRootPath() + "/temp/");
         new File(str).mkdirs();
         return str;
     }
