@@ -247,7 +247,7 @@ public class SimpleWebServer implements ISocketServer {
             LOGGER.info(ServerInfo.getName() + " listening on port -> " + port);
             return true;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "", e);
+            LOGGER.log(Level.SEVERE, "Create server error " + e.getMessage());
             return false;
         }
     }
