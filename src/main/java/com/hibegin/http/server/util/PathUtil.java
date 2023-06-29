@@ -14,17 +14,22 @@ import java.util.Objects;
 import java.util.logging.Level;
 
 /**
- * 提供给一些路径供程序更方便的调用
+ * 提供给一些路径供程序更方便的调用，优先读取环境变量
+ * SWS_CONF_PATH，SWS_STATIC_PATH，SWS_CACHE_PATH，SWS_TEMP_PATH，SWS_LOG_PATH，SWS_ROOT_PATH
  */
 public class PathUtil {
 
     private static String ROOT_PATH = "";
 
     public static String getConfPath() {
-        return getRootPath() + "/conf/";
+        return Objects.requireNonNullElse(System.getenv("SWS_CONF_PATH"), getRootPath() + "/conf/");
     }
 
     public static String getRootPath() {
+        String rootPathByEnv = System.getenv("SWS_ROOT_PATH");
+        if (Objects.nonNull(rootPathByEnv)) {
+            return rootPathByEnv;
+        }
         if (ROOT_PATH != null && !ROOT_PATH.isEmpty()) {
             return ROOT_PATH;
         }
@@ -68,7 +73,15 @@ public class PathUtil {
     }
 
     public static String getStaticPath() {
-        return getRootPath() + "/static/";
+        return Objects.requireNonNullElse(System.getenv("SWS_STATIC_PATH"), getRootPath() + "/static/");
+    }
+
+    public static String getCachePath() {
+        return Objects.requireNonNullElse(System.getenv("SWS_CACHE_PATH"), getRootPath() + "/cache/");
+    }
+
+    public static String getLogPath() {
+        return Objects.requireNonNullElse(System.getenv("SWS_LOG_PATH"), getRootPath() + "/log/");
     }
 
     public static File getStaticFile(String filename) {
@@ -76,7 +89,7 @@ public class PathUtil {
     }
 
     public static String getTempPath() {
-        String str = getRootPath() + "/temp/";
+        String str = Objects.requireNonNullElse(System.getenv("SWS_TEMP_PATH"), getRootPath() + "/temp/");
         new File(str).mkdirs();
         return str;
     }

@@ -17,7 +17,6 @@ public class LoggerUtil {
 
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
     private static final Logger LOGGER = LoggerUtil.getLogger(LoggerUtil.class);
-    private static final String LOG_FOLDER_NAME = "log";
     private static final String LOG_FILE_SUFFIX = ".log";
     private static FileHandler fileHandler;
 
@@ -54,10 +53,7 @@ public class LoggerUtil {
 
     private synchronized static String getLogFilePath() {
         StringBuilder logFilePath = new StringBuilder();
-        logFilePath.append(PathUtil.getRootPath());
-        logFilePath.append(File.separatorChar);
-        logFilePath.append(LOG_FOLDER_NAME);
-
+        logFilePath.append(PathUtil.getLogPath());
         File file = new File(logFilePath.toString());
         if (!file.exists()) {
             file.mkdir();
