@@ -29,7 +29,7 @@ public class LoggerUtil {
             fileHandler = new FileHandler(fileName.toString(), true);
             fileHandler.setFormatter(new SimpleFormatter());
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "", e);
+            LOGGER.severe("Init logger error " + e.getMessage());
         }
     }
 
@@ -76,8 +76,6 @@ public class LoggerUtil {
         StringBuffer buffer = stringWriter.getBuffer();
         return buffer.toString();
     }
-
-
 
 
 }
