@@ -52,7 +52,7 @@ public class IOUtil {
         try {
             Files.write(file.toPath(), bytes);
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "", e);
+            throw new RuntimeException(e);
         }
     }
 }
