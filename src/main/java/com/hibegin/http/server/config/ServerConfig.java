@@ -43,6 +43,7 @@ public class ServerConfig {
     private Executor decodeExecutor;
     private String sessionId = "JSESSIONID";
     private String serverInfo;
+    private int selectNowSleepTime = 1;
     private HttpJsonMessageConverter httpJsonMessageConverter;
     private HttpRequestDecodeListener httpRequestDecodeListener;
 
@@ -253,5 +254,13 @@ public class ServerConfig {
 
     public HttpErrorHandle getErrorHandle(Integer errorCode) {
         return httpErrorHandleMap.get(errorCode);
+    }
+
+    public int getSelectNowSleepTime() {
+        return selectNowSleepTime;
+    }
+
+    public void setSelectNowSleepTime(int selectNowSleepTime) {
+        this.selectNowSleepTime = selectNowSleepTime;
     }
 }

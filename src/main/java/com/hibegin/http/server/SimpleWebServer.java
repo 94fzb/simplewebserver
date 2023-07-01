@@ -123,7 +123,7 @@ public class SimpleWebServer implements ISocketServer {
             try {
                 if (selector.selectNow() <= 0) {
                     //not message, skip. to optimize high cpu
-                    Thread.sleep(1);
+                    Thread.sleep(serverConfig.getSelectNowSleepTime());
                     continue;
                 }
                 Set<SelectionKey> keys = selector.selectedKeys();
