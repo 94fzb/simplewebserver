@@ -164,7 +164,7 @@ public class SimpleWebServer implements ISocketServer {
             @Override
             public Thread newThread(Runnable r) {
                 Thread thread = new Thread(r);
-                thread.setName("check-request-thread-" + serverPort);
+                thread.setName("check-request-" + serverPort);
                 return thread;
             }
         });
@@ -172,16 +172,16 @@ public class SimpleWebServer implements ISocketServer {
             @Override
             public Thread newThread(Runnable r) {
                 Thread thread = new Thread(r);
-                thread.setName("http-decode-thread-" + serverPort);
+                thread.setName("http-decode-" + serverPort);
                 return thread;
             }
         });
         httpDecodeRunnable = new HttpDecodeRunnable(applicationContext, this, requestConfig, responseConfig);
-        //1ms for cpu
-        httpDecodeRunnableExecutor.scheduleAtFixedRate(httpDecodeRunnable, 0, 1, TimeUnit.MILLISECONDS);
+        //sleep for cpu
+        httpDecodeRunnableExecutor.scheduleAtFixedRate(httpDecodeRunnable, 0, serverConfig.getSelectNowSleepTime(), TimeUnit.MILLISECONDS);
         checkRequestRunnable = new CheckRequestRunnable(applicationContext);
-        checkRequestExecutor.scheduleAtFixedRate(checkRequestRunnable, 0, 1000, TimeUnit.MILLISECONDS);
-        new Thread(ServerInfo.getName().toLowerCase() + "-request-event-loop-thread-" + serverPort) {
+        checkRequestExecutor.scheduleAtFixedRate(checkRequestRunnable, 0, 1, TimeUnit.SECONDS);
+        new Thread(ServerInfo.getName().toLowerCase() + "-request-event-loop-" + serverPort) {
             @Override
             public void run() {
                 while (!Thread.interrupted()) {

@@ -156,7 +156,7 @@ public class ServerConfig {
                 @Override
                 public Thread newThread(Runnable r) {
                     Thread thread = new Thread(r);
-                    thread.setName("request-decode-thread-" + count.getAndIncrement());
+                    thread.setName("request-decode-" + count.getAndIncrement());
                     return thread;
                 }
             });
