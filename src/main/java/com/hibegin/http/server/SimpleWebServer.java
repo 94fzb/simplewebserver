@@ -1,5 +1,7 @@
 package com.hibegin.http.server;
 
+import com.hibegin.common.BaseLockObject;
+import com.hibegin.common.SleepUtils;
 import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
@@ -8,7 +10,6 @@ import com.hibegin.http.server.config.*;
 import com.hibegin.http.server.handler.*;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
-import com.hibegin.http.server.web.MethodInterceptor;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class SimpleWebServer implements ISocketServer {
+public class SimpleWebServer extends BaseLockObject implements ISocketServer {
 
 
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleWebServer.class);
@@ -123,7 +124,7 @@ public class SimpleWebServer implements ISocketServer {
             try {
                 if (selector.selectNow() <= 0) {
                     //not message, skip. to optimize high cpu
-                    Thread.sleep(serverConfig.getSelectNowSleepTime());
+                    SleepUtils.noCpuCompeteSleep(this, serverConfig.getSelectNowSleepTime());
                     continue;
                 }
                 Set<SelectionKey> keys = selector.selectedKeys();

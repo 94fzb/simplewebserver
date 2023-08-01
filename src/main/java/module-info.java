@@ -4,6 +4,7 @@ module hibegin.simplewebserver {
     //requires freemarker;
     //requires gson;
     exports com.hibegin.common.util;
+    exports com.hibegin.common;
     exports com.hibegin.http;
     exports com.hibegin.http.io;
     exports com.hibegin.http.server;
