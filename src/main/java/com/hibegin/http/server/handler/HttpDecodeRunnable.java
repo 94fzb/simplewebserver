@@ -26,6 +26,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -40,6 +41,7 @@ public class HttpDecodeRunnable implements Runnable {
     private final ResponseConfig responseConfig;
     private final ServerConfig serverConfig;
     private final Set<SocketChannel> workingChannel = new CopyOnWriteArraySet<>();
+    private final ReentrantLock lock = new ReentrantLock();
 
     private final BlockingQueue<HttpRequestHandlerRunnable> httpRequestHandlerRunnableBlockingQueue = new LinkedBlockingQueue<>();
 
@@ -53,44 +55,46 @@ public class HttpDecodeRunnable implements Runnable {
 
     @Override
     public void run() {
-        List<SocketChannel> needRemoveChannel = new CopyOnWriteArrayList<>();
-        for (final Map.Entry<SocketChannel, LinkedBlockingDeque<RequestEvent>> entry : socketChannelBlockingQueueConcurrentHashMap.entrySet()) {
-            final SocketChannel channel = entry.getKey();
-            if (entry.getKey().socket().isClosed()) {
-                needRemoveChannel.add(channel);
-                continue;
-            }
-            if (workingChannel.contains(channel)) {
-                continue;
-            }
-            final LinkedBlockingDeque<RequestEvent> blockingQueue = entry.getValue();
-            final RequestEvent requestEvent = blockingQueue.poll();
-            if (requestEvent == null) {
-                continue;
-            }
-            workingChannel.add(channel);
-            serverConfig.getDecodeExecutor().execute(new Runnable() {
-                @Override
-                public void run() {
+        lock.lock();
+        try {
+            List<SocketChannel> needRemoveChannel = new CopyOnWriteArrayList<>();
+            for (final Map.Entry<SocketChannel, LinkedBlockingDeque<RequestEvent>> entry : socketChannelBlockingQueueConcurrentHashMap.entrySet()) {
+                final SocketChannel channel = entry.getKey();
+                if (entry.getKey().socket().isClosed()) {
+                    needRemoveChannel.add(channel);
+                    continue;
+                }
+                if (workingChannel.contains(channel)) {
+                    continue;
+                }
+                final LinkedBlockingDeque<RequestEvent> blockingQueue = entry.getValue();
+                final RequestEvent requestEvent = blockingQueue.poll();
+                if (requestEvent == null) {
+                    continue;
+                }
+                workingChannel.add(channel);
+                serverConfig.getDecodeExecutor().execute(() -> {
                     try {
                         doParseHttpMessage(requestEvent, channel.socket(), blockingQueue);
                     } finally {
                         workingChannel.remove(channel);
                     }
-                }
-            });
-        }
+                });
+            }
 
-        for (SocketChannel socketChannel : needRemoveChannel) {
-            LinkedBlockingDeque<RequestEvent> entry = socketChannelBlockingQueueConcurrentHashMap.get(socketChannel);
-            if (entry == null) {
-                continue;
+            for (SocketChannel socketChannel : needRemoveChannel) {
+                LinkedBlockingDeque<RequestEvent> entry = socketChannelBlockingQueueConcurrentHashMap.get(socketChannel);
+                if (entry == null) {
+                    continue;
+                }
+                while (!entry.isEmpty()) {
+                    entry.poll().getFile().delete();
+                }
+                socketChannelBlockingQueueConcurrentHashMap.remove(socketChannel);
+                workingChannel.remove(socketChannel);
             }
-            while (!entry.isEmpty()) {
-                entry.poll().getFile().delete();
-            }
-            socketChannelBlockingQueueConcurrentHashMap.remove(socketChannel);
-            workingChannel.remove(socketChannel);
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -99,21 +103,22 @@ public class HttpDecodeRunnable implements Runnable {
         Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = applicationContext.getHttpDeCoderMap().get(socket);
         File file = requestEvent.getFile();
         try {
-            if (codecEntry != null) {
-                Map.Entry<Boolean, ByteBuffer> booleanEntry = codecEntry.getKey().doDecode(ByteBuffer.wrap(IOUtil.getByteByInputStream(new FileInputStream(file))));
-                if (booleanEntry.getKey()) {
-                    if (booleanEntry.getValue().limit() > 0) {
-                        blockingQueue.addFirst(new RequestEvent(key, FileCacheKit.generatorRequestTempFile(serverConfig.getPort(), booleanEntry.getValue().array())));
-                    }
-                    if (serverConfig.isSupportHttp2()) {
-                        renderUpgradeHttp2Response(codecEntry.getValue());
-                    } else {
-                        httpRequestHandlerRunnableBlockingQueue.add(new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()));
-                        if (codecEntry.getKey().getRequest().getMethod() != HttpMethod.CONNECT) {
-                            HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, applicationContext, codecEntry.getKey().getRequest().getHandler());
-                            codecEntry = new AbstractMap.SimpleEntry<HttpRequestDeCoder, HttpResponse>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig));
-                            applicationContext.getHttpDeCoderMap().put(socket, codecEntry);
-                        }
+            if (Objects.isNull(codecEntry)) {
+                return;
+            }
+            Map.Entry<Boolean, ByteBuffer> booleanEntry = codecEntry.getKey().doDecode(ByteBuffer.wrap(IOUtil.getByteByInputStream(new FileInputStream(file))));
+            if (booleanEntry.getKey()) {
+                if (booleanEntry.getValue().limit() > 0) {
+                    blockingQueue.addFirst(new RequestEvent(key, FileCacheKit.generatorRequestTempFile(serverConfig.getPort(), booleanEntry.getValue().array())));
+                }
+                if (serverConfig.isSupportHttp2()) {
+                    renderUpgradeHttp2Response(codecEntry.getValue());
+                } else {
+                    httpRequestHandlerRunnableBlockingQueue.add(new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()));
+                    if (codecEntry.getKey().getRequest().getMethod() != HttpMethod.CONNECT) {
+                        HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, applicationContext, codecEntry.getKey().getRequest().getHandler());
+                        codecEntry = new AbstractMap.SimpleEntry<>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig));
+                        applicationContext.getHttpDeCoderMap().put(socket, codecEntry);
                     }
                 }
             }
@@ -142,27 +147,27 @@ public class HttpDecodeRunnable implements Runnable {
     }
 
     public void doRead(SocketChannel channel, SelectionKey key) throws IOException {
-        if (channel != null && channel.isOpen()) {
-            Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = applicationContext.getHttpDeCoderMap().get(channel.socket());
-            ReadWriteSelectorHandler handler;
-            if (codecEntry == null) {
-                handler = simpleWebServer.getReadWriteSelectorHandlerInstance(channel, key);
-                HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, applicationContext, handler);
-                codecEntry = new AbstractMap.SimpleEntry<HttpRequestDeCoder, HttpResponse>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig));
-                applicationContext.getHttpDeCoderMap().put(channel.socket(), codecEntry);
-            } else {
-                handler = codecEntry.getKey().getRequest().getHandler();
-            }
-            LinkedBlockingDeque<RequestEvent> entryBlockingQueue = socketChannelBlockingQueueConcurrentHashMap.get(channel);
-            if (entryBlockingQueue == null) {
-                entryBlockingQueue = new LinkedBlockingDeque<>();
-                socketChannelBlockingQueueConcurrentHashMap.put(channel, entryBlockingQueue);
-            }
-            entryBlockingQueue.add(new RequestEvent(key, FileCacheKit.generatorRequestTempFile(serverConfig.getPort(), handler.handleRead().array())));
-            synchronized (this) {
-                this.notify();
-            }
+        if (Objects.isNull(channel) || !channel.isOpen()) {
+            return;
         }
+
+        Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = applicationContext.getHttpDeCoderMap().get(channel.socket());
+        ReadWriteSelectorHandler handler;
+        if (codecEntry == null) {
+            handler = simpleWebServer.getReadWriteSelectorHandlerInstance(channel, key);
+            HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, applicationContext, handler);
+            codecEntry = new AbstractMap.SimpleEntry<>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig));
+            applicationContext.getHttpDeCoderMap().put(channel.socket(), codecEntry);
+        } else {
+            handler = codecEntry.getKey().getRequest().getHandler();
+        }
+        LinkedBlockingDeque<RequestEvent> entryBlockingQueue = socketChannelBlockingQueueConcurrentHashMap.get(channel);
+        if (entryBlockingQueue == null) {
+            entryBlockingQueue = new LinkedBlockingDeque<>();
+            socketChannelBlockingQueueConcurrentHashMap.put(channel, entryBlockingQueue);
+        }
+        entryBlockingQueue.add(new RequestEvent(key, FileCacheKit.generatorRequestTempFile(serverConfig.getPort(), handler.handleRead().array())));
+        this.run();
     }
 
 

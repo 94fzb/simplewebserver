@@ -5,8 +5,8 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class BaseLockObject implements LockObject {
-    private final Lock lock = new ReentrantLock();
-    private final Condition condition = lock.newCondition();
+    protected final Lock lock = new ReentrantLock();
+    protected final Condition condition = lock.newCondition();
 
     @Override
     public Lock getLock() {

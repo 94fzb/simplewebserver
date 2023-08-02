@@ -1,7 +1,5 @@
 package com.hibegin.http.server;
 
-import com.hibegin.common.BaseLockObject;
-import com.hibegin.common.SleepUtils;
 import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
@@ -25,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class SimpleWebServer extends BaseLockObject implements ISocketServer {
+public class SimpleWebServer implements ISocketServer {
 
 
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleWebServer.class);
@@ -122,9 +120,8 @@ public class SimpleWebServer extends BaseLockObject implements ISocketServer {
         startExecHttpRequestThread(serverChannel.socket().getLocalPort());
         while (selector.isOpen()) {
             try {
-                if (selector.selectNow() <= 0) {
-                    //not message, skip. to optimize high cpu
-                    SleepUtils.noCpuCompeteSleep(this, serverConfig.getSelectNowSleepTime());
+                //not message, skip. to optimize high cpu
+                if (selector.select(serverConfig.getSelectNowSleepTime()) <= 0) {
                     continue;
                 }
                 Set<SelectionKey> keys = selector.selectedKeys();
@@ -187,22 +184,23 @@ public class SimpleWebServer extends BaseLockObject implements ISocketServer {
             public void run() {
                 while (!Thread.interrupted()) {
                     HttpRequestHandlerRunnable httpRequestHandlerRunnable = httpDecodeRunnable.getHttpRequestHandlerThread();
-                    if (httpRequestHandlerRunnable != null) {
-                        SocketChannel socket = httpRequestHandlerRunnable.getRequest().getHandler().getChannel();
-                        if (httpRequestHandlerRunnable.getRequest().getMethod() != HttpMethod.CONNECT) {
-                            HttpRequestHandlerRunnable oldHttpRequestHandlerRunnable = checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().get(socket);
-                            //清除老的请求
-                            if (oldHttpRequestHandlerRunnable != null) {
-                                oldHttpRequestHandlerRunnable.close();
-                            }
+                    if (Objects.isNull(httpRequestHandlerRunnable)) {
+                        return;
+                    }
+                    SocketChannel socket = httpRequestHandlerRunnable.getRequest().getHandler().getChannel();
+                    if (httpRequestHandlerRunnable.getRequest().getMethod() != HttpMethod.CONNECT) {
+                        HttpRequestHandlerRunnable oldHttpRequestHandlerRunnable = checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().get(socket);
+                        //清除老的请求
+                        if (oldHttpRequestHandlerRunnable != null) {
+                            oldHttpRequestHandlerRunnable.close();
+                        }
+                        checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().put(socket, httpRequestHandlerRunnable);
+                        serverConfig.getRequestExecutor().execute(httpRequestHandlerRunnable);
+                    } else {
+                        HttpRequestHandlerRunnable oldHttpRequestHandlerRunnable = checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().get(socket);
+                        if (oldHttpRequestHandlerRunnable == null) {
                             checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().put(socket, httpRequestHandlerRunnable);
                             serverConfig.getRequestExecutor().execute(httpRequestHandlerRunnable);
-                        } else {
-                            HttpRequestHandlerRunnable oldHttpRequestHandlerRunnable = checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().get(socket);
-                            if (oldHttpRequestHandlerRunnable == null) {
-                                checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().put(socket, httpRequestHandlerRunnable);
-                                serverConfig.getRequestExecutor().execute(httpRequestHandlerRunnable);
-                            }
                         }
                     }
                 }
