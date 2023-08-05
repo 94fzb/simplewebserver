@@ -154,9 +154,9 @@ public class HttpDecodeRunnable implements Runnable {
             entryBlockingQueue = new LinkedBlockingDeque<>();
             socketRequestEventMap.put(socket, entryBlockingQueue);
         }
-        long currentBufferSize = entryBlockingQueue.stream().mapToLong(RequestEvent::getLength).sum();
+        long newBufferSize = entryBlockingQueue.stream().mapToLong(RequestEvent::getLength).sum() + bytes.length;
         RequestEvent requestEvent;
-        if (currentBufferSize > 4096) {
+        if (newBufferSize > requestConfig.getRequestMaxBufferSize()) {
             requestEvent = new RequestEvent(key, FileCacheKit.generatorRequestTempFile(serverConfig.getPort(), bytes));
         } else {
             requestEvent = new RequestEvent(key, bytes);
