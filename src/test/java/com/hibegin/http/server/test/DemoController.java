@@ -22,7 +22,7 @@ public class DemoController extends Controller {
     }
 
     public void helloWorld() {
-        getResponse().renderText("Hello world/v" + ServerInfo.getVersion() + System.currentTimeMillis());
+        getResponse().renderHtmlStr("Hello world/v" + ServerInfo.getVersion() + "_" + System.currentTimeMillis());
     }
 
     public void json() {

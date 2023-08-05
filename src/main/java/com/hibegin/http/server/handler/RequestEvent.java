@@ -1,31 +1,51 @@
 package com.hibegin.http.server.handler;
 
+import com.hibegin.common.util.IOUtil;
+import com.hibegin.http.server.util.FileCacheKit;
+
 import java.io.File;
+import java.io.IOException;
 import java.nio.channels.SelectionKey;
+import java.util.Objects;
 
 class RequestEvent {
 
-    private SelectionKey selectionKey;
+    private final SelectionKey selectionKey;
     private File file;
+    private byte[] requestBytes;
+    private final long length;
 
-    public RequestEvent(SelectionKey key, File generatorRequestTempFile) {
+    public long getLength() {
+        return length;
+    }
+
+    public RequestEvent(SelectionKey key, byte[] requestBytes) {
+        this.length = requestBytes.length;
         this.selectionKey = key;
-        this.file = generatorRequestTempFile;
+        this.requestBytes = requestBytes;
+    }
+
+    public RequestEvent(SelectionKey key, File file) {
+        this.length = file.length();
+        this.selectionKey = key;
+        this.file = file;
+
+    }
+
+    public void deleteFile() {
+        if (Objects.nonNull(file)) {
+            file.delete();
+        }
+    }
+
+    public byte[] getRequestBytes() {
+        if (Objects.nonNull(file)) {
+            return IOUtil.getByteByFile(file);
+        }
+        return requestBytes;
     }
 
     public SelectionKey getSelectionKey() {
         return selectionKey;
-    }
-
-    public void setSelectionKey(SelectionKey selectionKey) {
-        this.selectionKey = selectionKey;
-    }
-
-    public File getFile() {
-        return file;
-    }
-
-    public void setFile(File file) {
-        this.file = file;
     }
 }

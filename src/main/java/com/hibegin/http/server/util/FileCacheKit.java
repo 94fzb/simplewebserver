@@ -9,8 +9,8 @@ import java.util.concurrent.*;
 
 public class FileCacheKit {
 
-    private static Queue<File> needDeleteFileQueue = new ConcurrentLinkedQueue<>();
-    private static ScheduledExecutorService scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
+    private static final Queue<File> needDeleteFileQueue = new ConcurrentLinkedQueue<>();
+    private static final ScheduledExecutorService scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
         @Override
         public Thread newThread(Runnable r) {
             Thread thread = new Thread(r);

@@ -16,10 +16,7 @@ import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,6 +34,7 @@ public class SimpleWebServer implements ISocketServer {
     private Selector selector;
     private HttpDecodeRunnable httpDecodeRunnable;
     private ServerSocketChannel serverChannel;
+    private ScheduledExecutorService checkRequestExecutor;
 
     public SimpleWebServer() {
         this(null, null, null);
@@ -158,32 +156,20 @@ public class SimpleWebServer implements ISocketServer {
      * 初始化处理请求的请求
      */
     private void startExecHttpRequestThread(int serverPort) {
-        ScheduledExecutorService checkRequestExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread thread = new Thread(r);
-                thread.setName("check-request-" + serverPort);
-                return thread;
-            }
+        checkRequestExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread thread = new Thread(r);
+            thread.setName("check-request-" + serverPort);
+            return thread;
         });
-        ScheduledExecutorService httpDecodeRunnableExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread thread = new Thread(r);
-                thread.setName("http-decode-" + serverPort);
-                return thread;
-            }
-        });
+
         httpDecodeRunnable = new HttpDecodeRunnable(applicationContext, this, requestConfig, responseConfig);
-        //sleep for cpu
-        httpDecodeRunnableExecutor.scheduleAtFixedRate(httpDecodeRunnable, 0, serverConfig.getSelectNowSleepTime(), TimeUnit.MILLISECONDS);
         checkRequestRunnable = new CheckRequestRunnable(applicationContext);
         checkRequestExecutor.scheduleAtFixedRate(checkRequestRunnable, 0, 1, TimeUnit.SECONDS);
         new Thread(ServerInfo.getName().toLowerCase() + "-request-event-loop-" + serverPort) {
             @Override
             public void run() {
                 while (!Thread.interrupted()) {
-                    HttpRequestHandlerRunnable httpRequestHandlerRunnable = httpDecodeRunnable.getHttpRequestHandlerThread();
+                    HttpRequestHandlerRunnable httpRequestHandlerRunnable = httpDecodeRunnable.getHttpRequestHandlerRunnable();
                     if (Objects.isNull(httpRequestHandlerRunnable)) {
                         return;
                     }
@@ -216,6 +202,9 @@ public class SimpleWebServer implements ISocketServer {
             }
             if (Objects.nonNull(serverChannel)) {
                 serverChannel.socket().close();
+            }
+            if (Objects.nonNull(checkRequestExecutor)) {
+                checkRequestExecutor.shutdownNow();
             }
             LOGGER.info(ServerInfo.getName() + " close success");
         } catch (IOException e) {
