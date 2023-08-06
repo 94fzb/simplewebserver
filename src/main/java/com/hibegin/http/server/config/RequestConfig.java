@@ -57,7 +57,7 @@ public class RequestConfig {
 
     public int getRequestMaxBufferSize() {
         if (requestMaxBufferSize == 0) {
-            return 8192;
+            return 512 * 1024;
         }
         return requestMaxBufferSize;
     }

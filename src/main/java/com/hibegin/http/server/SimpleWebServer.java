@@ -26,10 +26,10 @@ public class SimpleWebServer implements ISocketServer {
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleWebServer.class);
     private static File pidFile;
     private static boolean tips = false;
-    private final ServerConfig serverConfig;
-    private final RequestConfig requestConfig;
-    private final ResponseConfig responseConfig;
-    private final ApplicationContext applicationContext = new ApplicationContext();
+    protected final ServerConfig serverConfig;
+    protected final RequestConfig requestConfig;
+    protected final ResponseConfig responseConfig;
+    protected final ApplicationContext applicationContext = new ApplicationContext();
     private CheckRequestRunnable checkRequestRunnable;
     private Selector selector;
     private HttpDecodeRunnable httpDecodeRunnable;
@@ -105,7 +105,7 @@ public class SimpleWebServer implements ISocketServer {
     }
 
     public ReadWriteSelectorHandler getReadWriteSelectorHandlerInstance(SocketChannel channel, SelectionKey key) throws IOException {
-        return new PlainReadWriteSelectorHandler(channel);
+        return new PlainReadWriteSelectorHandler(channel, requestConfig.getRequestMaxBufferSize());
     }
 
     @Override
