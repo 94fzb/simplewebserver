@@ -7,7 +7,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.FileHandler;
@@ -42,6 +44,10 @@ public class LoggerUtil {
         loadLock.lock();
         try {
             Logger logger = Logger.getLogger(clazz.getName());
+            //避免重复添加 handle
+            if (Arrays.stream(logger.getHandlers()).anyMatch(x -> Objects.equals(x, fileHandler))) {
+                return logger;
+            }
             try {
                 if (fileHandler != null) {
                     logger.addHandler(fileHandler);
