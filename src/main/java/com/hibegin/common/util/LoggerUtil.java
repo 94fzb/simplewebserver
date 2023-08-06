@@ -8,6 +8,8 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -16,9 +18,9 @@ import java.util.logging.SimpleFormatter;
 public class LoggerUtil {
 
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-    private static final Logger LOGGER = LoggerUtil.getLogger(LoggerUtil.class);
     private static final String LOG_FILE_SUFFIX = ".log";
     private static FileHandler fileHandler;
+    private static final Lock loadLock = new ReentrantLock();
 
     static {
         try {
@@ -29,26 +31,29 @@ public class LoggerUtil {
             fileHandler = new FileHandler(fileName.toString(), true);
             fileHandler.setFormatter(new SimpleFormatter());
         } catch (IOException e) {
-            LOGGER.severe("Init logger error " + e.getMessage());
+            getLogger(LoggerUtil.class).severe("Init logger error " + e.getMessage());
         }
     }
 
     private LoggerUtil() {
     }
 
-    public static Logger getLogger(Class clazz) {
-        Logger logger = Logger.getLogger(clazz.getName());
+    public static Logger getLogger(Class<?> clazz) {
+        loadLock.lock();
         try {
-            if (fileHandler != null) {
-                logger.addHandler(fileHandler);
+            Logger logger = Logger.getLogger(clazz.getName());
+            try {
+                if (fileHandler != null) {
+                    logger.addHandler(fileHandler);
+                }
+                logger.setLevel(Level.ALL);
+            } catch (Exception e) {
+                logger.severe("Init logger error " + e.getMessage());
             }
-            logger.setLevel(Level.ALL);
-        } catch (Exception e) {
-            if (LOGGER != null) {
-                LOGGER.log(Level.SEVERE, recordStackTraceMsg(e));
-            }
+            return logger;
+        } finally {
+            loadLock.unlock();
         }
-        return logger;
     }
 
     private synchronized static String getLogFilePath() {
