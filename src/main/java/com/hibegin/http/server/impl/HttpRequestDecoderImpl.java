@@ -38,39 +38,33 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     @Override
     public Map.Entry<Boolean, ByteBuffer> doDecode(ByteBuffer byteBuffer) throws Exception {
         Map.Entry<Boolean, ByteBuffer> result;
-        //HTTPS proxy
-        if (request.requestHeaderStr != null && request.getMethod() == HttpMethod.CONNECT) {
-            saveRequestBodyBytes(byteBuffer.array());
-            result = new AbstractMap.SimpleEntry<>(true, ByteBuffer.allocate(0));
-        } else {
-            // 存在2种情况,提交的数据一次性读取完成,提交的数据一次性读取不完
-            if (Objects.isNull(getRequestBodyBytes())) {
-                headerBytes = BytesUtil.mergeBytes(headerBytes, byteBuffer.array());
-                String fullDataStr = new String(headerBytes);
-                parseHttpMethod();
-                if (fullDataStr.contains(SPLIT)) {
-                    String httpHeader = fullDataStr.substring(0, fullDataStr.indexOf(SPLIT));
-                    request.requestHeaderStr = httpHeader;
-                    String[] headerArr = httpHeader.split(CRLF);
-                    // parse HttpHeader
-                    parseProtocolHeader(headerArr);
-                    int headerByteLength = httpHeader.getBytes().length + SPLIT.getBytes().length;
-                    byte[] requestBody;
-                    if (headerBytes.length - headerByteLength > 0) {
-                        requestBody = BytesUtil.subBytes(headerBytes, headerByteLength, headerBytes.length - headerByteLength);
-                    } else {
-                        requestBody = new byte[0];
-                    }
-                    result = saveRequestBodyBytes(requestBody);
+        // 存在2种情况,提交的数据一次性读取完成,提交的数据一次性读取不完
+        if (Objects.isNull(getRequestBodyBytes())) {
+            headerBytes = BytesUtil.mergeBytes(headerBytes, byteBuffer.array());
+            String fullDataStr = new String(headerBytes);
+            parseHttpMethod();
+            if (fullDataStr.contains(SPLIT)) {
+                String httpHeader = fullDataStr.substring(0, fullDataStr.indexOf(SPLIT));
+                request.requestHeaderStr = httpHeader;
+                String[] headerArr = httpHeader.split(CRLF);
+                // parse HttpHeader
+                parseProtocolHeader(headerArr);
+                int headerByteLength = httpHeader.getBytes().length + SPLIT.getBytes().length;
+                byte[] requestBody;
+                if (headerBytes.length - headerByteLength > 0) {
+                    requestBody = BytesUtil.subBytes(headerBytes, headerByteLength, headerBytes.length - headerByteLength);
                 } else {
-                    //没有 SPLIT，请求头部分不完整，需要继续等待
-                    result = new AbstractMap.SimpleEntry<>(false, byteBuffer);
+                    requestBody = new byte[0];
                 }
+                result = saveRequestBodyBytes(requestBody);
             } else {
-                result = saveRequestBodyBytes(byteBuffer.array());
+                //没有 SPLIT，请求头部分不完整，需要继续等待
+                result = new AbstractMap.SimpleEntry<>(false, byteBuffer);
             }
+        } else {
+            result = saveRequestBodyBytes(byteBuffer.array());
         }
-        if (result.getKey()) {
+        if (Objects.equals(result.getKey(), true)) {
             dealRequestBodyData();
             //处理完成，清空byte[]
             headerBytes = new byte[]{};
