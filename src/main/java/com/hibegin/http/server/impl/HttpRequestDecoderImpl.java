@@ -89,10 +89,9 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     private Map.Entry<Boolean, ByteBuffer> saveRequestBodyBytes(byte[] bytes) throws IOException {
         byte[] handleBytes = bytes;
         try {
-            if (dataLength == 0) {
-                return new AbstractMap.SimpleEntry<>(true, ByteBuffer.wrap(bytes));
+            if (dataLength > 0) {
+                handleBytes = BytesUtil.subBytes(bytes, 0, dataLength);
             }
-            handleBytes = BytesUtil.subBytes(bytes, 0, dataLength);
             if (request.tmpRequestBodyFile != null) {
                 try (FileOutputStream fileOutputStream = new FileOutputStream(request.tmpRequestBodyFile, true)) {
                     fileOutputStream.write(handleBytes);
@@ -110,7 +109,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                     return new AbstractMap.SimpleEntry<>(true, ByteBuffer.allocate(0));
                 }
             } else {
-                return new AbstractMap.SimpleEntry<>(false, ByteBuffer.allocate(0));
+                return new AbstractMap.SimpleEntry<>(dataLength == 0, ByteBuffer.allocate(0));
             }
         } finally {
             if (request.getApplicationContext().getServerConfig().getHttpRequestDecodeListener() != null) {
@@ -226,37 +225,39 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         if (Objects.isNull(requestBody)) {
             return;
         }
-        if (request.getHeader("Content-Type") != null) {
-            String contentType = request.getHeader("Content-Type").split(";")[0];
-            //FIXME 不支持多文件上传，不支持这里有其他属性字段
-            if ("multipart/form-data".equals(contentType)) {
-                StringBuilder sb = new StringBuilder();
-                try (BufferedReader bin = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(requestBody)))) {
-                    String headerStr;
-                    while ((headerStr = bin.readLine()) != null && !headerStr.isEmpty()) {
-                        sb.append(headerStr).append(CRLF);
-                        dealRequestHeaderString(headerStr);
-                    }
-                } catch (IOException e) {
-                    LOGGER.log(Level.SEVERE, "", e);
+        String contentTypeHeader = request.getHeader("Content-Type");
+        if (Objects.isNull(contentTypeHeader) || contentTypeHeader.trim().isEmpty()) {
+            return;
+        }
+        String contentType = contentTypeHeader.split(";")[0];
+        //FIXME 不支持多文件上传，不支持这里有其他属性字段
+        if ("multipart/form-data".equals(contentType)) {
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader bin = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(requestBody)))) {
+                String headerStr;
+                while ((headerStr = bin.readLine()) != null && !headerStr.isEmpty()) {
+                    sb.append(headerStr).append(CRLF);
+                    dealRequestHeaderString(headerStr);
                 }
-                String contentDisposition = request.getHeader("Content-Disposition");
-                if (contentDisposition != null) {
-                    String inputKeyName = contentDisposition.split(";")[1].split("=")[1].replace("\"", "");
-                    String inputFileName = contentDisposition.split(";")[2].split("=")[1].replace("\"", "");
-                    String ext = getFileExtension(inputFileName);
-                    int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
-                    int length2 = sb.toString().getBytes().length + 2;
-                    int dataLength = requestBody.length - length1 - length2 - SPLIT.getBytes().length;
-                    File file = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort() + (Objects.isNull(ext) ? "" : "." + ext), BytesUtil.subBytes(requestBody, length2, dataLength));
-                    if (request.files == null) {
-                        request.files = new HashMap<>();
-                    }
-                    request.files.put(inputKeyName, file);
-                }
-            } else if ("application/x-www-form-urlencoded".equals(contentType)) {
-                parseUrlEncodedStrToMap(new String(requestBody));
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "", e);
             }
+            String contentDisposition = request.getHeader("Content-Disposition");
+            if (contentDisposition != null) {
+                String inputKeyName = contentDisposition.split(";")[1].split("=")[1].replace("\"", "");
+                String inputFileName = contentDisposition.split(";")[2].split("=")[1].replace("\"", "");
+                String ext = getFileExtension(inputFileName);
+                int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
+                int length2 = sb.toString().getBytes().length + 2;
+                int dataLength = requestBody.length - length1 - length2 - SPLIT.getBytes().length;
+                File file = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort() + (Objects.isNull(ext) ? "" : "." + ext), BytesUtil.subBytes(requestBody, length2, dataLength));
+                if (request.files == null) {
+                    request.files = new HashMap<>();
+                }
+                request.files.put(inputKeyName, file);
+            }
+        } else if ("application/x-www-form-urlencoded".equals(contentType)) {
+            parseUrlEncodedStrToMap(new String(requestBody));
         }
     }
 
