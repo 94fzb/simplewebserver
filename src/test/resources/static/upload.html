@@ -1,9 +1,16 @@
 <html>
 <body>
-Hello SimpleWebServer
+Test with requestBody
 </body>
+<h3>upload</h3>
 <form action="/api/upload" method="post" enctype="multipart/form-data">
     <input type="file" name="file">
+    <button type="submit">submit</button>
+</form>
+<h3>form</h3>
+<form action="/api/form" method="post">
+    <input name="nickname">
+    <input name="name">
     <button type="submit">submit</button>
 </form>
 </html>

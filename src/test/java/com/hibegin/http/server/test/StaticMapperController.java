@@ -21,6 +21,10 @@ public class StaticMapperController extends Controller {
         response.renderJson(map);
     }
 
+    public void form() {
+        response.renderJson(request.getParamMap());
+    }
+
     public static void main(String[] args) {
         ServerConfig serverConfig = new ServerConfig();
         serverConfig.getRouter().addMapper("/api", StaticMapperController.class);
