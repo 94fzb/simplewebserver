@@ -310,6 +310,7 @@ public class SimpleHttpRequest implements HttpRequest {
     public void deleteTempUploadFiles() {
         if (tmpRequestBodyFile != null) {
             FileCacheKit.deleteCache(tmpRequestBodyFile);
+            tmpRequestBodyFile = null;
         }
         if (files != null) {
             for (File file : files.values()) {

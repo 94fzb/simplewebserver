@@ -40,12 +40,11 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         Map.Entry<Boolean, ByteBuffer> result;
         //HTTPS proxy
         if (request.requestHeaderStr != null && request.getMethod() == HttpMethod.CONNECT) {
-            result = new AbstractMap.SimpleEntry<>(true, ByteBuffer.allocate(0));
             saveRequestBodyBytes(byteBuffer.array());
+            result = new AbstractMap.SimpleEntry<>(true, ByteBuffer.allocate(0));
         } else {
             // 存在2种情况,提交的数据一次性读取完成,提交的数据一次性读取不完
-            boolean flag;
-            if (getRequestBodyBytes() == null) {
+            if (Objects.isNull(getRequestBodyBytes())) {
                 headerBytes = BytesUtil.mergeBytes(headerBytes, byteBuffer.array());
                 String fullDataStr = new String(headerBytes);
                 parseHttpMethod();
@@ -54,7 +53,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                     request.requestHeaderStr = httpHeader;
                     String[] headerArr = httpHeader.split(CRLF);
                     // parse HttpHeader
-                    parseHttpProtocolHeader(headerArr);
+                    parseProtocolHeader(headerArr);
                     int headerByteLength = httpHeader.getBytes().length + SPLIT.getBytes().length;
                     byte[] requestBody;
                     if (headerBytes.length - headerByteLength > 0) {
@@ -62,26 +61,19 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                     } else {
                         requestBody = new byte[0];
                     }
-                    flag = parseHttpRequestBody(requestBody);
-                    //处理完成，清空byte[]
-                    headerBytes = new byte[]{};
-                    if (isNeedEmptyRequestBody()) {
-                        result = new AbstractMap.SimpleEntry<>(flag, ByteBuffer.wrap(requestBody));
-                    } else {
-                        result = new AbstractMap.SimpleEntry<>(flag, ByteBuffer.allocate(0));
-                    }
+                    result = saveRequestBodyBytes(requestBody);
                 } else {
-                    result = new AbstractMap.SimpleEntry<>(false, ByteBuffer.allocate(0));
+                    //没有 SPLIT，请求头部分不完整，需要继续等待
+                    result = new AbstractMap.SimpleEntry<>(false, byteBuffer);
                 }
             } else {
-                flag = saveRequestBodyBytes(byteBuffer.array());
-                if (flag) {
-                    dealRequestBodyData();
-                }
-                result = new AbstractMap.SimpleEntry<>(flag, ByteBuffer.allocate(0));
+                result = saveRequestBodyBytes(byteBuffer.array());
             }
         }
         if (result.getKey()) {
+            dealRequestBodyData();
+            //处理完成，清空byte[]
+            headerBytes = new byte[]{};
             request.getHandler().flushRequestBB();
         }
         return result;
@@ -94,85 +86,61 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
      * @return
      * @throws IOException
      */
-    private boolean saveRequestBodyBytes(byte[] bytes) throws IOException {
-        if (bytes.length > 0 || !isNeedEmptyRequestBody()) {
+    private Map.Entry<Boolean, ByteBuffer> saveRequestBodyBytes(byte[] bytes) throws IOException {
+        if (dataLength == 0) {
+            return new AbstractMap.SimpleEntry<>(true, ByteBuffer.wrap(bytes));
+        }
+        try {
+            byte[] newBodyBytes = BytesUtil.subBytes(bytes, 0, dataLength);
             if (request.tmpRequestBodyFile != null) {
                 try (FileOutputStream fileOutputStream = new FileOutputStream(request.tmpRequestBodyFile, true)) {
-                    fileOutputStream.write(bytes);
+                    fileOutputStream.write(newBodyBytes);
                 }
             } else {
-                //first record use full request buffer
-                request.tmpRequestBodyFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort(), bytes);
+                request.tmpRequestBodyFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort() + "", newBodyBytes);
             }
+            //requestBody full
+            if (request.tmpRequestBodyFile.length() == dataLength) {
+                int hasNextData = bytes.length - newBodyBytes.length;
+                if (hasNextData > 0) {
+                    byte[] nextData = BytesUtil.subBytes(bytes, bytes.length, hasNextData);
+                    return new AbstractMap.SimpleEntry<>(true, ByteBuffer.wrap(nextData));
+                } else {
+                    return new AbstractMap.SimpleEntry<>(true, ByteBuffer.allocate(0));
+                }
+            } else {
+                return new AbstractMap.SimpleEntry<>(false, ByteBuffer.allocate(0));
+            }
+        } finally {
             if (request.getApplicationContext().getServerConfig().getHttpRequestDecodeListener() != null) {
                 request.getApplicationContext().getServerConfig().getHttpRequestDecodeListener().decodeRequestBodyBytesAfter(request, bytes);
             }
-            return request.tmpRequestBodyFile.length() == dataLength;
         }
-        return false;
     }
 
-    private byte[] getRequestBodyBytes() throws FileNotFoundException {
-        if (request.tmpRequestBodyFile != null) {
-            return IOUtil.getByteByInputStream(new FileInputStream(request.tmpRequestBodyFile));
+    private byte[] getRequestBodyBytes() {
+        if (request.tmpRequestBodyFile != null && request.tmpRequestBodyFile.exists()) {
+            return IOUtil.getByteByFile(request.tmpRequestBodyFile);
         } else {
             return null;
         }
     }
 
-    private void parseHttpMethod() throws UnSupportMethodException {
-        if (request.method == null) {
-            boolean check = false;
-            String requestLine = new String(headerBytes);
-            for (HttpMethod httpMethod : HttpMethod.values()) {
-                if (requestLine.startsWith(httpMethod.name() + " ")) {
-                    request.method = httpMethod;
-                    check = true;
-                    break;
-                }
-            }
-            if (!check) {
-                throw new UnSupportMethodException(requestLine);
+    private void parseHttpMethod() {
+        if (Objects.nonNull(request.method)) {
+            return;
+        }
+        String requestLine = new String(headerBytes);
+        for (HttpMethod httpMethod : HttpMethod.values()) {
+            if (requestLine.startsWith(httpMethod.name() + " ")) {
+                request.method = httpMethod;
+                return;
             }
         }
+        throw new UnSupportMethodException(requestLine.substring(0, Math.min(requestLine.length() - 1, 48)));
     }
 
-    private boolean parseHttpRequestBody(byte[] requestBodyData) throws IOException {
-        parseUrlEncodedStrToMap(request.queryStr);
-        if (isNeedEmptyRequestBody()) {
-            return true;
-        } else {
-            Object contentLengthObj = request.getHeader("Content-Length");
-            if (contentLengthObj != null) {
-                dataLength = Integer.parseInt(contentLengthObj.toString());
-                if (dataLength == 0) {
-                    return true;
-                }
-                if (dataLength > getRequest().getRequestConfig().getMaxRequestBodySize()) {
-                    throw new RequestBodyTooLargeException("The Content-Length outside the max upload size " + ConfigKit.getMaxRequestBodySize());
-                }
-                if (saveRequestBodyBytes(requestBodyData)) {
-                    dealRequestBodyData();
-                    return true;
-                } else {
-                    return false;
-                }
-            } else {
-                return true;
-            }
-        }
-    }
-
-    /**
-     * 存在 content-length 认为
-     *
-     * @return
-     */
-    private boolean isNeedEmptyRequestBody() {
-        return request.getHeader("Content-Length") == null && (request.method == HttpMethod.GET || request.method == HttpMethod.CONNECT || request.method == HttpMethod.TRACE);
-    }
-
-    private void parseHttpProtocolHeader(String[] headerArr) throws Exception {
+    private void parseProtocolHeader(String[] headerArr) throws Exception {
         String pHeader = headerArr[0];
         String[] protocolHeaderArr = pHeader.split(" ");
         String tUrl = request.uri = protocolHeaderArr[1];
@@ -202,6 +170,11 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         // 先得到请求头信息
         for (int i = 1; i < headerArr.length; i++) {
             dealRequestHeaderString(headerArr[i]);
+        }
+        parseUrlEncodedStrToMap(request.queryStr);
+        dataLength = Integer.parseInt(Objects.requireNonNullElse(request.getHeader("Content-Length"), "0"));
+        if (dataLength > getRequest().getRequestConfig().getMaxRequestBodySize()) {
+            throw new RequestBodyTooLargeException("The Content-Length outside the max upload size " + ConfigKit.getMaxRequestBodySize());
         }
     }
 
@@ -234,43 +207,54 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 }
             }
             for (Entry<String, List<String>> entry : tempParam.entrySet()) {
-                request.paramMap.put(entry.getKey(), entry.getValue().toArray(new String[entry.getValue().size()]));
+                request.paramMap.put(entry.getKey(), entry.getValue().toArray(new String[0]));
             }
         }
     }
 
+    public static String getFileExtension(String filename) {
+        int lastDotIndex = filename.lastIndexOf(".");
+        if (lastDotIndex != -1 && lastDotIndex < filename.length() - 1) {
+            return filename.substring(lastDotIndex + 1);
+        }
+        return null;
+    }
+
     private void dealRequestBodyData() throws IOException {
         byte[] requestBody = getRequestBodyBytes();
-        if (requestBody != null) {
-            if (request.getHeader("Content-Type") != null) {
-                String contentType = request.getHeader("Content-Type").split(";")[0];
-                //FIXME 不支持多文件上传，不支持这里有其他属性字段
-                if ("multipart/form-data".equals(contentType)) {
-                    StringBuilder sb = new StringBuilder();
-                    try (BufferedReader bin = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(requestBody)))) {
-                        String headerStr;
-                        while ((headerStr = bin.readLine()) != null && !"".equals(headerStr)) {
-                            sb.append(headerStr).append(CRLF);
-                            dealRequestHeaderString(headerStr);
-                        }
-                    } catch (IOException e) {
-                        LOGGER.log(Level.SEVERE, "", e);
+        if (Objects.isNull(requestBody)) {
+            return;
+        }
+        if (request.getHeader("Content-Type") != null) {
+            String contentType = request.getHeader("Content-Type").split(";")[0];
+            //FIXME 不支持多文件上传，不支持这里有其他属性字段
+            if ("multipart/form-data".equals(contentType)) {
+                StringBuilder sb = new StringBuilder();
+                try (BufferedReader bin = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(requestBody)))) {
+                    String headerStr;
+                    while ((headerStr = bin.readLine()) != null && !headerStr.isEmpty()) {
+                        sb.append(headerStr).append(CRLF);
+                        dealRequestHeaderString(headerStr);
                     }
-                    String contentDisposition = request.getHeader("Content-Disposition");
-                    if (contentDisposition != null) {
-                        String inputName = contentDisposition.split(";")[1].split("=")[1].replace("\"", "");
-                        int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
-                        int length2 = sb.toString().getBytes().length + 2;
-                        int dataLength = requestBody.length - length1 - length2 - SPLIT.getBytes().length;
-                        File file = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort(), BytesUtil.subBytes(requestBody, length2, dataLength));
-                        if (request.files == null) {
-                            request.files = new HashMap<>();
-                        }
-                        request.files.put(inputName, file);
-                    }
-                } else if ("application/x-www-form-urlencoded".equals(contentType)) {
-                    parseUrlEncodedStrToMap(new String(requestBody));
+                } catch (IOException e) {
+                    LOGGER.log(Level.SEVERE, "", e);
                 }
+                String contentDisposition = request.getHeader("Content-Disposition");
+                if (contentDisposition != null) {
+                    String inputKeyName = contentDisposition.split(";")[1].split("=")[1].replace("\"", "");
+                    String inputFileName = contentDisposition.split(";")[2].split("=")[1].replace("\"", "");
+                    String ext = getFileExtension(inputFileName);
+                    int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
+                    int length2 = sb.toString().getBytes().length + 2;
+                    int dataLength = requestBody.length - length1 - length2 - SPLIT.getBytes().length;
+                    File file = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort() + (Objects.isNull(ext) ? "" : "." + ext), BytesUtil.subBytes(requestBody, length2, dataLength));
+                    if (request.files == null) {
+                        request.files = new HashMap<>();
+                    }
+                    request.files.put(inputKeyName, file);
+                }
+            } else if ("application/x-www-form-urlencoded".equals(contentType)) {
+                parseUrlEncodedStrToMap(new String(requestBody));
             }
         }
     }

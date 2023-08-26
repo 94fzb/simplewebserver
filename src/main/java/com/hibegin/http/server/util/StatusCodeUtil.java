@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class StatusCodeUtil {
 
-    private static Map<Integer, String> map = new HashMap<>();
+    private static final Map<Integer, String> map = new HashMap<>();
 
     static {
         map.put(100, "Continue");
@@ -43,6 +43,7 @@ public class StatusCodeUtil {
         map.put(416, "Range Not Satisfiable");
         map.put(417, "Expectation Failed");
         map.put(426, "Upgrade Required");
+        map.put(499, "Client Closed Request");
         map.put(500, "Internal Server Error");
         map.put(501, "Not Implemented");
         map.put(502, "Bad Gateway");

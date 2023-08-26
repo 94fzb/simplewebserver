@@ -30,7 +30,7 @@ public class FileCacheKit {
         }, 0, 1, TimeUnit.SECONDS);
     }
 
-    public static File generatorRequestTempFile(int flag, byte[] bytes) throws IOException {
+    public static File generatorRequestTempFile(String flag, byte[] bytes) throws IOException {
         if (bytes == null) {
             bytes = new byte[0];
         }
@@ -39,7 +39,7 @@ public class FileCacheKit {
         return file;
     }
 
-    private static String suffix(int flag) {
+    private static String suffix(String flag) {
         return ".tmp." + flag;
     }
 
@@ -47,7 +47,7 @@ public class FileCacheKit {
         File[] files = new File(PathUtil.getTempPath()).listFiles();
         if (files != null) {
             for (File file : files) {
-                if (file.getName().endsWith(suffix(flag))) {
+                if (file.getName().contains(suffix(flag + ""))) {
                     file.delete();
                 }
             }

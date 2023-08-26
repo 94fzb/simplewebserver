@@ -4,6 +4,7 @@ import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.SimpleWebServer;
+import com.hibegin.http.server.api.HttpErrorHandle;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.config.RequestConfig;
@@ -107,11 +108,11 @@ public class HttpDecodeRunnable implements Runnable {
             }
 
             Map.Entry<Boolean, ByteBuffer> booleanEntry = codecEntry.getKey().doDecode(ByteBuffer.wrap(requestEvent.getRequestBytes()));
-            if (!booleanEntry.getKey()) {
-                return;
-            }
             if (booleanEntry.getValue().limit() > 0) {
                 addBytesToQueue(key, socket, booleanEntry.getValue().array(), true);
+            }
+            if (Objects.equals(booleanEntry.getKey(), false)) {
+                return;
             }
             if (serverConfig.isSupportHttp2()) {
                 renderUpgradeHttp2Response(codecEntry.getValue());
@@ -123,16 +124,15 @@ public class HttpDecodeRunnable implements Runnable {
                     applicationContext.getHttpDeCoderMap().put(socket, codecEntry);
                 }
             }
-        } catch (EOFException | ClosedChannelException e) {
-            //do nothing
-            handleException(key, codecEntry.getKey(), null, 400);
-        } catch (UnSupportMethodException | IOException e) {
-            handleException(key, codecEntry.getKey(), new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()), 400);
+        } catch (IOException e) {
+            handleException(key, codecEntry.getKey(), null, 499, e);
+        } catch (UnSupportMethodException e) {
+            handleException(key, codecEntry.getKey(), new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()), 400, e);
         } catch (RequestBodyTooLargeException e) {
-            handleException(key, codecEntry.getKey(), new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()), 413);
+            handleException(key, codecEntry.getKey(), new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()), 413, e);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "", e);
-            handleException(key, codecEntry.getKey(), new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()), 500);
+            handleException(key, codecEntry.getKey(), new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()), 500, e);
         } finally {
             requestEvent.deleteFile();
         }
@@ -157,7 +157,7 @@ public class HttpDecodeRunnable implements Runnable {
         long newBufferSize = entryBlockingQueue.stream().mapToLong(RequestEvent::getLength).sum() + bytes.length;
         RequestEvent requestEvent;
         if (newBufferSize > requestConfig.getRequestMaxBufferSize()) {
-            requestEvent = new RequestEvent(key, FileCacheKit.generatorRequestTempFile(serverConfig.getPort(), bytes));
+            requestEvent = new RequestEvent(key, FileCacheKit.generatorRequestTempFile(serverConfig.getPort() +"", bytes));
         } else {
             requestEvent = new RequestEvent(key, bytes);
         }
@@ -203,11 +203,16 @@ public class HttpDecodeRunnable implements Runnable {
         httpResponse.send(bout, true);
     }
 
-    private void handleException(SelectionKey key, HttpRequestDeCoder codec, HttpRequestHandlerRunnable httpRequestHandlerRunnable, int errorCode) {
+    private void handleException(SelectionKey key, HttpRequestDeCoder codec, HttpRequestHandlerRunnable httpRequestHandlerRunnable, int errorCode, Throwable throwable) {
         try {
             if (httpRequestHandlerRunnable != null && codec != null && codec.getRequest() != null) {
                 if (!httpRequestHandlerRunnable.getRequest().getHandler().getChannel().socket().isClosed()) {
-                    httpRequestHandlerRunnable.getResponse().renderCode(errorCode);
+                    HttpErrorHandle errorHandle = serverConfig.getErrorHandle(errorCode);
+                    if (Objects.nonNull(errorHandle)) {
+                        errorHandle.doHandle(codec.getRequest(), httpRequestHandlerRunnable.getResponse(), throwable);
+                    } else {
+                        httpRequestHandlerRunnable.getResponse().renderCode(errorCode);
+                    }
                 }
             }
         } catch (Exception e) {
