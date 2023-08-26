@@ -87,21 +87,22 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
      * @throws IOException
      */
     private Map.Entry<Boolean, ByteBuffer> saveRequestBodyBytes(byte[] bytes) throws IOException {
-        if (dataLength == 0) {
-            return new AbstractMap.SimpleEntry<>(true, ByteBuffer.wrap(bytes));
-        }
+        byte[] handleBytes = bytes;
         try {
-            byte[] newBodyBytes = BytesUtil.subBytes(bytes, 0, dataLength);
+            if (dataLength == 0) {
+                return new AbstractMap.SimpleEntry<>(true, ByteBuffer.wrap(bytes));
+            }
+            handleBytes = BytesUtil.subBytes(bytes, 0, dataLength);
             if (request.tmpRequestBodyFile != null) {
                 try (FileOutputStream fileOutputStream = new FileOutputStream(request.tmpRequestBodyFile, true)) {
-                    fileOutputStream.write(newBodyBytes);
+                    fileOutputStream.write(handleBytes);
                 }
             } else {
-                request.tmpRequestBodyFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort() + "", newBodyBytes);
+                request.tmpRequestBodyFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort() + "", handleBytes);
             }
             //requestBody full
             if (request.tmpRequestBodyFile.length() == dataLength) {
-                int hasNextData = bytes.length - newBodyBytes.length;
+                int hasNextData = bytes.length - handleBytes.length;
                 if (hasNextData > 0) {
                     byte[] nextData = BytesUtil.subBytes(bytes, bytes.length, hasNextData);
                     return new AbstractMap.SimpleEntry<>(true, ByteBuffer.wrap(nextData));
@@ -113,7 +114,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             }
         } finally {
             if (request.getApplicationContext().getServerConfig().getHttpRequestDecodeListener() != null) {
-                request.getApplicationContext().getServerConfig().getHttpRequestDecodeListener().decodeRequestBodyBytesAfter(request, bytes);
+                request.getApplicationContext().getServerConfig().getHttpRequestDecodeListener().decodeRequestBodyBytesAfter(request, handleBytes);
             }
         }
     }
