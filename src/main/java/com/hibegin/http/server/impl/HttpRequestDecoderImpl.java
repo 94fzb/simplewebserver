@@ -97,7 +97,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             if (request.tmpRequestBodyFile.length() == dataLength) {
                 int hasNextData = bytes.length - handleBytes.length;
                 if (hasNextData > 0) {
-                    byte[] nextData = BytesUtil.subBytes(bytes, bytes.length, hasNextData);
+                    byte[] nextData = BytesUtil.subBytes(bytes, handleBytes.length, hasNextData);
                     return new AbstractMap.SimpleEntry<>(true, ByteBuffer.wrap(nextData));
                 } else {
                     return new AbstractMap.SimpleEntry<>(true, ByteBuffer.allocate(0));
