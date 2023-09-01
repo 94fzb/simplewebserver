@@ -86,15 +86,17 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             if (dataLength > 0) {
                 handleBytes = BytesUtil.subBytes(bytes, 0, dataLength);
             }
-            if (request.tmpRequestBodyFile != null) {
+            File tempFile = request.tmpRequestBodyFile;
+            if (Objects.nonNull(tempFile)) {
                 try (FileOutputStream fileOutputStream = new FileOutputStream(request.tmpRequestBodyFile, true)) {
                     fileOutputStream.write(handleBytes);
                 }
             } else {
-                request.tmpRequestBodyFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort() + "", handleBytes);
+                tempFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort() + "", handleBytes);
+                request.tmpRequestBodyFile = tempFile;
             }
             //requestBody full
-            if (request.tmpRequestBodyFile.length() == dataLength) {
+            if (tempFile.length() == dataLength) {
                 int hasNextData = bytes.length - handleBytes.length;
                 if (hasNextData > 0) {
                     byte[] nextData = BytesUtil.subBytes(bytes, handleBytes.length, hasNextData);
