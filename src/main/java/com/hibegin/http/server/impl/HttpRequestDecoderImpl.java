@@ -86,17 +86,9 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             if (dataLength > 0) {
                 handleBytes = BytesUtil.subBytes(bytes, 0, dataLength);
             }
-            File tempFile = request.tmpRequestBodyFile;
-            if (Objects.nonNull(tempFile)) {
-                try (FileOutputStream fileOutputStream = new FileOutputStream(request.tmpRequestBodyFile, true)) {
-                    fileOutputStream.write(handleBytes);
-                }
-            } else {
-                tempFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort() + "", handleBytes);
-                request.tmpRequestBodyFile = tempFile;
-            }
+            File tempFile = saveRequestBodyToTempFile(handleBytes);
             //requestBody full
-            if (tempFile.length() == dataLength) {
+            if (tempFile.exists() && tempFile.length() == dataLength) {
                 int hasNextData = bytes.length - handleBytes.length;
                 if (hasNextData > 0) {
                     byte[] nextData = BytesUtil.subBytes(bytes, handleBytes.length, hasNextData);
@@ -112,6 +104,19 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 request.getApplicationContext().getServerConfig().getHttpRequestDecodeListener().decodeRequestBodyBytesAfter(request, handleBytes);
             }
         }
+    }
+
+    private File saveRequestBodyToTempFile(byte[] handleBytes) throws IOException {
+        File tempFile = request.tmpRequestBodyFile;
+        if (Objects.nonNull(tempFile)) {
+            try (FileOutputStream fileOutputStream = new FileOutputStream(tempFile, true)) {
+                fileOutputStream.write(handleBytes);
+            }
+        } else {
+            tempFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort() + "", handleBytes);
+            request.tmpRequestBodyFile = tempFile;
+        }
+        return tempFile;
     }
 
     private byte[] getRequestBodyBytes() {
