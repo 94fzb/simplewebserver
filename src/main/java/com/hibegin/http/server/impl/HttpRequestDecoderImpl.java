@@ -245,9 +245,13 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             }
             String contentDisposition = request.getHeader("Content-Disposition");
             if (contentDisposition != null) {
-                String inputKeyName = contentDisposition.split(";")[1].split("=")[1].replace("\"", "");
-                String inputFileName = contentDisposition.split(";")[2].split("=")[1].replace("\"", "");
-                String ext = getFileExtension(inputFileName);
+                String[] kvs = contentDisposition.split(";");
+                String inputKeyName = kvs[1].split("=")[1].replace("\"", "");
+                String ext = null;
+                if (kvs.length == 3) {
+                    String inputFileName = kvs[2].split("=")[1].replace("\"", "");
+                    ext = getFileExtension(inputFileName);
+                }
                 int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
                 int length2 = sb.toString().getBytes().length + 2;
                 int dataLength = requestBody.length - length1 - length2 - SPLIT.getBytes().length;
