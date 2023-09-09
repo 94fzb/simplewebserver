@@ -58,8 +58,8 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 }
                 result = saveRequestBodyBytes(requestBody);
             } else {
-                //没有 SPLIT，请求头部分不完整，需要继续等待
-                result = new AbstractMap.SimpleEntry<>(false, byteBuffer);
+                //没有 SPLIT，请求头部分不完整，需要继续等待，且已处理 byteBuffer，返回0
+                result = new AbstractMap.SimpleEntry<>(false, ByteBuffer.allocate(0));
             }
         } else {
             result = saveRequestBodyBytes(byteBuffer.array());
