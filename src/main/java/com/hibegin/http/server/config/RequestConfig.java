@@ -9,6 +9,7 @@ public class RequestConfig {
     private String charSet = "UTF-8";
     private Router router;
     private int maxRequestBodySize;
+    private int maxRequestHeaderSize;
     private int requestMaxBufferSize;
 
     public boolean isDisableCookie() {
@@ -60,6 +61,17 @@ public class RequestConfig {
             return 512 * 1024;
         }
         return requestMaxBufferSize;
+    }
+
+    public int getMaxRequestHeaderSize() {
+        if (maxRequestHeaderSize == 0) {
+            return 128 * 1024;
+        }
+        return Math.max(maxRequestHeaderSize, 32 * 1024);
+    }
+
+    public void setMaxRequestHeaderSize(int maxRequestHeaderSize) {
+        this.maxRequestHeaderSize = maxRequestHeaderSize;
     }
 
     public void setRequestMaxBufferSize(int requestMaxBufferSize) {

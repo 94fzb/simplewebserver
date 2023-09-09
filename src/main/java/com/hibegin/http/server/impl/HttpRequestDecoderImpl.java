@@ -58,6 +58,11 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 }
                 result = saveRequestBodyBytes(requestBody);
             } else {
+                int maxHeaderSize = request.getRequestConfig().getMaxRequestHeaderSize();
+                //没有读取到 SPLIT 时，检查 header 的最大长度
+                if (headerBytes.length > maxHeaderSize) {
+                    throw new RequestBodyTooLargeException("The http header to large " + headerBytes.length + " more than " + maxHeaderSize);
+                }
                 //没有 SPLIT，请求头部分不完整，需要继续等待，且已处理 byteBuffer，返回0
                 result = new AbstractMap.SimpleEntry<>(false, ByteBuffer.allocate(0));
             }
