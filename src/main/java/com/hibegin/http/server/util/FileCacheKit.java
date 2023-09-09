@@ -9,27 +9,6 @@ import java.util.concurrent.*;
 
 public class FileCacheKit {
 
-    private static final Queue<File> needDeleteFileQueue = new ConcurrentLinkedQueue<>();
-    private static final ScheduledExecutorService scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread thread = new Thread(r);
-            thread.setName("file-cache-clean-thread");
-            return thread;
-        }
-    });
-
-    static {
-        scheduledThreadPoolExecutor.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                while (!needDeleteFileQueue.isEmpty()) {
-                    needDeleteFileQueue.poll().delete();
-                }
-            }
-        }, 0, 1, TimeUnit.SECONDS);
-    }
-
     public static File generatorRequestTempFile(String flag, byte[] bytes) throws IOException {
         if (bytes == null) {
             bytes = new byte[0];
@@ -54,7 +33,7 @@ public class FileCacheKit {
         }
     }
 
-    public static void deleteCache(File file) {
-        needDeleteFileQueue.add(file);
+    public static boolean deleteCache(File file) {
+        return file.delete();
     }
 }
