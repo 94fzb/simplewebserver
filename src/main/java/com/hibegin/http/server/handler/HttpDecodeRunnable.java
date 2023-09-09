@@ -18,10 +18,10 @@ import com.hibegin.http.server.util.FileCacheKit;
 import com.hibegin.http.server.util.FrameUtil;
 import com.hibegin.http.server.util.StatusCodeUtil;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.*;

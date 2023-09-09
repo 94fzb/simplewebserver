@@ -1,10 +1,8 @@
 package com.hibegin.http.server.handler;
 
 import com.hibegin.common.util.IOUtil;
-import com.hibegin.http.server.util.FileCacheKit;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.Objects;
 

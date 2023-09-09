@@ -14,7 +14,7 @@
     </description>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <freemarker.version>2.3.23</freemarker.version>
+        <freemarker.version>2.3.30</freemarker.version>
         <gson.version>2.10.1</gson.version>
         <maven.compiler.target>8</maven.compiler.target>
         <maven.compiler.source>8</maven.compiler.source>
@@ -199,6 +199,7 @@
                     <serverId>ossrh</serverId>
                     <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                     <autoDropAfterRelease>true</autoDropAfterRelease>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
             </plugin>
             <plugin>
