@@ -158,42 +158,14 @@ public class SimpleWebServer implements ISocketServer {
      * 初始化处理请求的请求
      */
     private void startExecHttpRequestThread(int serverPort) {
+        checkRequestRunnable = new CheckRequestRunnable(applicationContext);
+        httpDecodeRunnable = new HttpDecodeRunnable(applicationContext, this, requestConfig, responseConfig, checkRequestRunnable);
         checkRequestExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread thread = new Thread(r);
-            thread.setName("check-request-" + serverPort);
+            thread.setName("request-checker-" + serverPort);
             return thread;
         });
-
-        httpDecodeRunnable = new HttpDecodeRunnable(applicationContext, this, requestConfig, responseConfig);
-        checkRequestRunnable = new CheckRequestRunnable(applicationContext);
         checkRequestExecutor.scheduleAtFixedRate(checkRequestRunnable, 0, 1, TimeUnit.SECONDS);
-        new Thread(ServerInfo.getName().toLowerCase() + "-request-event-loop-" + serverPort) {
-            @Override
-            public void run() {
-                while (!Thread.interrupted()) {
-                    HttpRequestHandlerRunnable httpRequestHandlerRunnable = httpDecodeRunnable.getHttpRequestHandlerRunnable();
-                    if (Objects.isNull(httpRequestHandlerRunnable)) {
-                        return;
-                    }
-                    SocketChannel socket = httpRequestHandlerRunnable.getRequest().getHandler().getChannel();
-                    if (httpRequestHandlerRunnable.getRequest().getMethod() != HttpMethod.CONNECT) {
-                        HttpRequestHandlerRunnable oldHttpRequestHandlerRunnable = checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().get(socket);
-                        //清除老的请求
-                        if (oldHttpRequestHandlerRunnable != null) {
-                            oldHttpRequestHandlerRunnable.close();
-                        }
-                        checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().put(socket, httpRequestHandlerRunnable);
-                        serverConfig.getRequestExecutor().execute(httpRequestHandlerRunnable);
-                    } else {
-                        HttpRequestHandlerRunnable oldHttpRequestHandlerRunnable = checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().get(socket);
-                        if (oldHttpRequestHandlerRunnable == null) {
-                            checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().put(socket, httpRequestHandlerRunnable);
-                            serverConfig.getRequestExecutor().execute(httpRequestHandlerRunnable);
-                        }
-                    }
-                }
-            }
-        }.start();
     }
 
     @Override

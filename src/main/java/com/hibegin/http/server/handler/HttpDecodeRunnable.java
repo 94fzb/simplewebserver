@@ -42,15 +42,15 @@ public class HttpDecodeRunnable implements Runnable {
     private final ServerConfig serverConfig;
     private final Set<Socket> workingChannel = new CopyOnWriteArraySet<>();
     private final ReentrantLock lock = new ReentrantLock();
+    private final CheckRequestRunnable checkRequestRunnable;
 
-    private final BlockingQueue<HttpRequestHandlerRunnable> httpRequestHandlerRunnableBlockingQueue = new LinkedBlockingQueue<>();
-
-    public HttpDecodeRunnable(ApplicationContext applicationContext, SimpleWebServer simpleWebServer, RequestConfig requestConfig, ResponseConfig responseConfig) {
+    public HttpDecodeRunnable(ApplicationContext applicationContext, SimpleWebServer simpleWebServer, RequestConfig requestConfig, ResponseConfig responseConfig, CheckRequestRunnable runnable) {
         this.applicationContext = applicationContext;
         this.simpleWebServer = simpleWebServer;
         this.requestConfig = requestConfig;
         this.responseConfig = responseConfig;
         this.serverConfig = applicationContext.getServerConfig();
+        this.checkRequestRunnable = runnable;
     }
 
     @Override
@@ -99,6 +99,28 @@ public class HttpDecodeRunnable implements Runnable {
         }
     }
 
+    private void requestExec(HttpRequestHandlerRunnable httpRequestHandlerRunnable) {
+        if (Objects.isNull(httpRequestHandlerRunnable)) {
+            return;
+        }
+        SocketChannel socket = httpRequestHandlerRunnable.getRequest().getHandler().getChannel();
+        if (Objects.equals(httpRequestHandlerRunnable.getRequest().getMethod(), HttpMethod.CONNECT)) {
+            HttpRequestHandlerRunnable oldHttpRequestHandlerRunnable = checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().get(socket);
+            if (oldHttpRequestHandlerRunnable == null) {
+                checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().put(socket, httpRequestHandlerRunnable);
+                serverConfig.getRequestExecutor().execute(httpRequestHandlerRunnable);
+            }
+            return;
+        }
+        HttpRequestHandlerRunnable oldHttpRequestHandlerRunnable = checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().get(socket);
+        //清除老的请求
+        if (oldHttpRequestHandlerRunnable != null) {
+            oldHttpRequestHandlerRunnable.close();
+        }
+        checkRequestRunnable.getChannelHttpRequestHandlerThreadMap().put(socket, httpRequestHandlerRunnable);
+        serverConfig.getRequestExecutor().execute(httpRequestHandlerRunnable);
+    }
+
     private void doParseHttpMessage(RequestEvent requestEvent, Socket socket) {
         SelectionKey key = requestEvent.getSelectionKey();
         Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = applicationContext.getHttpDeCoderMap().get(socket);
@@ -117,7 +139,7 @@ public class HttpDecodeRunnable implements Runnable {
             if (serverConfig.isSupportHttp2()) {
                 renderUpgradeHttp2Response(codecEntry.getValue());
             } else {
-                httpRequestHandlerRunnableBlockingQueue.add(new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()));
+                requestExec(new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()));
                 if (codecEntry.getKey().getRequest().getMethod() != HttpMethod.CONNECT) {
                     HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, applicationContext, codecEntry.getKey().getRequest().getHandler());
                     codecEntry = new AbstractMap.SimpleEntry<>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig));
@@ -138,16 +160,6 @@ public class HttpDecodeRunnable implements Runnable {
         }
     }
 
-    public HttpRequestHandlerRunnable getHttpRequestHandlerRunnable() {
-        try {
-            return httpRequestHandlerRunnableBlockingQueue.take();
-        } catch (InterruptedException e) {
-            LOGGER.log(Level.SEVERE, "", e);
-        }
-        return null;
-    }
-
-
     private void addBytesToQueue(SelectionKey key, Socket socket, byte[] bytes, boolean toFirst) throws IOException {
         LinkedBlockingDeque<RequestEvent> entryBlockingQueue = socketRequestEventMap.get(socket);
         if (entryBlockingQueue == null) {
@@ -157,7 +169,7 @@ public class HttpDecodeRunnable implements Runnable {
         long newBufferSize = entryBlockingQueue.stream().mapToLong(RequestEvent::getLength).sum() + bytes.length;
         RequestEvent requestEvent;
         if (newBufferSize > requestConfig.getRequestMaxBufferSize()) {
-            requestEvent = new RequestEvent(key, FileCacheKit.generatorRequestTempFile(serverConfig.getPort() +"", bytes));
+            requestEvent = new RequestEvent(key, FileCacheKit.generatorRequestTempFile(serverConfig.getPort() + "", bytes));
         } else {
             requestEvent = new RequestEvent(key, bytes);
         }
