@@ -95,7 +95,7 @@ public class MethodInterceptor implements Interceptor {
         }
         try {
             Object invoke = method.invoke(controller);
-            ResponseBody annotation = method.getAnnotatedReturnType().getAnnotation(ResponseBody.class);
+            ResponseBody annotation = method.getAnnotation(ResponseBody.class);
             if (Objects.nonNull(annotation)) {
                 response.renderJson(invoke);
             }
