@@ -6,6 +6,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class Router {
 
@@ -20,11 +21,10 @@ public class Router {
             if (method.getModifiers() == Modifier.PUBLIC) {
                 getRouterMap().put(urlPath + "/" + method.getName(), method);
             }
-        }
-        try {
-            getRouterMap().put(urlPath + "/", clazz.getMethod("index"));
-        } catch (NoSuchMethodException | SecurityException e) {
-            //LOGGER.log(Level.SEVERE, "", e);
+            if (Objects.equals(method.getName(), "index")) {
+                getRouterMap().put(urlPath, method);
+                getRouterMap().put(urlPath + "/", method);
+            }
         }
         try {
             //for graalvm
