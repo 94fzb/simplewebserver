@@ -1,6 +1,7 @@
 package com.hibegin.http.server.web;
 
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.annotation.ResponseBody;
 import com.hibegin.http.server.api.HttpErrorHandle;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpResponse;
@@ -93,7 +94,11 @@ public class MethodInterceptor implements Interceptor {
             }
         }
         try {
-            method.invoke(controller);
+            Object invoke = method.invoke(controller);
+            ResponseBody annotation = method.getAnnotatedReturnType().getAnnotation(ResponseBody.class);
+            if (Objects.nonNull(annotation)) {
+                response.renderJson(invoke);
+            }
         } catch (InvocationTargetException e) {
             HttpErrorHandle errorHandle = request.getServerConfig().getErrorHandle(500);
             if (Objects.nonNull(errorHandle)) {
