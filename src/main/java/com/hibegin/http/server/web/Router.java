@@ -34,6 +34,24 @@ public class Router {
         }
     }
 
+    public void addMapper(String urlPath, Class<? extends Controller> clazz, String methodName) {
+        if ("/".equals(urlPath)) {
+            urlPath = "";
+        }
+        Method[] methods = clazz.getDeclaredMethods();
+        for (Method method : methods) {
+            if (Objects.equals(method.getName(), methodName)) {
+                getRouterMap().put(urlPath, method);
+            }
+        }
+        try {
+            //for graalvm
+            Class.forName(clazz.getName()).getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            LoggerUtil.getLogger(Router.class).warning(clazz.getSimpleName() + " not find default " + "constructor");
+        }
+    }
+
     public Method getMethod(String url) {
         Method method = getRouterMap().get(url);
         if (method == null && url.contains("-")) {
