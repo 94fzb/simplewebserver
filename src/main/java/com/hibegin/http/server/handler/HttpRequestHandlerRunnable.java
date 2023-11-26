@@ -44,7 +44,11 @@ public class HttpRequestHandlerRunnable implements Runnable {
         } catch (Exception e) {
             HttpErrorHandle errorHandle = request.getServerConfig().getErrorHandle(500);
             if (Objects.nonNull(errorHandle)) {
-                errorHandle.doHandle(request, response, e.getCause());
+                if (Objects.nonNull(e.getCause())) {
+                    errorHandle.doHandle(request, response, e.getCause());
+                } else {
+                    errorHandle.doHandle(request, response, e);
+                }
                 return;
             }
             defaultErrorResponse(e);
