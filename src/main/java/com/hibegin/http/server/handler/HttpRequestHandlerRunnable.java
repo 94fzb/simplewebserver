@@ -41,28 +41,13 @@ public class HttpRequestHandlerRunnable implements Runnable {
                     break;
                 }
             }
-        } catch (InvocationTargetException e) {
+        } catch (Exception e) {
             HttpErrorHandle errorHandle = request.getServerConfig().getErrorHandle(500);
             if (Objects.nonNull(errorHandle)) {
                 errorHandle.doHandle(request, response, e.getCause());
                 return;
             }
-
-            Throwable cause = e.getCause();
-            if (!(cause instanceof Error)) {
-                throw new RuntimeException(cause);
-            } else {
-                throw (Error) cause;
-            }
-        } catch (Exception e) {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            try {
-                byteArrayOutputStream.write(LoggerUtil.recordStackTraceMsg(e).getBytes());
-            } catch (IOException e1) {
-                //e1.printStackTrace();
-            }
-            LOGGER.log(Level.SEVERE, "dispose error ", e);
-            response.write(byteArrayOutputStream, 500);
+            defaultErrorResponse(e);
         } finally {
             if (request.getMethod() != HttpMethod.CONNECT) {
                 String responseConnection = response.getHeader().get("Connection");
@@ -78,6 +63,17 @@ public class HttpRequestHandlerRunnable implements Runnable {
             }
             //System.out.println("(System.nanoTime() - start) = " + (System.nanoTime() - request.getCreateTime()));
         }
+    }
+
+    private void defaultErrorResponse(Exception e) {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        try {
+            byteArrayOutputStream.write(LoggerUtil.recordStackTraceMsg(e).getBytes());
+        } catch (IOException e1) {
+            //e1.printStackTrace();
+        }
+        LOGGER.log(Level.SEVERE, "dispose error ", e);
+        response.write(byteArrayOutputStream, 500);
     }
 
     public HttpRequest getRequest() {
