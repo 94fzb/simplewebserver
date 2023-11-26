@@ -93,25 +93,10 @@ public class MethodInterceptor implements Interceptor {
                 throw new RuntimeException(method.getDeclaringClass().getSimpleName() + " not find default " + "constructor");
             }
         }
-        try {
-            Object invoke = method.invoke(controller);
-            ResponseBody annotation = method.getAnnotation(ResponseBody.class);
-            if (Objects.nonNull(annotation)) {
-                response.renderJson(invoke);
-            }
-        } catch (InvocationTargetException e) {
-            HttpErrorHandle errorHandle = request.getServerConfig().getErrorHandle(500);
-            if (Objects.nonNull(errorHandle)) {
-                errorHandle.doHandle(request, response, e.getCause());
-                return true;
-            }
-
-            Throwable cause = e.getCause();
-            if (!(cause instanceof Error)) {
-                throw new RuntimeException(cause);
-            } else {
-                throw (Error) cause;
-            }
+        Object invoke = method.invoke(controller);
+        ResponseBody annotation = method.getAnnotation(ResponseBody.class);
+        if (Objects.nonNull(annotation)) {
+            response.renderJson(invoke);
         }
         return true;
     }

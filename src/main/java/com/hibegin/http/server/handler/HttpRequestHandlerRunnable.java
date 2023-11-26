@@ -2,15 +2,14 @@ package com.hibegin.http.server.handler;
 
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
-import com.hibegin.http.server.api.HttpRequest;
-import com.hibegin.http.server.api.HttpRequestListener;
-import com.hibegin.http.server.api.HttpResponse;
-import com.hibegin.http.server.api.Interceptor;
+import com.hibegin.http.server.api.*;
 import com.hibegin.http.server.impl.SimpleHttpRequest;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -41,6 +40,19 @@ public class HttpRequestHandlerRunnable implements Runnable {
                 if (!interceptor.doInterceptor(request, response)) {
                     break;
                 }
+            }
+        } catch (InvocationTargetException e) {
+            HttpErrorHandle errorHandle = request.getServerConfig().getErrorHandle(500);
+            if (Objects.nonNull(errorHandle)) {
+                errorHandle.doHandle(request, response, e.getCause());
+                return;
+            }
+
+            Throwable cause = e.getCause();
+            if (!(cause instanceof Error)) {
+                throw new RuntimeException(cause);
+            } else {
+                throw (Error) cause;
             }
         } catch (Exception e) {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
