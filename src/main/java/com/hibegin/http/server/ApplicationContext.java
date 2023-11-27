@@ -20,12 +20,25 @@ public class ApplicationContext {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(ApplicationContext.class);
     private final Map<Socket, Map.Entry<HttpRequestDeCoder, HttpResponse>> httpDeCoderMap = new ConcurrentHashMap<>();
+    private final Map<String, Object> attrs = new ConcurrentHashMap<>();
     private boolean init;
     private List<Interceptor> interceptors;
     private ServerConfig serverConfig;
 
     public Map<Socket, Map.Entry<HttpRequestDeCoder, HttpResponse>> getHttpDeCoderMap() {
         return httpDeCoderMap;
+    }
+
+    public Object getAttribute(String key) {
+        return attrs.get(key);
+    }
+
+    public Map<String, Object> getAttrs() {
+        return attrs;
+    }
+
+    public void setAttribute(String key, Object value) {
+        attrs.put(key, value);
     }
 
     public ServerConfig getServerConfig() {
