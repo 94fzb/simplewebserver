@@ -6,6 +6,7 @@ module hibegin.simplewebserver {
     exports com.hibegin.common.util;
     exports com.hibegin.common;
     exports com.hibegin.http;
+    exports com.hibegin.http.annotation;
     exports com.hibegin.http.io;
     exports com.hibegin.http.server;
     exports com.hibegin.http.server.api;
