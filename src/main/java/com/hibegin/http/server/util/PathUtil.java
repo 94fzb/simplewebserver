@@ -50,7 +50,11 @@ public class PathUtil {
         if (nFile.exists()) {
             return nFile;
         } else {
-            InputStream in = PathUtil.class.getResourceAsStream("/conf/" + file);
+            String realFileName = file;
+            if(file.startsWith("/")){
+                realFileName = realFileName.substring(1);
+            }
+            InputStream in = PathUtil.class.getResourceAsStream("/conf/" + realFileName);
             if (in != null) {
                 try {
                     File tempFile = File.createTempFile(nFile.getName(), ".tmp");
