@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,7 +20,9 @@ public class ConfigKit {
     static {
         prop = new Properties();
         try (InputStream inputStream = PathUtil.getConfInputStream("/conf.properties")) {
-            prop.load(inputStream);
+            if(Objects.nonNull(inputStream)){
+                prop.load(inputStream);
+            }
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "", e);
         }
