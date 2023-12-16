@@ -3,9 +3,7 @@ package com.hibegin.http.server.util;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -66,6 +64,22 @@ public class PathUtil {
             }
         }
         return nFile;
+    }
+
+    public static InputStream getConfInputStream(String file) {
+        File nFile = safeAppendFilePath(getConfPath(), file);
+        if (nFile.exists()) {
+            try {
+                return new FileInputStream(nFile);
+            } catch (FileNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        String realFileName = file;
+        if(file.startsWith("/")){
+            realFileName = realFileName.substring(1);
+        }
+        return PathUtil.class.getResourceAsStream("/conf/" + realFileName);
     }
 
     public static File safeAppendFilePath(String basePath, String appendFilePath) {

@@ -6,6 +6,7 @@ import com.hibegin.http.server.util.PathUtil;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -13,15 +14,12 @@ import java.util.logging.Logger;
 public class ConfigKit {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(ConfigKit.class);
-    private static Properties prop;
+    private static final Properties prop;
 
     static {
         prop = new Properties();
-        try {
-            File file = PathUtil.getConfFile("/conf.properties");
-            if (file != null && file.exists()) {
-                prop.load(new FileInputStream(file));
-            }
+        try (InputStream inputStream = PathUtil.getConfInputStream("/conf.properties")) {
+            prop.load(inputStream);
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "", e);
         }
