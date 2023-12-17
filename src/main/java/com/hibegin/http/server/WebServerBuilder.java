@@ -8,6 +8,9 @@ import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.MethodInterceptor;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -23,6 +26,12 @@ public class WebServerBuilder {
     private ServerConfig serverConfig;
 
     private SimpleWebServer webServer;
+
+    private List<Callable<Void>> onStartErrorHandles = new ArrayList<>();
+
+    public void addStartErrorHandle(Callable<Void> callable){
+        onStartErrorHandles.add(callable);
+    }
 
     private WebServerBuilder(Builder builder) {
         this.serverConfig = builder.serverConfig;
@@ -67,6 +76,15 @@ public class WebServerBuilder {
         }
         if (createSuccess) {
             this.webServer = simpleWebServer;
+        }
+        if(!createSuccess){
+            onStartErrorHandles.forEach(e ->{
+                try {
+                    e.call();
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            });
         }
         return createSuccess;
     }
