@@ -1,189 +1,123 @@
 package com.hibegin.http.io;
 
 import java.io.*;
-import java.util.Enumeration;
 import java.util.zip.CRC32;
 import java.util.zip.Deflater;
-import java.util.zip.DeflaterInputStream;
 
-/**
- * @author mwyraz
- * Wraps an input stream and compresses it's contents. Similiar to DeflateInputStream but adds GZIP-header and trailer
- * See GzipOutputStream for details.
- * LICENSE: Free to use. Contains some lines from GzipOutputStream, so oracle's license might apply as well!
- */
-public class GzipCompressingInputStream extends SequenceInputStream {
-    public GzipCompressingInputStream(InputStream in) throws IOException {
-        this(in, 512);
+public class GzipCompressingInputStream extends InputStream {
+    private static final int GZIP_MAGIC = 0x8b1f;
+    private final CRC32 crc = new CRC32();
+    private final Deflater deflater = new Deflater(Deflater.DEFAULT_COMPRESSION, true);
+    private final InputStream sourceStream;
+    private final byte[] buffer = new byte[1024];
+    private boolean headerWritten = false;
+    private boolean footerWritten = false;
+    private boolean closed = false;
+
+    public GzipCompressingInputStream(InputStream sourceStream) {
+        this.sourceStream = sourceStream;
     }
 
-    public GzipCompressingInputStream(InputStream in, int bufferSize) throws IOException {
-        super(new StatefullGzipStreamEnumerator(in, bufferSize));
-    }
-
-    static enum StreamState {
-        HEADER,
-        CONTENT,
-        TRAILER
-    }
-
-    protected static class StatefullGzipStreamEnumerator implements Enumeration<InputStream> {
-
-        static final int GZIP_MAGIC = 0x8b1f;
-        static final byte[] GZIP_HEADER = new byte[]{
-                (byte) GZIP_MAGIC,        // Magic number (short)
-                (byte) (GZIP_MAGIC >> 8),  // Magic number (short)
-                Deflater.DEFLATED,        // Compression method (CM)
-                0,                        // Flags (FLG)
-                0,                        // Modification time MTIME (int)
-                0,                        // Modification time MTIME (int)
-                0,                        // Modification time MTIME (int)
-                0,                        // Modification time MTIME (int)
-                0,                        // Extra flags (XFLG)
-                0                         // Operating system (OS)
-        };
-        protected final InputStream in;
-        protected final int bufferSize;
-        protected StreamState state;
-        protected InternalGzipCompressingInputStream contentStream;
-
-        public StatefullGzipStreamEnumerator(InputStream in, int bufferSize) {
-            this.in = in;
-            this.bufferSize = bufferSize;
-            state = StreamState.HEADER;
+    @Override
+    public int read() throws IOException {
+        if (!headerWritten) {
+            writeHeader();
         }
 
-        @Override
-        public boolean hasMoreElements() {
-            return state != null;
-        }
-
-        @Override
-        public InputStream nextElement() {
-            switch (state) {
-                case HEADER:
-                    state = StreamState.CONTENT;
-                    return createHeaderStream();
-                case CONTENT:
-                    state = StreamState.TRAILER;
-                    return createContentStream();
-                case TRAILER:
-                    state = null;
-                    return createTrailerStream();
-            }
-            return null;
-        }
-
-        protected InputStream createHeaderStream() {
-            return new ByteArrayInputStream(GZIP_HEADER);
-        }
-
-        protected InputStream createContentStream() {
-            contentStream = new InternalGzipCompressingInputStream(new CRC32InputStream(in), bufferSize);
-            return contentStream;
-        }
-
-        protected InputStream createTrailerStream() {
-            return new ByteArrayInputStream(contentStream.createTrailer());
-        }
-    }
-
-    /**
-     * Internal stream without header/trailer
-     */
-    protected static class CRC32InputStream extends FilterInputStream {
-        protected CRC32 crc = new CRC32();
-        protected long byteCount;
-
-        public CRC32InputStream(InputStream in) {
-            super(in);
-        }
-
-        @Override
-        public int read() throws IOException {
-            int val = super.read();
-            if (val >= 0) {
-                crc.update(val);
-                byteCount++;
-            }
-            return val;
-        }
-
-        @Override
-        public int read(byte[] b, int off, int len) throws IOException {
-            len = super.read(b, off, len);
-            if (len >= 0) {
-                crc.update(b, off, len);
-                byteCount += len;
-            }
-            return len;
-        }
-
-        public long getCrcValue() {
-            return crc.getValue();
-        }
-
-        public long getByteCount() {
-            return byteCount;
-        }
-    }
-
-    /**
-     * Internal stream without header/trailer
-     */
-    protected static class InternalGzipCompressingInputStream extends DeflaterInputStream {
-        protected final static int TRAILER_SIZE = 8;
-        protected final CRC32InputStream crcIn;
-
-        public InternalGzipCompressingInputStream(CRC32InputStream in, int bufferSize) {
-            super(in, new Deflater(Deflater.DEFAULT_COMPRESSION, true), bufferSize);
-            crcIn = in;
-        }
-
-        @Override
-        public void close() throws IOException {
-            if (in != null) {
-                try {
-                    def.end();
-                    in.close();
-                } finally {
-                    in = null;
+        if (!deflater.finished()) {
+            if (deflater.needsInput()) {
+                int len = sourceStream.read(buffer);
+                if (len == -1) {
+                    deflater.finish();
+                } else {
+                    crc.update(buffer, 0, len);
+                    deflater.setInput(buffer, 0, len);
                 }
             }
+
+            byte[] outputBuffer = new byte[1];
+            if (deflater.deflate(outputBuffer, 0, 1) > 0) {
+                return outputBuffer[0] & 0xff;
+            }
         }
 
-        public byte[] createTrailer() {
-            byte[] trailer = new byte[TRAILER_SIZE];
-            writeTrailer(trailer, 0);
-            return trailer;
+        if (!footerWritten) {
+            writeFooter();
+            footerWritten = true;
         }
 
-        /**
-         * Writes GZIP member trailer to a byte array, starting at a given
-         * offset.
-         */
-        private void writeTrailer(byte[] buf, int offset) {
-            writeInt((int) crcIn.getCrcValue(), buf, offset); // CRC-32 of uncompr. data
-            writeInt((int) crcIn.getByteCount(), buf, offset + 4); // Number of uncompr. bytes
-        }
-
-        /**
-         * Writes integer in Intel byte order to a byte array, starting at a
-         * given offset.
-         */
-        private void writeInt(int i, byte[] buf, int offset) {
-            writeShort(i & 0xffff, buf, offset);
-            writeShort((i >> 16) & 0xffff, buf, offset + 2);
-        }
-
-        /**
-         * Writes short integer in Intel byte order to a byte array, starting
-         * at a given offset
-         */
-        private void writeShort(int s, byte[] buf, int offset) {
-            buf[offset] = (byte) (s & 0xff);
-            buf[offset + 1] = (byte) ((s >> 8) & 0xff);
-        }
+        return -1;
     }
 
+    private void writeHeader() throws IOException {
+        ByteArrayOutputStream header = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(header);
+        dos.writeShort(GZIP_MAGIC);
+        dos.writeByte(Deflater.DEFLATED);
+        dos.writeByte(0); // Flags
+        dos.writeInt(0); // Modification time
+        dos.writeByte(0); // Extra flags
+        dos.writeByte(0); // Operating system
+        headerWritten = true;
+    }
+
+    private void writeFooter() throws IOException {
+        ByteArrayOutputStream footer = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(footer);
+        dos.writeInt((int) crc.getValue());
+        dos.writeInt(deflater.getTotalIn());
+        footerWritten = true;
+    }
+
+    @Override
+    public int read(byte[] b, int off, int len) throws IOException {
+        if (off < 0 || len < 0 || len > b.length - off) {
+            throw new IndexOutOfBoundsException();
+        }
+        if (len == 0) {
+            return 0;
+        }
+
+        if (!headerWritten) {
+            writeHeader();
+        }
+
+        int totalBytesDeflated = 0;
+        while (totalBytesDeflated < len) {
+            if (deflater.needsInput()) {
+                int bytesRead = sourceStream.read(buffer);
+                if (bytesRead == -1) {
+                    deflater.finish();
+                    if (deflater.finished() && !footerWritten) {
+                        writeFooter();
+                        footerWritten = true;
+                    }
+                } else {
+                    crc.update(buffer, 0, bytesRead);
+                    deflater.setInput(buffer, 0, bytesRead);
+                }
+            }
+
+            int bytesDeflated = deflater.deflate(b, off + totalBytesDeflated, len - totalBytesDeflated, Deflater.SYNC_FLUSH);
+            if (bytesDeflated == 0 && deflater.finished()) {
+                break;
+            }
+            totalBytesDeflated += bytesDeflated;
+        }
+
+        if (totalBytesDeflated == 0 && footerWritten) {
+            return -1;
+        }
+
+        return totalBytesDeflated;
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (!closed) {
+            sourceStream.close();
+            deflater.end();
+            closed = true;
+        }
+    }
 }

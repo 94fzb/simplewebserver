@@ -27,7 +27,7 @@ public class WebServerBuilder {
 
     private SimpleWebServer webServer;
 
-    private List<Callable<Void>> onStartErrorHandles = new ArrayList<>();
+    private final List<Callable<Void>> onStartErrorHandles = new ArrayList<>();
 
     public void addStartErrorHandle(Callable<Void> callable){
         onStartErrorHandles.add(callable);
