@@ -1,123 +1,101 @@
 package com.hibegin.http.io;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.zip.GZIPOutputStream;
 
-import java.io.*;
-import java.util.zip.CRC32;
-import java.util.zip.Deflater;
-
+/**
+ * Compresses an InputStream in a memory-optimal, on-demand way only compressing enough to fill a buffer.
+ *
+ * @author Ben La Monica
+ */
 public class GzipCompressingInputStream extends InputStream {
-    private static final int GZIP_MAGIC = 0x8b1f;
-    private final CRC32 crc = new CRC32();
-    private final Deflater deflater = new Deflater(Deflater.DEFAULT_COMPRESSION, true);
-    private final InputStream sourceStream;
-    private final byte[] buffer = new byte[1024];
-    private boolean headerWritten = false;
-    private boolean footerWritten = false;
-    private boolean closed = false;
 
-    public GzipCompressingInputStream(InputStream sourceStream) {
-        this.sourceStream = sourceStream;
-    }
+    private final InputStream in;
+    private final GZIPOutputStream gz;
+    private byte[] buf = new byte[8192];
+    private final byte[] readBuf = new byte[8192];
+    int read = 0;
+    int write = 0;
 
-    @Override
-    public int read() throws IOException {
-        if (!headerWritten) {
-            writeHeader();
-        }
+    public GzipCompressingInputStream(InputStream in) throws IOException {
+        this.in = in;
+        // grow the array if we don't have enough space to fulfill the incoming data
+        OutputStream delegate = new OutputStream() {
 
-        if (!deflater.finished()) {
-            if (deflater.needsInput()) {
-                int len = sourceStream.read(buffer);
-                if (len == -1) {
-                    deflater.finish();
-                } else {
-                    crc.update(buffer, 0, len);
-                    deflater.setInput(buffer, 0, len);
+            private void growBufferIfNeeded(int len) {
+                if ((write + len) >= buf.length) {
+                    // grow the array if we don't have enough space to fulfill the incoming data
+                    byte[] newbuf = new byte[(buf.length + len) * 2];
+                    System.arraycopy(buf, 0, newbuf, 0, buf.length);
+                    buf = newbuf;
                 }
             }
 
-            byte[] outputBuffer = new byte[1];
-            if (deflater.deflate(outputBuffer, 0, 1) > 0) {
-                return outputBuffer[0] & 0xff;
+            @Override
+            public void write(byte[] b, int off, int len) throws IOException {
+                growBufferIfNeeded(len);
+                System.arraycopy(b, off, buf, write, len);
+                write += len;
             }
-        }
 
-        if (!footerWritten) {
-            writeFooter();
-            footerWritten = true;
-        }
-
-        return -1;
-    }
-
-    private void writeHeader() throws IOException {
-        ByteArrayOutputStream header = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(header);
-        dos.writeShort(GZIP_MAGIC);
-        dos.writeByte(Deflater.DEFLATED);
-        dos.writeByte(0); // Flags
-        dos.writeInt(0); // Modification time
-        dos.writeByte(0); // Extra flags
-        dos.writeByte(0); // Operating system
-        headerWritten = true;
-    }
-
-    private void writeFooter() throws IOException {
-        ByteArrayOutputStream footer = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(footer);
-        dos.writeInt((int) crc.getValue());
-        dos.writeInt(deflater.getTotalIn());
-        footerWritten = true;
+            @Override
+            public void write(int b) throws IOException {
+                growBufferIfNeeded(1);
+                buf[write++] = (byte) b;
+            }
+        };
+        this.gz = new GZIPOutputStream(delegate);
     }
 
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
-        if (off < 0 || len < 0 || len > b.length - off) {
-            throw new IndexOutOfBoundsException();
-        }
-        if (len == 0) {
-            return 0;
-        }
-
-        if (!headerWritten) {
-            writeHeader();
-        }
-
-        int totalBytesDeflated = 0;
-        while (totalBytesDeflated < len) {
-            if (deflater.needsInput()) {
-                int bytesRead = sourceStream.read(buffer);
-                if (bytesRead == -1) {
-                    deflater.finish();
-                    if (deflater.finished() && !footerWritten) {
-                        writeFooter();
-                        footerWritten = true;
-                    }
-                } else {
-                    crc.update(buffer, 0, bytesRead);
-                    deflater.setInput(buffer, 0, bytesRead);
-                }
-            }
-
-            int bytesDeflated = deflater.deflate(b, off + totalBytesDeflated, len - totalBytesDeflated, Deflater.SYNC_FLUSH);
-            if (bytesDeflated == 0 && deflater.finished()) {
-                break;
-            }
-            totalBytesDeflated += bytesDeflated;
-        }
-
-        if (totalBytesDeflated == 0 && footerWritten) {
+        compressStream();
+        int numBytes = Math.min(len, write-read);
+        if (numBytes > 0) {
+            System.arraycopy(buf, read, b, off, numBytes);
+            read += numBytes;
+        } else if (len > 0) {
+            // if bytes were requested, but we have none, then we're at the end of the stream
             return -1;
         }
+        return numBytes;
+    }
 
-        return totalBytesDeflated;
+    private void compressStream() throws IOException {
+        // if the reader has caught up with the writer, then zero the positions out
+        if (read == write) {
+            read = 0;
+            write = 0;
+        }
+
+        while (write == 0) {
+            // feed the gzip stream data until it spits out a block
+            int val = in.read(readBuf);
+            if (val == -1) {
+                // nothing left to do, we've hit the end of the stream. finalize and break out
+                gz.close();
+                break;
+            } else if (val > 0) {
+                gz.write(readBuf, 0, val);
+            }
+        }
+    }
+
+    @Override
+    public int read() throws IOException {
+        compressStream();
+        if (write == 0) {
+            // write should not be 0 if we were able to get data from compress stream, must mean we're at the end
+            return -1;
+        } else {
+            // reading a single byte
+            return buf[read++] & 0xFF;
+        }
     }
 
     @Override
     public void close() throws IOException {
-        if (!closed) {
-            sourceStream.close();
-            deflater.end();
-            closed = true;
-        }
+        in.close();
     }
 }
