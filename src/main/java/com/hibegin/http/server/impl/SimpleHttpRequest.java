@@ -115,10 +115,14 @@ public class SimpleHttpRequest implements HttpRequest {
         String cookieHeader = getHeader("Cookie");
         if (cookieHeader != null) {
             cookies = Cookie.saxToCookie(cookieHeader);
-            String jsessionid = Cookie.getJSessionId(cookieHeader, getServerConfig().getSessionId());
-            if (jsessionid != null) {
-                session = SessionUtil.getSessionById(jsessionid);
-            }
+
+        }
+        if (requestConfig.isDisableSession()) {
+            return;
+        }
+        String sessionValue = Cookie.getJSessionId(cookieHeader, getServerConfig().getSessionId());
+        if (sessionValue != null) {
+            session = SessionUtil.getSessionById(sessionValue);
         }
         if (Objects.nonNull(session)) {
             return;
@@ -126,23 +130,27 @@ public class SimpleHttpRequest implements HttpRequest {
         if (!create) {
             return;
         }
-        if (requestConfig.isDisableSession()) {
-            return;
-        }
         if (cookies == null) {
             cookies = new Cookie[1];
         } else {
             cookies = new Cookie[cookies.length + 1];
         }
+        Cookie cookie = buildSessionCookie(sessionValue);
+        cookies[cookies.length - 1] = cookie;
+        session = new HttpSession(cookie.getValue());
+        SessionUtil.sessionMap.put(cookie.getValue(), session);
+    }
+
+    private Cookie buildSessionCookie(String sessionValue) {
         Cookie cookie = new Cookie(true);
-        String jsessionid = UUID.randomUUID().toString();
+        if (Objects.isNull(sessionValue) || sessionValue.trim().isEmpty()) {
+            cookie.setValue(UUID.randomUUID().toString());
+        } else {
+            cookie.setValue(sessionValue);
+        }
         cookie.setName(getServerConfig().getSessionId());
         cookie.setPath("/");
-        cookie.setValue(jsessionid);
-        cookies[cookies.length - 1] = cookie;
-        session = new HttpSession(jsessionid);
-        SessionUtil.sessionMap.put(jsessionid, session);
-        //LOGGER.info("create a cookie " + cookie.toString());
+        return cookie;
     }
 
     @Override
