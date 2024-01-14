@@ -228,6 +228,7 @@ public class SimpleWebServer implements ISocketServer {
         RequestConfig config = new RequestConfig();
         config.setDisableCookie(serverConfig.isDisableCookie());
         config.setIsSsl(serverConfig.isSsl());
+        config.setDisableSession(serverConfig.isDisableSession());
         return config;
     }
 

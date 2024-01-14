@@ -6,6 +6,16 @@ public class RequestConfig {
 
     private boolean isSsl;
     private boolean disableCookie;
+    private boolean disableSession;
+
+    public boolean isDisableSession() {
+        return disableSession;
+    }
+
+    public void setDisableSession(boolean disableSession) {
+        this.disableSession = disableSession;
+    }
+
     private String charSet = "UTF-8";
     private Router router;
     private int maxRequestBodySize;

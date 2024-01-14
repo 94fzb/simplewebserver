@@ -36,6 +36,17 @@ public class ServerConfig {
     private String host = "0.0.0.0";
     private int port;
     private boolean disableCookie;
+
+    private boolean disableSession;
+
+    public boolean isDisableSession() {
+        return disableSession;
+    }
+
+    public void setDisableSession(boolean disableSession) {
+        this.disableSession = disableSession;
+    }
+
     private int timeout;
     private boolean supportHttp2;
     private String welcomeFile = "index.html";
