@@ -112,15 +112,12 @@ public class SimpleHttpRequest implements HttpRequest {
         if (requestConfig.isDisableCookie()) {
             return;
         }
-        String cookieHeader = getHeader("Cookie");
-        if (cookieHeader != null) {
-            cookies = Cookie.saxToCookie(cookieHeader);
-
-        }
+        String cookieStr = Objects.requireNonNullElse(getHeader("Cookie"), "");
+        cookies = Cookie.saxToCookie(cookieStr);
         if (requestConfig.isDisableSession()) {
             return;
         }
-        String sessionValue = Cookie.getJSessionId(cookieHeader, getServerConfig().getSessionId());
+        String sessionValue = Cookie.getJSessionId(cookieStr, getServerConfig().getSessionId());
         if (sessionValue != null) {
             session = SessionUtil.getSessionById(sessionValue);
         }
