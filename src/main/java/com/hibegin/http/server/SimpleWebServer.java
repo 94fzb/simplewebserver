@@ -44,7 +44,6 @@ public class SimpleWebServer implements ISocketServer {
     public SimpleWebServer(ServerConfig serverConf, RequestConfig requestConf, ResponseConfig responseConf) {
         if (serverConf == null) {
             serverConf = new ServerConfig();
-            serverConf.setDisableCookie(Boolean.parseBoolean(ConfigKit.get("server.disableCookie", requestConf.isDisableCookie()).toString()));
         }
         if (serverConf.getTimeout() == 0 && ConfigKit.contains("server.timeout")) {
             serverConf.setTimeout(Integer.parseInt(ConfigKit.get("server.timeout", 60).toString()));
@@ -211,13 +210,11 @@ public class SimpleWebServer implements ISocketServer {
             config.setGzipMimeTypes(responseConfig.getGzipMimeTypes());
             config.setCharSet(responseConfig.getCharSet());
         }
-        config.setDisableCookie(serverConfig.isDisableCookie());
         return config;
     }
 
     private RequestConfig getDefaultRequestConfig() {
         RequestConfig config = new RequestConfig();
-        config.setDisableCookie(serverConfig.isDisableCookie());
         config.setIsSsl(serverConfig.isSsl());
         config.setDisableSession(serverConfig.isDisableSession());
         return config;

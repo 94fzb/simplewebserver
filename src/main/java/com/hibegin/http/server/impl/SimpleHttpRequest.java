@@ -109,9 +109,6 @@ public class SimpleHttpRequest implements HttpRequest {
     }
 
     private void dealWithCookie(boolean create) {
-        if (requestConfig.isDisableCookie()) {
-            return;
-        }
         String cookieStr = Objects.requireNonNullElse(getHeader("Cookie"), "");
         cookies = Cookie.saxToCookie(cookieStr);
         if (requestConfig.isDisableSession()) {

@@ -35,7 +35,6 @@ public class ServerConfig {
     private boolean isSsl;
     private String host = "0.0.0.0";
     private int port;
-    private boolean disableCookie;
 
     private boolean disableSession;
 
@@ -120,14 +119,6 @@ public class ServerConfig {
 
     public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
-    }
-
-    public boolean isDisableCookie() {
-        return disableCookie;
-    }
-
-    public void setDisableCookie(boolean disableCookie) {
-        this.disableCookie = disableCookie;
     }
 
     public int getTimeout() {

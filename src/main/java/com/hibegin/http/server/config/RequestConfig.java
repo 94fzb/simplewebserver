@@ -5,7 +5,6 @@ import com.hibegin.http.server.web.Router;
 public class RequestConfig {
 
     private boolean isSsl;
-    private boolean disableCookie;
     private boolean disableSession;
 
     public boolean isDisableSession() {
@@ -21,14 +20,6 @@ public class RequestConfig {
     private int maxRequestBodySize;
     private int maxRequestHeaderSize;
     private int requestMaxBufferSize;
-
-    public boolean isDisableCookie() {
-        return disableCookie;
-    }
-
-    public void setDisableCookie(boolean disableCookie) {
-        this.disableCookie = disableCookie;
-    }
 
     public boolean isSsl() {
         return isSsl;
