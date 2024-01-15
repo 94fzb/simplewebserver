@@ -2,7 +2,6 @@ package com.hibegin.http.server;
 
 import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
-import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.api.ISocketServer;
 import com.hibegin.http.server.config.*;
 import com.hibegin.http.server.handler.*;
@@ -54,16 +53,8 @@ public class SimpleWebServer implements ISocketServer {
             serverConf.setPort(ConfigKit.getServerPort());
         }
         this.serverConfig = serverConf;
-        if (requestConf == null) {
-            this.requestConfig = getDefaultRequestConfig();
-        } else {
-            this.requestConfig = requestConf;
-        }
-        if (responseConf == null) {
-            this.responseConfig = getDefaultResponseConfig();
-        } else {
-            this.responseConfig = responseConf;
-        }
+        this.requestConfig = Objects.requireNonNullElseGet(requestConf, this::getDefaultRequestConfig);
+        this.responseConfig = Objects.requireNonNullElseGet(responseConf, this::getDefaultResponseConfig);
         if (this.requestConfig.getMaxRequestBodySize() < 0) {
             this.requestConfig.setMaxRequestBodySize(Integer.MAX_VALUE);
         } else if (this.requestConfig.getMaxRequestBodySize() == 0) {
