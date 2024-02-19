@@ -1,6 +1,8 @@
 package com.hibegin.http.server.web.cookie;
 
 
+import com.hibegin.common.util.DateUtils;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -87,12 +89,12 @@ public class Cookie {
         if (expireDate == null) {
             cookieStr = name + "=" + value + ";" + "Path=" + path;
         } else {
-            cookieStr = name + "=" + value + ";" + "Path=" + path + ";Expires=" + expireDate;
+            cookieStr = name + "=" + value + ";" + "Path=" + path + ";Expires=" + DateUtils.toGMTString(expireDate);
         }
-        if (domain != null && domain.trim().length() > 0) {
+        if (domain != null && !domain.trim().isEmpty()) {
             cookieStr += ";" + "Domain=" + domain;
         }
-        if (sameSite != null && !sameSite.trim().equals("")) {
+        if (sameSite != null && !sameSite.trim().isEmpty()) {
             cookieStr += ";" + "SameSite=" + sameSite;
         }
         if (httpOnly) {
