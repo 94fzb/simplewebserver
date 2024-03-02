@@ -33,6 +33,8 @@ public interface HttpResponse {
 
     void renderFreeMarker(String name);
 
+    void renderBasicTemplate(String name);
+
     void write(InputStream inputStream);
 
     void write(InputStream inputStream, int code);

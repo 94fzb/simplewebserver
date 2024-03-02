@@ -5,6 +5,7 @@ module hibegin.simplewebserver {
     //requires gson;
     exports com.hibegin.common.util;
     exports com.hibegin.common;
+    exports com.hibegin.template;
     exports com.hibegin.http;
     exports com.hibegin.http.annotation;
     exports com.hibegin.http.io;

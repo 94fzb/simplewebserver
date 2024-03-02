@@ -8,11 +8,12 @@ import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.execption.InternalException;
-import com.hibegin.http.server.util.FreeMarkerUtil;
 import com.hibegin.http.server.util.MimeTypeUtil;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.StatusCodeUtil;
 import com.hibegin.http.server.web.cookie.Cookie;
+import com.hibegin.template.BasicTemplateRender;
+import com.hibegin.template.FreemarkerTemplateRender;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -248,7 +249,17 @@ public class SimpleHttpResponse implements HttpResponse {
     @Override
     public void renderFreeMarker(String name) {
         try {
-            renderHtmlStr(FreeMarkerUtil.renderToFM(name, request));
+            renderHtmlStr(new FreemarkerTemplateRender(request).renderByTemplateName(name));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "", e);
+            throw new InternalException(e);
+        }
+    }
+
+    @Override
+    public void renderBasicTemplate(String name) {
+        try {
+            renderHtmlStr(new BasicTemplateRender(request.getAttr()).renderByTemplateName(name));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "", e);
             throw new InternalException(e);
