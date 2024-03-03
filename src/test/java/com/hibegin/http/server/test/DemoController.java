@@ -12,6 +12,8 @@ public class DemoController extends Controller {
 
     public static void main(String[] args) {
         ServerConfig serverConfig = new ServerConfig();
+        //serverConfig.setPort(0);
+        //serverConfig.setPort(0);
         serverConfig.getRouter().addMapper("/", DemoController.class);
         new WebServerBuilder.Builder().serverConfig(serverConfig).build().startWithThread();
     }

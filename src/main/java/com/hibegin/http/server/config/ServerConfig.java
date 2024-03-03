@@ -34,7 +34,7 @@ public class ServerConfig {
     private final List<HttpRequestListener> httpRequestListenerList = new ArrayList<>();
     private boolean isSsl;
     private String host = "0.0.0.0";
-    private int port;
+    private Integer port;
 
     private boolean disableSession;
 
@@ -76,11 +76,11 @@ public class ServerConfig {
         this.isSsl = isSsl;
     }
 
-    public int getPort() {
+    public Integer getPort() {
         return port;
     }
 
-    public void setPort(int port) {
+    public void setPort(Integer port) {
         this.port = port;
     }
 

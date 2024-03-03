@@ -4,7 +4,10 @@ import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.api.ISocketServer;
 import com.hibegin.http.server.config.*;
-import com.hibegin.http.server.handler.*;
+import com.hibegin.http.server.handler.CheckRequestRunnable;
+import com.hibegin.http.server.handler.HttpDecodeRunnable;
+import com.hibegin.http.server.handler.PlainReadWriteSelectorHandler;
+import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
 
@@ -48,9 +51,7 @@ public class SimpleWebServer implements ISocketServer {
         if (serverConf.getTimeout() == 0 && ConfigKit.contains("server.timeout")) {
             serverConf.setTimeout(Integer.parseInt(ConfigKit.get("server.timeout", 60).toString()));
         }
-        if (serverConf.getPort() == 0) {
-            serverConf.setPort(ConfigKit.getServerPort());
-        }
+
         this.serverConfig = serverConf;
         this.requestConfig = Objects.requireNonNullElseGet(requestConf, this::getDefaultRequestConfig);
         this.responseConfig = Objects.requireNonNullElseGet(responseConf, this::getDefaultResponseConfig);
@@ -178,7 +179,7 @@ public class SimpleWebServer implements ISocketServer {
 
     @Override
     public boolean create() {
-        return create(serverConfig.getPort());
+        return create(Objects.requireNonNullElse(serverConfig.getPort(), ConfigKit.getServerPort()));
     }
 
     @Override
@@ -194,7 +195,8 @@ public class SimpleWebServer implements ISocketServer {
             serverChannel.configureBlocking(false);
             selector = Selector.open();
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-            LOGGER.info(ServerInfo.getName() + " listening on port -> " + port);
+            serverConfig.setPort(serverChannel.socket().getLocalPort());
+            LOGGER.info(ServerInfo.getName() + " listening on port -> " + serverConfig.getPort());
             tips();
             return true;
         } catch (Exception e) {

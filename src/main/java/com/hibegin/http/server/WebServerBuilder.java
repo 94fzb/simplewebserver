@@ -10,6 +10,7 @@ import com.hibegin.http.server.web.MethodInterceptor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
@@ -69,7 +70,7 @@ public class WebServerBuilder {
             simpleWebServer = new SimpleWebServer(serverConfig, requestConfig, responseConfig);
         }
         boolean createSuccess;
-        if (serverConfig.getPort() != 0) {
+        if (Objects.nonNull(serverConfig.getPort()) && serverConfig.getPort() >= 0) {
             createSuccess = simpleWebServer.create(serverConfig.getHost(), serverConfig.getPort());
         } else {
             createSuccess = simpleWebServer.create();
