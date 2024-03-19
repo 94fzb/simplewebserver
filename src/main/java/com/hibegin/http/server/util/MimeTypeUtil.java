@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,7 +31,10 @@ public class MimeTypeUtil {
 
 
     public static String getMimeStrByExt(String ext) {
-        String type = map.get(ext);
+        if(Objects.isNull(ext) || ext.trim().length() == 0){
+            return "application/octet-stream";
+        }
+        String type = map.get(ext.trim().toLowerCase());
         if (type == null) {
             return "application/octet-stream";
         }
