@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 public class MimeTypeUtil {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(MimeTypeUtil.class);
-    private static Map<String, String> map = new HashMap<>();
+    private static final Map<String, String> map = new HashMap<>();
 
 
     static {
