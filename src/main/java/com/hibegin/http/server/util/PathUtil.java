@@ -1,5 +1,6 @@
 package com.hibegin.http.server.util;
 
+import com.hibegin.common.ResourceLoader;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 
@@ -52,7 +53,7 @@ public class PathUtil {
             if (file.startsWith("/")) {
                 realFileName = realFileName.substring(1);
             }
-            InputStream in = MultiClassLoaderResourceLoader.getResourceAsStream("/conf/" + realFileName);
+            InputStream in = ResourceLoader.getResourceAsStream("/conf/" + realFileName);
             if (in != null) {
                 try {
                     File tempFile = File.createTempFile(nFile.getName(), ".tmp");
@@ -79,7 +80,7 @@ public class PathUtil {
         if (file.startsWith("/")) {
             realFileName = realFileName.substring(1);
         }
-        return MultiClassLoaderResourceLoader.getResourceAsStream("/conf/" + realFileName);
+        return ResourceLoader.getResourceAsStream("/conf/" + realFileName);
     }
 
     public static File safeAppendFilePath(String basePath, String appendFilePath) {
