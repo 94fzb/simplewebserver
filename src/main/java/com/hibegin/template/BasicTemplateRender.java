@@ -1,6 +1,7 @@
 package com.hibegin.template;
 
 import com.hibegin.common.util.IOUtil;
+import com.hibegin.http.server.util.MultiClassLoaderResourceLoader;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -31,6 +32,6 @@ public class BasicTemplateRender implements TemplateRender {
 
     @Override
     public String renderByTemplateName(String templateName) {
-        return render(BasicTemplateRender.class.getResourceAsStream(templateName));
+        return render(MultiClassLoaderResourceLoader.getResourceAsStream(templateName));
     }
 }

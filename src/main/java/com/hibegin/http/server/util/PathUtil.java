@@ -49,10 +49,10 @@ public class PathUtil {
             return nFile;
         } else {
             String realFileName = file;
-            if(file.startsWith("/")){
+            if (file.startsWith("/")) {
                 realFileName = realFileName.substring(1);
             }
-            InputStream in = PathUtil.class.getResourceAsStream("/conf/" + realFileName);
+            InputStream in = MultiClassLoaderResourceLoader.getResourceAsStream("/conf/" + realFileName);
             if (in != null) {
                 try {
                     File tempFile = File.createTempFile(nFile.getName(), ".tmp");
@@ -76,10 +76,10 @@ public class PathUtil {
             }
         }
         String realFileName = file;
-        if(file.startsWith("/")){
+        if (file.startsWith("/")) {
             realFileName = realFileName.substring(1);
         }
-        return PathUtil.class.getResourceAsStream("/conf/" + realFileName);
+        return MultiClassLoaderResourceLoader.getResourceAsStream("/conf/" + realFileName);
     }
 
     public static File safeAppendFilePath(String basePath, String appendFilePath) {
