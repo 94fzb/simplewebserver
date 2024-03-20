@@ -47,26 +47,30 @@ public class PathUtil {
         File nFile = safeAppendFilePath(getConfPath(), file);
         if (nFile.exists()) {
             return nFile;
-        } else {
-            String realFileName = file;
-            if(file.startsWith("/")){
-                realFileName = realFileName.substring(1);
-            }
-            InputStream in = PathUtil.class.getResourceAsStream("/conf/" + realFileName);
-            if (in != null) {
-                try {
-                    File tempFile = File.createTempFile(nFile.getName(), ".tmp");
-                    IOUtil.writeBytesToFile(IOUtil.getByteByInputStream(in), tempFile);
-                    return tempFile;
-                } catch (IOException e) {
-                    LoggerUtil.getLogger(PathUtil.class).log(Level.SEVERE, "", e);
-                }
-            }
+        }
+        String realFileName = file;
+        if (file.startsWith("/")) {
+            realFileName = realFileName.substring(1);
+        }
+        InputStream in = PathUtil.class.getResourceAsStream("/conf/" + realFileName);
+        if (Objects.isNull(in)) {
+            return nFile;
+        }
+        try {
+            File tempFile = File.createTempFile(nFile.getName(), ".tmp");
+            IOUtil.writeBytesToFile(IOUtil.getByteByInputStream(in), tempFile);
+            return tempFile;
+        } catch (IOException e) {
+            LoggerUtil.getLogger(PathUtil.class).log(Level.SEVERE, "", e);
         }
         return nFile;
     }
 
     public static InputStream getConfInputStream(String file) {
+        return getConfInputStream(file, PathUtil.class);
+    }
+
+    public static InputStream getConfInputStream(String file, Class<?> clazz) {
         File nFile = safeAppendFilePath(getConfPath(), file);
         if (nFile.exists()) {
             try {
@@ -76,10 +80,10 @@ public class PathUtil {
             }
         }
         String realFileName = file;
-        if(file.startsWith("/")){
+        if (file.startsWith("/")) {
             realFileName = realFileName.substring(1);
         }
-        return PathUtil.class.getResourceAsStream("/conf/" + realFileName);
+        return clazz.getResourceAsStream("/conf/" + realFileName);
     }
 
     public static File safeAppendFilePath(String basePath, String appendFilePath) {
