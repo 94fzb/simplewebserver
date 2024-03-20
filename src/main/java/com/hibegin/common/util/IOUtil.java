@@ -15,7 +15,7 @@ public class IOUtil {
 
     public static byte[] getByteByInputStream(InputStream in) {
         if (Objects.isNull(in)) {
-            return null;
+            return new byte[0];
         }
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         byte[] tempByte = new byte[1024];
