@@ -259,7 +259,7 @@ public class SimpleHttpResponse implements HttpResponse {
     @Override
     public void renderBasicTemplate(String name) {
         try {
-            renderHtmlStr(new BasicTemplateRender(request.getAttr()).renderByTemplateName(name));
+            renderHtmlStr(new BasicTemplateRender(request.getAttr(), Objects.requireNonNullElse(request.getServerConfig().getBasicTemplateClass(), SimpleHttpResponse.class)).renderByTemplateName(name));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "", e);
             throw new InternalException(e);

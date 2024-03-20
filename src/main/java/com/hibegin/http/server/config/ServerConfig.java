@@ -56,12 +56,21 @@ public class ServerConfig {
     private int selectNowSleepTime = 1;
     private HttpJsonMessageConverter httpJsonMessageConverter;
     private HttpRequestDecodeListener httpRequestDecodeListener;
+    private Class<?> basicTemplateClass;
 
     public String getServerInfo() {
         if (Objects.isNull(serverInfo) || serverInfo.trim().isEmpty()) {
             return ServerInfo.getName() + "/" + ServerInfo.getVersion();
         }
         return serverInfo;
+    }
+
+    public Class<?> getBasicTemplateClass() {
+        return basicTemplateClass;
+    }
+
+    public void setBasicTemplateClass(Class<?> basicTemplateClass) {
+        this.basicTemplateClass = basicTemplateClass;
     }
 
     public void setServerInfo(String serverInfo) {

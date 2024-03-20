@@ -9,9 +9,11 @@ import java.util.Map;
 public class BasicTemplateRender implements TemplateRender {
 
     private final Map<String, Object> map;
+    private final Class<?> clazzLoader;
 
-    public BasicTemplateRender(Map<String, Object> map) {
+    public BasicTemplateRender(Map<String, Object> map, Class<?> clazzLoader) {
         this.map = map;
+        this.clazzLoader = clazzLoader;
     }
 
     public String render(InputStream in) {
@@ -31,6 +33,6 @@ public class BasicTemplateRender implements TemplateRender {
 
     @Override
     public String renderByTemplateName(String templateName) {
-        return render(BasicTemplateRender.class.getResourceAsStream(templateName));
+        return render(clazzLoader.getResourceAsStream(templateName));
     }
 }
