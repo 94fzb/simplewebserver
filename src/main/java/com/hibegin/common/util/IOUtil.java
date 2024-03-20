@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -13,6 +14,9 @@ public class IOUtil {
     private static final Logger LOGGER = LoggerUtil.getLogger(IOUtil.class);
 
     public static byte[] getByteByInputStream(InputStream in) {
+        if (Objects.isNull(in)) {
+            return null;
+        }
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         byte[] tempByte = new byte[1024];
         try {
