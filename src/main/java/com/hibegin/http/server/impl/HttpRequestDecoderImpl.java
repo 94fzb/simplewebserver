@@ -28,11 +28,31 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     static final String SPLIT = CRLF + CRLF;
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpRequestDecoderImpl.class);
     private final SimpleHttpRequest request;
-    private int dataLength;
     private byte[] headerBytes = new byte[]{};
 
     public HttpRequestDecoderImpl(RequestConfig requestConfig, ApplicationContext applicationContext, ReadWriteSelectorHandler handler) {
         this.request = new SimpleHttpRequest(handler, applicationContext, requestConfig);
+    }
+
+    private static int findSequence(byte[] data, byte[] sequence) {
+        if (data == null || sequence == null || data.length < sequence.length) {
+            return -1; // 数据为空或序列长度不足
+        }
+
+        for (int i = 0; i < data.length - sequence.length + 1; i++) {
+            boolean match = true;
+            for (int j = 0; j < sequence.length; j++) {
+                if (data[i + j] != sequence[j]) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                return i; // 找到序列的起始索引
+            }
+        }
+
+        return -1; // 未找到序列
     }
 
     @Override
@@ -41,23 +61,8 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         // 存在2种情况,提交的数据一次性读取完成,提交的数据一次性读取不完
         if (Objects.isNull(getRequestBodyBytes())) {
             headerBytes = BytesUtil.mergeBytes(headerBytes, byteBuffer.array());
-            String fullDataStr = new String(headerBytes);
-            parseHttpMethod();
-            if (fullDataStr.contains(SPLIT)) {
-                String httpHeader = fullDataStr.substring(0, fullDataStr.indexOf(SPLIT));
-                request.requestHeaderStr = httpHeader;
-                String[] headerArr = httpHeader.split(CRLF);
-                // parse HttpHeader
-                parseProtocolHeader(headerArr);
-                int headerByteLength = httpHeader.getBytes().length + SPLIT.getBytes().length;
-                byte[] requestBody;
-                if (headerBytes.length - headerByteLength > 0) {
-                    requestBody = BytesUtil.subBytes(headerBytes, headerByteLength, headerBytes.length - headerByteLength);
-                } else {
-                    requestBody = new byte[0];
-                }
-                result = saveRequestBodyBytes(requestBody);
-            } else {
+            int idx = findSequence(headerBytes, SPLIT.getBytes());
+            if (idx < 0) {
                 int maxHeaderSize = request.getRequestConfig().getMaxRequestHeaderSize();
                 //没有读取到 SPLIT 时，检查 header 的最大长度
                 if (headerBytes.length > maxHeaderSize) {
@@ -65,6 +70,21 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 }
                 //没有 SPLIT，请求头部分不完整，需要继续等待，且已处理 byteBuffer，返回0
                 result = new AbstractMap.SimpleEntry<>(false, ByteBuffer.allocate(0));
+            } else {
+                String httpHeader = new String(BytesUtil.subBytes(headerBytes, 0, idx));
+                String[] headerArr = httpHeader.split(CRLF);
+                request.method = parseHttpMethod(httpHeader);
+                // parse HttpHeader
+                parseProtocolHeader(headerArr);
+                request.requestHeaderStr = httpHeader;
+                int headerByteLength = SPLIT.getBytes().length + idx;
+                byte[] requestBody;
+                if (headerBytes.length - headerByteLength > 0) {
+                    requestBody = BytesUtil.subBytes(headerBytes, headerByteLength, headerBytes.length - headerByteLength);
+                } else {
+                    requestBody = new byte[0];
+                }
+                result = saveRequestBodyBytes(requestBody);
             }
         } else {
             result = saveRequestBodyBytes(byteBuffer.array());
@@ -86,13 +106,17 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
      * @throws IOException
      */
     private Map.Entry<Boolean, ByteBuffer> saveRequestBodyBytes(byte[] bytes) throws IOException {
+        long dataLength = getContentLength();
         if (Objects.isNull(bytes) || bytes.length == 0) {
-            return new AbstractMap.SimpleEntry<>(true, ByteBuffer.allocate(0));
+            if (dataLength == 0) {
+                return new AbstractMap.SimpleEntry<>(true, ByteBuffer.allocate(0));
+            }
+            return new AbstractMap.SimpleEntry<>(dataLength == getRequestBodyLength(), ByteBuffer.allocate(0));
         }
         byte[] handleBytes = bytes;
         try {
             if (dataLength > 0) {
-                handleBytes = BytesUtil.subBytes(bytes, 0, dataLength);
+                handleBytes = BytesUtil.subBytes(bytes, 0, (int) dataLength);
             }
             File tempFile = saveRequestBodyToTempFile(handleBytes);
             //requestBody full
@@ -133,21 +157,25 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         }
     }
 
-    private void parseHttpMethod() {
-        if (Objects.nonNull(request.method)) {
-            return;
+    private long getRequestBodyLength() {
+        if (request.tmpRequestBodyFile != null && request.tmpRequestBodyFile.exists()) {
+            return request.tmpRequestBodyFile.length();
         }
-        String requestLine = new String(headerBytes);
+        return 0;
+    }
+
+    private static HttpMethod parseHttpMethod(String headerStr) {
         for (HttpMethod httpMethod : HttpMethod.values()) {
-            if (requestLine.startsWith(httpMethod.name() + " ")) {
-                request.method = httpMethod;
-                return;
+            if (headerStr.startsWith(httpMethod.name() + " ")) {
+                return httpMethod;
             }
         }
-        throw new UnSupportMethodException(requestLine.substring(0, Math.min(requestLine.length() - 1, 48)));
+        throw new UnSupportMethodException(headerStr.substring(0, Math.min(headerStr.length() - 1, 48)));
     }
 
     private void parseProtocolHeader(String[] headerArr) throws Exception {
+        //
+        request.header.clear();
         String pHeader = headerArr[0];
         String[] protocolHeaderArr = pHeader.split(" ");
         String tUrl = request.uri = protocolHeaderArr[1];
@@ -167,6 +195,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             request.queryStr = tUrl.substring(tUrl.indexOf("?") + 1);
         } else {
             request.uri = tUrl;
+            request.queryStr = "";
         }
         if (request.uri.contains("/")) {
             request.uri = URLDecoder.decode(request.uri.substring(request.uri.indexOf("/")), request.getRequestConfig().getCharSet());
@@ -179,10 +208,13 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             dealRequestHeaderString(headerArr[i]);
         }
         parseUrlEncodedStrToMap(request.queryStr);
-        dataLength = Integer.parseInt(Objects.requireNonNullElse(request.getHeader("Content-Length"), "0"));
-        if (dataLength > getRequest().getRequestConfig().getMaxRequestBodySize()) {
+        if (getContentLength() > getRequest().getRequestConfig().getMaxRequestBodySize()) {
             throw new RequestBodyTooLargeException("The Content-Length outside the max upload size " + ConfigKit.getMaxRequestBodySize());
         }
+    }
+
+    private long getContentLength() {
+        return Long.parseLong(Objects.requireNonNullElse(request.getHeader("Content-Length"), "0"));
     }
 
     private void dealRequestHeaderString(String str) {

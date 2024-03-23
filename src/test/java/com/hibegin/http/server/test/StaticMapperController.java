@@ -2,6 +2,7 @@ package com.hibegin.http.server.test;
 
 import com.hibegin.http.server.WebServerBuilder;
 import com.hibegin.http.server.config.ServerConfig;
+import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.web.Controller;
 
 import java.io.File;
@@ -16,13 +17,15 @@ public class StaticMapperController extends Controller {
     public void upload() {
         Map<String, Object> map = new HashMap<>();
         File file = getRequest().getFile("file");
-        map.put("file", file.toString());
-        map.put("fileSize", file.length());
+        File newFile = new File(PathUtil.getTempPath() + "cp." + file.getName());
+        file.renameTo(newFile);
+        map.put("file", newFile.toString());
+        map.put("fileSize", newFile.length());
         response.renderJson(map);
     }
 
     public void form() {
-        response.renderJson(request.getParamMap());
+        response.renderJson(request.decodeParamMap());
     }
 
     public static void main(String[] args) {

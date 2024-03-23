@@ -18,6 +18,7 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -224,19 +225,18 @@ public class SimpleHttpRequest implements HttpRequest {
     public InputStream getInputStream() {
         if (inputStream != null) {
             return inputStream;
-        } else {
-            if (tmpRequestBodyFile != null) {
-                try {
-                    inputStream = new FileInputStream(tmpRequestBodyFile);
-                } catch (FileNotFoundException e) {
-                    //e.printStackTrace();
-                    throw new RuntimeException(e);
-                }
-            } else {
-                inputStream = new ByteArrayInputStream(new byte[]{});
-            }
-            return inputStream;
         }
+        if (tmpRequestBodyFile != null) {
+            try {
+                inputStream = new FileInputStream(tmpRequestBodyFile);
+            } catch (FileNotFoundException e) {
+                //e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+        } else {
+            inputStream = new ByteArrayInputStream(new byte[]{});
+        }
+        return inputStream;
     }
 
     @Override
@@ -250,11 +250,7 @@ public class SimpleHttpRequest implements HttpRequest {
         for (Map.Entry<String, String[]> entry : getParamMap().entrySet()) {
             String[] strings = new String[entry.getValue().length];
             for (int i = 0; i < entry.getValue().length; i++) {
-                try {
-                    strings[i] = URLDecoder.decode(entry.getValue()[i], "UTF-8");
-                } catch (UnsupportedEncodingException e) {
-                    LOGGER.log(Level.SEVERE, "decode error", e);
-                }
+                strings[i] = URLDecoder.decode(entry.getValue()[i], StandardCharsets.UTF_8);
             }
             encodeMap.put(entry.getKey(), strings);
         }

@@ -28,7 +28,7 @@ public class FileCacheKit {
         File[] files = new File(PathUtil.getTempPath()).listFiles();
         if (files != null) {
             for (File file : files) {
-                if (file.getName().contains(suffix(flag + ""))) {
+                if (file.getName().startsWith(SERVER_WEB_SERVER_TEMP_FILE_PREFIX) && file.getName().contains(suffix(flag + ""))) {
                     file.delete();
                 }
             }

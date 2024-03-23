@@ -7,7 +7,6 @@ import com.hibegin.http.server.impl.SimpleHttpRequest;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -53,7 +52,9 @@ public class HttpRequestHandlerRunnable implements Runnable {
             }
             defaultErrorResponse(e);
         } finally {
-            if (request.getMethod() != HttpMethod.CONNECT) {
+            if (request.getMethod() == HttpMethod.CONNECT) {
+                //ignore
+            } else {
                 String responseConnection = response.getHeader().get("Connection");
                 boolean needClose = "close".equalsIgnoreCase(responseConnection);
                 if (needClose) {
@@ -63,6 +64,10 @@ public class HttpRequestHandlerRunnable implements Runnable {
                         response.renderCode(404);
                     }
                     close();
+                } else {
+                    if (request instanceof SimpleHttpRequest) {
+                        ((SimpleHttpRequest) request).deleteTempUploadFiles();
+                    }
                 }
             }
             //System.out.println("(System.nanoTime() - start) = " + (System.nanoTime() - request.getCreateTime()));
