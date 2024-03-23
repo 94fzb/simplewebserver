@@ -13,12 +13,12 @@ import com.hibegin.http.server.execption.RequestBodyTooLargeException;
 import com.hibegin.http.server.execption.UnSupportMethodException;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
 import com.hibegin.http.server.util.FileCacheKit;
+import com.hibegin.http.server.util.HttpQueryStringUtils;
 
 import java.io.*;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -69,23 +69,22 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                     throw new RequestBodyTooLargeException("The http header to large " + headerBytes.length + " more than " + maxHeaderSize);
                 }
                 //没有 SPLIT，请求头部分不完整，需要继续等待，且已处理 byteBuffer，返回0
-                result = new AbstractMap.SimpleEntry<>(false, ByteBuffer.allocate(0));
-            } else {
-                String httpHeader = new String(BytesUtil.subBytes(headerBytes, 0, idx));
-                String[] headerArr = httpHeader.split(CRLF);
-                request.method = parseHttpMethod(httpHeader);
-                // parse HttpHeader
-                parseProtocolHeader(headerArr);
-                request.requestHeaderStr = httpHeader;
-                int headerByteLength = SPLIT.getBytes().length + idx;
-                byte[] requestBody;
-                if (headerBytes.length - headerByteLength > 0) {
-                    requestBody = BytesUtil.subBytes(headerBytes, headerByteLength, headerBytes.length - headerByteLength);
-                } else {
-                    requestBody = new byte[0];
-                }
-                result = saveRequestBodyBytes(requestBody);
+                return new AbstractMap.SimpleEntry<>(false, ByteBuffer.allocate(0));
             }
+            String httpHeader = new String(BytesUtil.subBytes(headerBytes, 0, idx));
+            String[] headerArr = httpHeader.split(CRLF);
+            request.method = parseHttpMethod(httpHeader);
+            // parse HttpHeader
+            parseProtocolHeader(headerArr);
+            request.requestHeaderStr = httpHeader;
+            int headerByteLength = SPLIT.getBytes().length + idx;
+            byte[] requestBody;
+            if (headerBytes.length - headerByteLength > 0) {
+                requestBody = BytesUtil.subBytes(headerBytes, headerByteLength, headerBytes.length - headerByteLength);
+            } else {
+                requestBody = new byte[0];
+            }
+            result = saveRequestBodyBytes(requestBody);
         } else {
             result = saveRequestBodyBytes(byteBuffer.array());
         }
@@ -207,7 +206,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         for (int i = 1; i < headerArr.length; i++) {
             dealRequestHeaderString(headerArr[i]);
         }
-        parseUrlEncodedStrToMap(request.queryStr);
+        request.paramMap = HttpQueryStringUtils.parseUrlEncodedStrToMap(request.queryStr);
         if (getContentLength() > getRequest().getRequestConfig().getMaxRequestBodySize()) {
             throw new RequestBodyTooLargeException("The Content-Length outside the max upload size " + ConfigKit.getMaxRequestBodySize());
         }
@@ -220,34 +219,6 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     private void dealRequestHeaderString(String str) {
         if (str.contains(":")) {
             request.header.put(str.split(":")[0], str.substring(str.indexOf(":") + 1).trim());
-        }
-    }
-
-
-    private void parseUrlEncodedStrToMap(String queryString) {
-        if (request.paramMap == null) {
-            request.paramMap = new HashMap<>();
-        }
-        if (queryString != null) {
-            Map<String, List<String>> tempParam = new HashMap<>();
-            String[] args = queryString.split("&");
-            for (String string : args) {
-                int idx = string.indexOf("=");
-                if (idx != -1) {
-                    String key = string.substring(0, idx);
-                    String value = string.substring(idx + 1);
-                    if (tempParam.containsKey(key)) {
-                        tempParam.get(key).add(value);
-                    } else {
-                        List<String> paramValues = new ArrayList<>();
-                        paramValues.add(value);
-                        tempParam.put(key, paramValues);
-                    }
-                }
-            }
-            for (Entry<String, List<String>> entry : tempParam.entrySet()) {
-                request.paramMap.put(entry.getKey(), entry.getValue().toArray(new String[0]));
-            }
         }
     }
 
@@ -300,7 +271,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 request.files.put(inputKeyName, file);
             }
         } else if ("application/x-www-form-urlencoded".equals(contentType)) {
-            parseUrlEncodedStrToMap(new String(requestBody));
+            request.paramMap = HttpQueryStringUtils.parseUrlEncodedStrToMap(new String(requestBody));
         }
     }
 
