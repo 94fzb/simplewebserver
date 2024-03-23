@@ -18,7 +18,10 @@ import com.hibegin.http.server.util.HttpQueryStringUtils;
 import java.io.*;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -58,8 +61,15 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     @Override
     public Map.Entry<Boolean, ByteBuffer> doDecode(ByteBuffer byteBuffer) throws Exception {
         Map.Entry<Boolean, ByteBuffer> result;
-        // 存在2种情况,提交的数据一次性读取完成,提交的数据一次性读取不完
-        if (Objects.isNull(getRequestBodyBytes())) {
+        //代理头，直接保存到body
+        if (request.method == HttpMethod.CONNECT) {
+            result = saveRequestBodyBytes(byteBuffer.array());
+        }
+        //存在body需要处理
+        else if (headerBytes.length > 0 && getContentLength() > 0) {
+            result = saveRequestBodyBytes(byteBuffer.array());
+        } else {
+            // 存在2种情况,提交的数据一次性读取完成,提交的数据一次性读取不完
             headerBytes = BytesUtil.mergeBytes(headerBytes, byteBuffer.array());
             int idx = findSequence(headerBytes, SPLIT.getBytes());
             if (idx < 0) {
@@ -85,8 +95,6 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 requestBody = new byte[0];
             }
             result = saveRequestBodyBytes(requestBody);
-        } else {
-            result = saveRequestBodyBytes(byteBuffer.array());
         }
         if (Objects.equals(result.getKey(), true)) {
             dealRequestBodyData();
