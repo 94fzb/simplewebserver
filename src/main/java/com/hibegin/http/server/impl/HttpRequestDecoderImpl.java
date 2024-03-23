@@ -83,10 +83,12 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             }
             String httpHeader = new String(BytesUtil.subBytes(headerBytes, 0, idx));
             String[] headerArr = httpHeader.split(CRLF);
+            //parse http method
             request.method = parseHttpMethod(httpHeader);
             // parse HttpHeader
             parseProtocolHeader(headerArr);
             request.requestHeaderStr = httpHeader;
+            // parse body
             int headerByteLength = SPLIT.getBytes().length + idx;
             byte[] requestBody = BytesUtil.subBytes(headerBytes, headerByteLength, headerBytes.length - headerByteLength);
             result = saveRequestBodyBytes(requestBody);
