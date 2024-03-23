@@ -86,6 +86,9 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
      * @throws IOException
      */
     private Map.Entry<Boolean, ByteBuffer> saveRequestBodyBytes(byte[] bytes) throws IOException {
+        if (Objects.isNull(bytes) || bytes.length == 0) {
+            return new AbstractMap.SimpleEntry<>(true, ByteBuffer.allocate(0));
+        }
         byte[] handleBytes = bytes;
         try {
             if (dataLength > 0) {
@@ -112,16 +115,14 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     }
 
     private File saveRequestBodyToTempFile(byte[] handleBytes) throws IOException {
-        File tempFile = request.tmpRequestBodyFile;
-        if (Objects.nonNull(tempFile)) {
-            try (FileOutputStream fileOutputStream = new FileOutputStream(tempFile, true)) {
-                fileOutputStream.write(handleBytes);
-            }
-        } else {
-            tempFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort() + "", handleBytes);
-            request.tmpRequestBodyFile = tempFile;
+        if (Objects.isNull(request.tmpRequestBodyFile)) {
+            request.tmpRequestBodyFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort() + "", handleBytes);
+            return request.tmpRequestBodyFile;
         }
-        return tempFile;
+        try (FileOutputStream fileOutputStream = new FileOutputStream(request.tmpRequestBodyFile, true)) {
+            fileOutputStream.write(handleBytes);
+        }
+        return request.tmpRequestBodyFile;
     }
 
     private byte[] getRequestBodyBytes() {

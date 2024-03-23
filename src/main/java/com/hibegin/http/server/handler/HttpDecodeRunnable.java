@@ -25,7 +25,10 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -35,7 +38,7 @@ public class HttpDecodeRunnable implements Runnable {
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpDecodeRunnable.class);
 
     private final ApplicationContext applicationContext;
-    private final Map<Socket, LinkedBlockingDeque<RequestEvent>> socketRequestEventMap = new ConcurrentHashMap<>();
+    private final Map<Socket, Queue<RequestEvent>> socketRequestEventMap = new ConcurrentHashMap<>();
     private final SimpleWebServer simpleWebServer;
     private final RequestConfig requestConfig;
     private final ResponseConfig responseConfig;
@@ -58,7 +61,7 @@ public class HttpDecodeRunnable implements Runnable {
         lock.lock();
         try {
             List<Socket> needRemoveChannel = new CopyOnWriteArrayList<>();
-            for (final Map.Entry<Socket, LinkedBlockingDeque<RequestEvent>> entry : socketRequestEventMap.entrySet()) {
+            for (final Map.Entry<Socket, Queue<RequestEvent>> entry : socketRequestEventMap.entrySet()) {
                 final Socket socket = entry.getKey();
                 if (entry.getKey().isClosed()) {
                     needRemoveChannel.add(socket);
@@ -67,7 +70,7 @@ public class HttpDecodeRunnable implements Runnable {
                 if (workingChannel.contains(socket)) {
                     continue;
                 }
-                final LinkedBlockingDeque<RequestEvent> blockingQueue = entry.getValue();
+                final Queue<RequestEvent> blockingQueue = entry.getValue();
                 final RequestEvent requestEvent = blockingQueue.poll();
                 if (requestEvent == null) {
                     continue;
@@ -84,7 +87,7 @@ public class HttpDecodeRunnable implements Runnable {
             }
 
             for (Socket socket : needRemoveChannel) {
-                LinkedBlockingDeque<RequestEvent> entry = socketRequestEventMap.get(socket);
+                Queue<RequestEvent> entry = socketRequestEventMap.get(socket);
                 if (entry == null) {
                     continue;
                 }
@@ -160,12 +163,18 @@ public class HttpDecodeRunnable implements Runnable {
         }
     }
 
+    public static void main(String[] args) {
+        Map<String, String> m = new HashMap<>();
+        String a = m.computeIfAbsent("a", (k) -> "2");
+        System.out.println("m = " + m);
+        System.out.println("a = " + a);
+    }
+
     private void addBytesToQueue(SelectionKey key, Socket socket, byte[] bytes, boolean toFirst) throws IOException {
-        LinkedBlockingDeque<RequestEvent> entryBlockingQueue = socketRequestEventMap.get(socket);
-        if (entryBlockingQueue == null) {
-            entryBlockingQueue = new LinkedBlockingDeque<>();
-            socketRequestEventMap.put(socket, entryBlockingQueue);
+        if (Objects.isNull(bytes) || bytes.length == 0) {
+            return;
         }
+        LinkedBlockingDeque<RequestEvent> entryBlockingQueue = (LinkedBlockingDeque<RequestEvent>) socketRequestEventMap.computeIfAbsent(socket, (k) -> new LinkedBlockingDeque<>());
         long newBufferSize = entryBlockingQueue.stream().mapToLong(RequestEvent::getLength).sum() + bytes.length;
         RequestEvent requestEvent;
         if (newBufferSize > requestConfig.getRequestMaxBufferSize()) {

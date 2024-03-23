@@ -4,17 +4,19 @@ import com.hibegin.common.util.IOUtil;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Queue;
-import java.util.concurrent.*;
+import java.util.Objects;
 
 public class FileCacheKit {
 
+    public static final String SERVER_WEB_SERVER_TEMP_FILE_PREFIX = "sws-cache-";
+
     public static File generatorRequestTempFile(String flag, byte[] bytes) throws IOException {
-        if (bytes == null) {
-            bytes = new byte[0];
+        File file = File.createTempFile(SERVER_WEB_SERVER_TEMP_FILE_PREFIX, suffix(flag), new File(PathUtil.getTempPath()));
+        if (Objects.nonNull(bytes) && bytes.length > 0) {
+            IOUtil.writeBytesToFile(bytes, file);
+        } else {
+            IOUtil.writeBytesToFile(new byte[0], file);
         }
-        File file = File.createTempFile("cache-", suffix(flag), new File(PathUtil.getTempPath()));
-        IOUtil.writeBytesToFile(bytes, file);
         return file;
     }
 
