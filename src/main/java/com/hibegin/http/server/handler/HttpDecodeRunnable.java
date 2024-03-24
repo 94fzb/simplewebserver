@@ -193,19 +193,28 @@ public class HttpDecodeRunnable implements Runnable {
         if (Objects.isNull(channel) || !channel.isOpen()) {
             return;
         }
-
-        Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = applicationContext.getHttpDeCoderMap().get(channel.socket());
-        ReadWriteSelectorHandler handler;
-        if (codecEntry == null) {
-            handler = simpleWebServer.getReadWriteSelectorHandlerInstance(channel, key);
-            HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, applicationContext, handler);
-            codecEntry = new AbstractMap.SimpleEntry<>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig));
-            applicationContext.getHttpDeCoderMap().put(channel.socket(), codecEntry);
-        } else {
-            handler = codecEntry.getKey().getRequest().getHandler();
+        try {
+            Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = applicationContext.getHttpDeCoderMap().get(channel.socket());
+            if (Objects.isNull(codecEntry)) {
+                ReadWriteSelectorHandler handler = simpleWebServer.getReadWriteSelectorHandlerInstance(channel, key);
+                byte[] data = handler.handleRead().array();
+                if (data.length == 0) {
+                    return;
+                }
+                HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, applicationContext, handler);
+                applicationContext.getHttpDeCoderMap().put(channel.socket(), new AbstractMap.SimpleEntry<>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)));
+                addBytesToQueue(key, channel.socket(), data, false);
+                return;
+            }
+            ReadWriteSelectorHandler handler = codecEntry.getKey().getRequest().getHandler();
+            byte[] data = handler.handleRead().array();
+            if (data.length == 0) {
+                return;
+            }
+            addBytesToQueue(key, channel.socket(), data, false);
+        } finally {
+            this.run();
         }
-        addBytesToQueue(key, channel.socket(), handler.handleRead().array(), false);
-        this.run();
     }
 
 
