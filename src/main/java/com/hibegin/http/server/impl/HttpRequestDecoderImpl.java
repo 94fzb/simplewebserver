@@ -30,11 +30,21 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     private static final String CRLF = "\r\n";
     static final String SPLIT = CRLF + CRLF;
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpRequestDecoderImpl.class);
-    private final SimpleHttpRequest request;
-    private byte[] headerBytes = new byte[]{};
+    private SimpleHttpRequest request;
+    private byte[] inputBytes = new byte[]{};
+    private final RequestConfig requestConfig;
+    private final ApplicationContext applicationContext;
+    private final ReadWriteSelectorHandler handler;
 
     public HttpRequestDecoderImpl(RequestConfig requestConfig, ApplicationContext applicationContext, ReadWriteSelectorHandler handler) {
-        this.request = new SimpleHttpRequest(handler, applicationContext, requestConfig);
+        this.requestConfig = requestConfig;
+        this.applicationContext = applicationContext;
+        this.handler = handler;
+    }
+
+    @Override
+    public ReadWriteSelectorHandler getHandler() {
+        return handler;
     }
 
     private static int findSequence(byte[] data, byte[] sequence) {
@@ -60,28 +70,31 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
 
     @Override
     public Map.Entry<Boolean, ByteBuffer> doDecode(ByteBuffer byteBuffer) throws Exception {
+        if (Objects.isNull(request)) {
+            this.request = new SimpleHttpRequest(handler, applicationContext, requestConfig);
+        }
         Map.Entry<Boolean, ByteBuffer> result;
         //代理头，直接保存到body
         if (request.method == HttpMethod.CONNECT) {
             result = saveRequestBodyBytes(byteBuffer.array());
         }
         //存在body需要处理
-        else if (headerBytes.length > 0 && getContentLength() > 0) {
+        else if (inputBytes.length > 0 && getContentLength() > 0) {
             result = saveRequestBodyBytes(byteBuffer.array());
         } else {
             // 存在2种情况,提交的数据一次性读取完成,提交的数据一次性读取不完
-            headerBytes = BytesUtil.mergeBytes(headerBytes, byteBuffer.array());
-            int idx = findSequence(headerBytes, SPLIT.getBytes());
+            inputBytes = BytesUtil.mergeBytes(inputBytes, byteBuffer.array());
+            int idx = findSequence(inputBytes, SPLIT.getBytes());
             if (idx < 0) {
                 int maxHeaderSize = request.getRequestConfig().getMaxRequestHeaderSize();
                 //没有读取到 SPLIT 时，检查 header 的最大长度
-                if (headerBytes.length > maxHeaderSize) {
-                    throw new RequestBodyTooLargeException("The http header to large " + headerBytes.length + " more than " + maxHeaderSize);
+                if (inputBytes.length > maxHeaderSize) {
+                    throw new RequestBodyTooLargeException("The http header to large " + inputBytes.length + " more than " + maxHeaderSize);
                 }
                 //没有 SPLIT，请求头部分不完整，需要继续等待，且已处理 byteBuffer，返回0
                 return new AbstractMap.SimpleEntry<>(false, ByteBuffer.allocate(0));
             }
-            String httpHeader = new String(BytesUtil.subBytes(headerBytes, 0, idx));
+            String httpHeader = new String(BytesUtil.subBytes(inputBytes, 0, idx));
             String[] headerArr = httpHeader.split(CRLF);
             //parse http method
             request.method = parseHttpMethod(httpHeader);
@@ -90,13 +103,13 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             request.requestHeaderStr = httpHeader;
             // parse body
             int headerByteLength = SPLIT.getBytes().length + idx;
-            byte[] requestBody = BytesUtil.subBytes(headerBytes, headerByteLength, headerBytes.length - headerByteLength);
+            byte[] requestBody = BytesUtil.subBytes(inputBytes, headerByteLength, inputBytes.length - headerByteLength);
             result = saveRequestBodyBytes(requestBody);
         }
         if (Objects.equals(result.getKey(), true)) {
             dealRequestBodyData();
             //处理完成，清空byte[]
-            headerBytes = new byte[]{};
+            inputBytes = new byte[]{};
             request.getHandler().flushRequestBB();
         }
         return result;
@@ -283,5 +296,12 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     @Override
     public HttpRequest getRequest() {
         return request;
+    }
+
+    @Override
+    public void doNext() {
+        //处理完成，清空byte[]
+        this.inputBytes = new byte[]{};
+        this.request = null;
     }
 }

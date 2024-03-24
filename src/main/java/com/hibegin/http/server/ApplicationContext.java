@@ -5,6 +5,7 @@ import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.config.ServerConfig;
+import com.hibegin.http.server.handler.HttpDecodeRunnable;
 import com.hibegin.http.server.util.FileCacheKit;
 
 import java.lang.reflect.InvocationTargetException;
@@ -19,13 +20,13 @@ import java.util.logging.Logger;
 public class ApplicationContext {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(ApplicationContext.class);
-    private final Map<Socket, Map.Entry<HttpRequestDeCoder, HttpResponse>> httpDeCoderMap = new ConcurrentHashMap<>();
+    private final Map<Socket,HttpRequestDeCoder> httpDeCoderMap = new ConcurrentHashMap<>();
     private final Map<String, Object> attrs = new ConcurrentHashMap<>();
     private boolean init;
     private List<Interceptor> interceptors;
     private ServerConfig serverConfig;
 
-    public Map<Socket, Map.Entry<HttpRequestDeCoder, HttpResponse>> getHttpDeCoderMap() {
+    public Map<Socket, HttpRequestDeCoder> getHttpDeCoderMap() {
         return httpDeCoderMap;
     }
 

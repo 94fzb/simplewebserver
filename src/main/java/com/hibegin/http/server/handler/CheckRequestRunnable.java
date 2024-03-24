@@ -2,7 +2,6 @@ package com.hibegin.http.server.handler;
 
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
-import com.hibegin.http.server.api.HttpResponse;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -67,7 +66,7 @@ public class CheckRequestRunnable implements Runnable {
 
     private Set<Socket> getClosedDecodedSocketSet() {
         Set<Socket> removeHttpRequestList = new CopyOnWriteArraySet<>();
-        for (Map.Entry<Socket, Map.Entry<HttpRequestDeCoder, HttpResponse>> entry : applicationContext.getHttpDeCoderMap().entrySet()) {
+        for (Map.Entry<Socket, HttpRequestDeCoder> entry : applicationContext.getHttpDeCoderMap().entrySet()) {
             Socket socket = entry.getKey();
             if (socket.isClosed() || !socket.isConnected()) {
                 removeHttpRequestList.add(socket);

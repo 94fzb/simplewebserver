@@ -126,13 +126,13 @@ public class HttpDecodeRunnable implements Runnable {
 
     private void doParseHttpMessage(RequestEvent requestEvent, Socket socket) {
         SelectionKey key = requestEvent.getSelectionKey();
-        Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = applicationContext.getHttpDeCoderMap().get(socket);
+        HttpRequestDeCoder requestDeCoder = applicationContext.getHttpDeCoderMap().get(socket);
         try {
-            if (Objects.isNull(codecEntry)) {
+            if (Objects.isNull(requestDeCoder)) {
                 return;
             }
 
-            Map.Entry<Boolean, ByteBuffer> booleanEntry = codecEntry.getKey().doDecode(ByteBuffer.wrap(requestEvent.getRequestBytes()));
+            Map.Entry<Boolean, ByteBuffer> booleanEntry = requestDeCoder.doDecode(ByteBuffer.wrap(requestEvent.getRequestBytes()));
             if (booleanEntry.getValue().limit() > 0) {
                 addBytesToQueue(key, socket, booleanEntry.getValue().array(), true);
             }
@@ -140,24 +140,22 @@ public class HttpDecodeRunnable implements Runnable {
                 return;
             }
             if (serverConfig.isSupportHttp2()) {
-                renderUpgradeHttp2Response(codecEntry.getValue());
+                renderUpgradeHttp2Response(new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig));
             } else {
-                requestExec(new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()));
-                if (codecEntry.getKey().getRequest().getMethod() != HttpMethod.CONNECT) {
-                    HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, applicationContext, codecEntry.getKey().getRequest().getHandler());
-                    codecEntry = new AbstractMap.SimpleEntry<>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig));
-                    applicationContext.getHttpDeCoderMap().put(socket, codecEntry);
+                requestExec(new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)));
+                if (requestDeCoder.getRequest().getMethod() != HttpMethod.CONNECT) {
+                    requestDeCoder.doNext();
                 }
             }
         } catch (IOException e) {
-            handleException(key, codecEntry.getKey(), null, 499, e);
+            handleException(key, requestDeCoder, null, 499, e);
         } catch (UnSupportMethodException e) {
-            handleException(key, codecEntry.getKey(), new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()), 400, e);
+            handleException(key, requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 400, e);
         } catch (RequestBodyTooLargeException e) {
-            handleException(key, codecEntry.getKey(), new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()), 413, e);
+            handleException(key, requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 413, e);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "", e);
-            handleException(key, codecEntry.getKey(), new HttpRequestHandlerRunnable(codecEntry.getKey().getRequest(), codecEntry.getValue()), 500, e);
+            handleException(key, requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 500, e);
         } finally {
             requestEvent.deleteFile();
         }
@@ -194,7 +192,7 @@ public class HttpDecodeRunnable implements Runnable {
             return;
         }
         try {
-            Map.Entry<HttpRequestDeCoder, HttpResponse> codecEntry = applicationContext.getHttpDeCoderMap().get(channel.socket());
+            HttpRequestDeCoder codecEntry = applicationContext.getHttpDeCoderMap().get(channel.socket());
             if (Objects.isNull(codecEntry)) {
                 ReadWriteSelectorHandler handler = simpleWebServer.getReadWriteSelectorHandlerInstance(channel, key);
                 byte[] data = handler.handleRead().array();
@@ -202,12 +200,11 @@ public class HttpDecodeRunnable implements Runnable {
                     return;
                 }
                 HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, applicationContext, handler);
-                applicationContext.getHttpDeCoderMap().put(channel.socket(), new AbstractMap.SimpleEntry<>(requestDeCoder, new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)));
+                applicationContext.getHttpDeCoderMap().put(channel.socket(), requestDeCoder);
                 addBytesToQueue(key, channel.socket(), data, false);
                 return;
             }
-            ReadWriteSelectorHandler handler = codecEntry.getKey().getRequest().getHandler();
-            byte[] data = handler.handleRead().array();
+            byte[] data = codecEntry.getHandler().handleRead().array();
             if (data.length == 0) {
                 return;
             }
