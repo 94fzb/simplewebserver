@@ -10,7 +10,6 @@ import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.config.ConfigKit;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.execption.RequestBodyTooLargeException;
-import com.hibegin.http.server.execption.UnSupportMethodException;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
 import com.hibegin.http.server.util.FileCacheKit;
 import com.hibegin.http.server.util.HttpQueryStringUtils;
@@ -97,7 +96,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             String httpHeader = new String(BytesUtil.subBytes(inputBytes, 0, idx));
             String[] headerArr = httpHeader.split(CRLF);
             //parse http method
-            request.method = parseHttpMethod(httpHeader);
+            request.method = HttpMethod.parseHttpMethodByRequestLine(headerArr[0]);
             // parse HttpHeader
             parseProtocolHeader(headerArr);
             request.requestHeaderStr = httpHeader;
@@ -179,15 +178,6 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             return request.tmpRequestBodyFile.length();
         }
         return 0;
-    }
-
-    private static HttpMethod parseHttpMethod(String headerStr) {
-        for (HttpMethod httpMethod : HttpMethod.values()) {
-            if (headerStr.startsWith(httpMethod.name() + " ")) {
-                return httpMethod;
-            }
-        }
-        throw new UnSupportMethodException(headerStr.substring(0, Math.min(headerStr.length() - 1, 48)));
     }
 
     private void parseProtocolHeader(String[] headerArr) throws Exception {
