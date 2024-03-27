@@ -279,7 +279,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                 request.files.put(inputKeyName, file);
             }
         } else if ("application/x-www-form-urlencoded".equals(contentType)) {
-            request.paramMap = HttpQueryStringUtils.parseUrlEncodedStrToMap(new String(requestBody));
+            request.paramMap.putAll(HttpQueryStringUtils.parseUrlEncodedStrToMap(new String(requestBody)));
         }
     }
 

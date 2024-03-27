@@ -5,7 +5,7 @@ import java.util.*;
 public class HttpQueryStringUtils {
 
     public static Map<String, String[]> parseUrlEncodedStrToMap(String queryString) {
-        if (Objects.isNull(queryString) || queryString.length() == 0) {
+        if (Objects.isNull(queryString) || queryString.isEmpty()) {
             return new HashMap<>();
         }
         Map<String, List<String>> tempParam = new HashMap<>();
