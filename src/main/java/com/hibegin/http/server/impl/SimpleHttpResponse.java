@@ -39,31 +39,23 @@ public class SimpleHttpResponse implements HttpResponse {
 
     @Override
     public void writeFile(File file) {
-        if (file.exists()) {
-            FileInputStream fileInputStream = null;
-            try {
-                if (file.isDirectory()) {
-                    renderByStatusCode(302);
-                    return;
-                }
-                fileInputStream = new FileInputStream(file);
-                String ext = file.getName().substring(file.getName().lastIndexOf(".") + 1);
-                // getMimeType
-                trySetResponseContentType(MimeTypeUtil.getMimeStrByExt(ext));
-                write(fileInputStream, 200, file.length());
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "", e);
-            } finally {
-                if (fileInputStream != null) {
-                    try {
-                        fileInputStream.close();
-                    } catch (IOException e) {
-                        //ignore
-                    }
-                }
-            }
-        } else {
+        if (!file.exists()) {
             renderByStatusCode(404);
+            return;
+        }
+        if (file.isDirectory()) {
+            renderByStatusCode(302);
+            return;
+        }
+        try (FileInputStream fileInputStream = new FileInputStream(file)) {
+            String ext = file.getName().substring(file.getName().lastIndexOf(".") + 1);
+            // getMimeType
+            trySetResponseContentType(MimeTypeUtil.getMimeStrByExt(ext));
+            write(fileInputStream, 200, file.length());
+        } catch (FileNotFoundException e) {
+            renderByStatusCode(404);
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "", e);
         }
     }
 
