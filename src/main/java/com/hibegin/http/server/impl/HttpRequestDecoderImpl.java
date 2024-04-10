@@ -136,7 +136,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             }
             File tempFile = saveRequestBodyToTempFile(handleBytes);
             //requestBody full
-            if (tempFile.exists() && tempFile.length() == dataLength) {
+            if (Objects.nonNull(tempFile) && tempFile.exists() && tempFile.length() == dataLength) {
                 int hasNextData = bytes.length - handleBytes.length;
                 if (hasNextData > 0) {
                     byte[] nextData = BytesUtil.subBytes(bytes, handleBytes.length, hasNextData);
