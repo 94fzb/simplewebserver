@@ -137,7 +137,7 @@ public class SimpleHttpResponse implements HttpResponse {
     }
 
     private String getHtmlStrByStatusCode(int statusCode) {
-        return "<html><head><title>" + statusCode + " " + StatusCodeUtil.getStatusCodeDesc(statusCode) + "</title></head><body><center><h1>" + statusCode + " " + StatusCodeUtil.getStatusCodeDesc(statusCode) + "</h1></center><hr><center>" + request.getServerConfig().getServerInfo() + "</center></body></html>";
+        return "<html><head><meta name=\"color-scheme\" content=\"light dark\"><title>" + statusCode + " " + StatusCodeUtil.getStatusCodeDesc(statusCode) + "</title></head><body><center><h1>" + statusCode + " " + StatusCodeUtil.getStatusCodeDesc(statusCode) + "</h1></center><hr><center>" + request.getServerConfig().getServerInfo() + "</center></body></html>";
     }
 
     private void renderByStatusCode(int errorCode) {
