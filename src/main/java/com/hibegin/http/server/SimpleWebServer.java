@@ -40,6 +40,10 @@ public class SimpleWebServer implements ISocketServer {
     private ServerSocketChannel serverChannel;
     private ScheduledExecutorService checkRequestExecutor;
 
+    public ApplicationContext getApplicationContext() {
+        return applicationContext;
+    }
+
     public SimpleWebServer() {
         this(null, null, null);
     }
