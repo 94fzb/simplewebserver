@@ -20,7 +20,7 @@ public class HttpRequestHandlerRunnable implements Runnable {
 
     private final HttpResponse response;
 
-    HttpRequestHandlerRunnable(HttpRequest request, HttpResponse response) {
+    public HttpRequestHandlerRunnable(HttpRequest request, HttpResponse response) {
         this.request = request;
         this.response = response;
     }
