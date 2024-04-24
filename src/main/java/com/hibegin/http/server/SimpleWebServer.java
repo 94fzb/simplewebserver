@@ -33,7 +33,7 @@ public class SimpleWebServer implements ISocketServer {
     protected final ServerConfig serverConfig;
     protected final RequestConfig requestConfig;
     protected final ResponseConfig responseConfig;
-    protected final ApplicationContext applicationContext = new ApplicationContext();
+    protected final ApplicationContext applicationContext;
     private CheckRequestRunnable checkRequestRunnable;
     private Selector selector;
     private HttpDecodeRunnable httpDecodeRunnable;
@@ -72,7 +72,7 @@ public class SimpleWebServer implements ISocketServer {
                 this.serverConfig.setHttpJsonMessageConverter(new GsonHttpJsonMessageConverter());
             }
         }
-        applicationContext.setServerConfig(serverConf);
+        this.applicationContext = new ApplicationContext(serverConfig);
         Runtime rt = Runtime.getRuntime();
         rt.addShutdownHook(new Thread() {
             @Override
