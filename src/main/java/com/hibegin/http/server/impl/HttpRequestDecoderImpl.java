@@ -109,7 +109,9 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             dealRequestBodyData();
             //处理完成，清空byte[]
             inputBytes = new byte[]{};
-            request.getHandler().flushRequestBB();
+            if (Objects.nonNull(request.getHandler())) {
+                request.getHandler().flushRequestBB();
+            }
         }
         return result;
     }
