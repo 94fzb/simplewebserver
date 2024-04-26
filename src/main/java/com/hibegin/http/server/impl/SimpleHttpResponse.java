@@ -282,14 +282,14 @@ public class SimpleHttpResponse implements HttpResponse {
     }
 
     private boolean isGzip() {
+        if (!responseConfig.isEnableGzip()) {
+            return false;
+        }
         String requestHeader = request.getHeader("Accept-Encoding");
         if (Objects.isNull(requestHeader) || requestHeader.trim().isEmpty()) {
             return false;
         }
         if (!requestHeader.contains("gzip")) {
-            return false;
-        }
-        if (!responseConfig.isEnableGzip()) {
             return false;
         }
         String contentType = getHeader("Content-Type");
