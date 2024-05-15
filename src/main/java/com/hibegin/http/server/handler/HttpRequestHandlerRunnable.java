@@ -7,6 +7,7 @@ import com.hibegin.http.server.impl.SimpleHttpRequest;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -43,8 +44,8 @@ public class HttpRequestHandlerRunnable implements Runnable {
         } catch (Exception e) {
             HttpErrorHandle errorHandle = request.getServerConfig().getErrorHandle(500);
             if (Objects.nonNull(errorHandle)) {
-                if (Objects.nonNull(e.getCause())) {
-                    errorHandle.doHandle(request, response, e.getCause());
+                if (e instanceof InvocationTargetException) {
+                    errorHandle.doHandle(request, response, ((InvocationTargetException) e).getTargetException());
                 } else {
                     errorHandle.doHandle(request, response, e);
                 }
