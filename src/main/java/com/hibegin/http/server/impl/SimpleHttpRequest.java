@@ -189,10 +189,10 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
 
     @Override
     public String getFullUrl() {
-        if (queryStr != null) {
-            return getUrl() + "?" + queryStr;
+        if (queryStr == null || queryStr.isEmpty()) {
+            return getUrl();
         }
-        return getUrl();
+        return getUrl() + "?" + queryStr;
     }
 
     @Override
