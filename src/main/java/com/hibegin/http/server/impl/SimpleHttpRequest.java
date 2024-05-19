@@ -1,5 +1,6 @@
 package com.hibegin.http.server.impl;
 
+import com.hibegin.common.BaseLockObject;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
@@ -23,7 +24,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class SimpleHttpRequest implements HttpRequest {
+public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleHttpRequest.class);
     private final RequestConfig requestConfig;
@@ -202,7 +203,7 @@ public class SimpleHttpRequest implements HttpRequest {
     @Override
     public Map<String, Object> getAttr() {
         if (attr == null) {
-            attr = Collections.synchronizedMap(new HashMap<String, Object>());
+            attr = Collections.synchronizedMap(new HashMap<>());
         }
         return attr;
     }
@@ -296,32 +297,37 @@ public class SimpleHttpRequest implements HttpRequest {
 
     @Override
     public ByteBuffer getRequestBodyByteBuffer(int offset) {
-        byte[] bytes;
+        lock.lock();
         try {
             if (tmpRequestBodyFile != null && offset < tmpRequestBodyFile.length()) {
                 FileInputStream fileInputStream = new FileInputStream(tmpRequestBodyFile.toString());
                 fileInputStream.skip(offset);
-                bytes = IOUtil.getByteByInputStream(fileInputStream);
+                return ByteBuffer.wrap(IOUtil.getByteByInputStream(fileInputStream));
             } else {
-                bytes = new byte[0];
+                return ByteBuffer.wrap(new byte[0]);
             }
         } catch (Exception e) {
-            bytes = new byte[0];
-            LOGGER.log(Level.SEVERE, "", e);
-            //throw new InternalException(e);
+            LOGGER.warning("Load requestBody error " + e.getMessage());
+            return ByteBuffer.wrap(new byte[0]);
+        } finally {
+            lock.unlock();
         }
-        return ByteBuffer.wrap(bytes);
     }
 
     public void deleteTempUploadFiles() {
-        if (tmpRequestBodyFile != null) {
-            FileCacheKit.deleteCache(tmpRequestBodyFile);
-            tmpRequestBodyFile = null;
-        }
-        if (files != null) {
-            for (File file : files.values()) {
-                FileCacheKit.deleteCache(file);
+        lock.lock();
+        try {
+            if (tmpRequestBodyFile != null) {
+                FileCacheKit.deleteCache(tmpRequestBodyFile);
+                tmpRequestBodyFile = null;
             }
+            if (files != null) {
+                for (File file : files.values()) {
+                    FileCacheKit.deleteCache(file);
+                }
+            }
+        } finally {
+            lock.unlock();
         }
     }
 

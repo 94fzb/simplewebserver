@@ -24,6 +24,7 @@ public class ServerConfig {
     private final Map<String, Map.Entry<String, StaticResourceLoader>> staticResourceMapper = new ConcurrentHashMap<>();
     private final List<Class<? extends Interceptor>> interceptors = new ArrayList<>();
     private final Router router = new Router();
+    private final Map<String,Object> attr = new ConcurrentHashMap<>();
     private final Map<Integer, HttpErrorHandle> httpErrorHandleMap = new ConcurrentHashMap<>();
     private final StaticResourceLoader defaultStaticResourceClassLoader = new StaticResourceLoader() {
         @Override
@@ -44,6 +45,11 @@ public class ServerConfig {
 
     public void setDisableSession(boolean disableSession) {
         this.disableSession = disableSession;
+    }
+
+
+    public Map<String, Object> getAttr() {
+        return attr;
     }
 
     private int timeout;
