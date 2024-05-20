@@ -24,20 +24,30 @@ public class LoggerUtil {
     private static FileHandler fileHandler;
     private static final Lock loadLock = new ReentrantLock();
 
-    static {
+    private LoggerUtil() {
+    }
+
+    public static FileHandler buildFileHandle() {
         try {
             File fileName = new File(getLogFilePath());
             if (!fileName.exists()) {
                 fileName.getParentFile().mkdirs();
             }
-            fileHandler = new FileHandler(fileName.toString(), true);
-            fileHandler.setFormatter(new SimpleFormatter());
+            FileHandler handler = new FileHandler(fileName.toString(), true);
+            handler.setFormatter(new SimpleFormatter());
+            return handler;
         } catch (IOException e) {
             getLogger(LoggerUtil.class).severe("Init logger error " + e.getMessage());
         }
+        return null;
     }
 
-    private LoggerUtil() {
+    public static void initFileHandle(FileHandler _fileHandler) {
+        fileHandler = _fileHandler;
+    }
+
+    public static FileHandler getFileHandler() {
+        return fileHandler;
     }
 
     public static Logger getLogger(Class<?> clazz) {
@@ -49,7 +59,10 @@ public class LoggerUtil {
                 return logger;
             }
             try {
-                if (fileHandler != null) {
+                if (Objects.isNull(fileHandler)) {
+                    fileHandler = buildFileHandle();
+                }
+                if (Objects.nonNull(fileHandler)) {
                     logger.addHandler(fileHandler);
                 }
                 logger.setLevel(Level.ALL);
@@ -80,7 +93,7 @@ public class LoggerUtil {
     /**
      * 记录完善的异常日志信息(包括堆栈信息)
      */
-    public static String recordStackTraceMsg(Exception e) {
+    public static String recordStackTraceMsg(Throwable e) {
         StringWriter stringWriter = new StringWriter();
         PrintWriter writer = new PrintWriter(stringWriter);
         e.printStackTrace(writer);
