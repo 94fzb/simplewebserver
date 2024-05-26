@@ -227,8 +227,11 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     }
 
     private void dealRequestHeaderString(String str) {
-        if (str.contains(":")) {
-            request.header.put(str.split(":")[0], str.substring(str.indexOf(":") + 1).trim());
+        int delimiterIndex = str.indexOf(": ");
+        if (delimiterIndex != -1) {
+            String key = str.substring(0, delimiterIndex);
+            String value = str.substring(delimiterIndex + 2).trim();
+            request.header.put(key, value);
         }
     }
 
