@@ -37,9 +37,8 @@ public class LoggerUtil {
             handler.setFormatter(new SimpleFormatter());
             return handler;
         } catch (IOException e) {
-            getLogger(LoggerUtil.class).severe("Init logger error " + e.getMessage());
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     public static void initFileHandle(FileHandler _fileHandler) {
@@ -62,9 +61,7 @@ public class LoggerUtil {
                 if (Objects.isNull(fileHandler)) {
                     fileHandler = buildFileHandle();
                 }
-                if (Objects.nonNull(fileHandler)) {
-                    logger.addHandler(fileHandler);
-                }
+                logger.addHandler(fileHandler);
                 logger.setLevel(Level.ALL);
             } catch (Exception e) {
                 logger.severe("Init logger error " + e.getMessage());
