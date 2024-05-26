@@ -29,9 +29,14 @@ public class WebServerBuilder {
     private SimpleWebServer webServer;
 
     private final List<Callable<Void>> onStartErrorHandles = new ArrayList<>();
+    private final List<Callable<Void>> onStartSuccessHandles = new ArrayList<>();
 
-    public void addStartErrorHandle(Callable<Void> callable){
+    public void addStartErrorHandle(Callable<Void> callable) {
         onStartErrorHandles.add(callable);
+    }
+
+    public void addStartSuccessHandle(Callable<Void> callable) {
+        onStartSuccessHandles.add(callable);
     }
 
     private WebServerBuilder(Builder builder) {
@@ -52,7 +57,7 @@ public class WebServerBuilder {
 
     public void start() {
         if (create()) {
-            webServer.listener();
+            startListen();
         }
     }
 
@@ -78,8 +83,8 @@ public class WebServerBuilder {
         if (createSuccess) {
             this.webServer = simpleWebServer;
         }
-        if(!createSuccess){
-            onStartErrorHandles.forEach(e ->{
+        if (!createSuccess) {
+            onStartErrorHandles.forEach(e -> {
                 try {
                     e.call();
                 } catch (Exception ex) {
@@ -99,13 +104,22 @@ public class WebServerBuilder {
         return false;
     }
 
+    private void startListen() {
+        onStartSuccessHandles.forEach(e -> {
+            try {
+                e.call();
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        });
+        this.webServer.listener();
+    }
+
     public boolean startWithThread(ThreadFactory threadFactory) {
         try {
             boolean created = create();
             if (created) {
-                threadFactory.newThread(() -> {
-                    WebServerBuilder.this.webServer.listener();
-                }).start();
+                threadFactory.newThread(this::startListen).start();
             }
             return created;
         } catch (Exception e) {
