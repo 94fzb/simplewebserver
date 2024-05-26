@@ -105,14 +105,17 @@ public class SimpleWebServer implements ISocketServer {
         return new PlainReadWriteSelectorHandler(channel, requestConfig.getRequestMaxBufferSize());
     }
 
+    public void init() {
+        //开始初始化一些配置
+        applicationContext.init();
+        startExecHttpRequestThread(serverChannel.socket().getLocalPort());
+    }
+
     @Override
     public void listener() {
         if (selector == null) {
             return;
         }
-        //开始初始化一些配置
-        applicationContext.init();
-        startExecHttpRequestThread(serverChannel.socket().getLocalPort());
         while (selector.isOpen()) {
             try {
                 //not message, skip. to optimize high cpu

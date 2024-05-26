@@ -105,6 +105,7 @@ public class WebServerBuilder {
     }
 
     private void startListen() {
+        this.webServer.init();
         onStartSuccessHandles.forEach(e -> {
             try {
                 e.call();
