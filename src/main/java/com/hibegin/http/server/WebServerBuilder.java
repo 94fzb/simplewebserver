@@ -118,7 +118,7 @@ public class WebServerBuilder {
                     HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, key, "127.0.0.1", "NativeImageAgent", requestConfig, applicationContext);
                     value.invoke(Controller.buildController(value, httpRequest, new SimpleHttpResponse(httpRequest, responseConfig)));
                 } catch (Exception e) {
-                    LOGGER.severe("" + e);
+                    LOGGER.warning("Native image agent call error -> " + LoggerUtil.recordStackTraceMsg(e));
                 }
             });
         }
