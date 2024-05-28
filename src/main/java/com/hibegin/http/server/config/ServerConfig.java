@@ -59,6 +59,7 @@ public class ServerConfig {
     private Executor decodeExecutor;
     private String sessionId = "JSESSIONID";
     private String serverInfo;
+    private boolean nativeImageAgent;
     private int selectNowSleepTime = 1;
     private HttpJsonMessageConverter httpJsonMessageConverter;
     private HttpRequestDecodeListener httpRequestDecodeListener;
@@ -73,6 +74,14 @@ public class ServerConfig {
 
     public Class<?> getBasicTemplateClass() {
         return basicTemplateClass;
+    }
+
+    public boolean isNativeImageAgent() {
+        return nativeImageAgent;
+    }
+
+    public void setNativeImageAgent(boolean nativeImageAgent) {
+        this.nativeImageAgent = nativeImageAgent;
     }
 
     public void setBasicTemplateClass(Class<?> basicTemplateClass) {
