@@ -14,8 +14,6 @@ import com.hibegin.http.server.util.StatusCodeUtil;
 
 import java.io.File;
 import java.io.InputStream;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Objects;
@@ -71,29 +69,8 @@ public class MethodInterceptor implements Interceptor {
             handleByStaticResource(request, response);
             return false;
         }
-        Controller controller = null;
-        Constructor[] constructors = method.getDeclaringClass().getConstructors();
-        boolean haveDefaultConstructor = false;
-        for (Constructor constructor : constructors) {
-            if (constructor.getParameterTypes().length == 2) {
-                if (constructor.getParameterTypes()[0].getName().equals(HttpRequest.class.getName()) && constructor.getParameterTypes()[1].getName().equals(HttpResponse.class.getName())) {
-                    controller = (Controller) constructor.newInstance(request, response);
-                }
-            }
-            if (constructor.getParameterTypes().length == 0) {
-                haveDefaultConstructor = true;
-            }
-        }
-        if (controller == null) {
-            if (haveDefaultConstructor) {
-                controller = (Controller) method.getDeclaringClass().getDeclaredConstructor().newInstance();
-                controller.request = request;
-                controller.response = response;
-            } else {
-                throw new RuntimeException(method.getDeclaringClass().getSimpleName() + " not find default " + "constructor");
-            }
-        }
-        Object invoke = method.invoke(controller);
+
+        Object invoke = method.invoke(Controller.buildController(method, request, response));
         ResponseBody annotation = method.getAnnotation(ResponseBody.class);
         if (Objects.nonNull(annotation)) {
             response.renderJson(invoke);
