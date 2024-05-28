@@ -1,7 +1,5 @@
 package com.hibegin.http.server.web;
 
-import com.hibegin.common.util.LoggerUtil;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
@@ -26,12 +24,6 @@ public class Router {
                 getRouterMap().put(urlPath + "/", method);
             }
         }
-        try {
-            //for graalvm
-            Class.forName(clazz.getName()).getDeclaredConstructor().newInstance();
-        } catch (Exception e) {
-            LoggerUtil.getLogger(Router.class).warning(clazz.getSimpleName() + " not find default " + "constructor");
-        }
     }
 
     public void addMapper(String urlPath, Class<? extends Controller> clazz, String methodName) {
@@ -43,12 +35,6 @@ public class Router {
             if (Objects.equals(method.getName(), methodName)) {
                 getRouterMap().put(urlPath, method);
             }
-        }
-        try {
-            //for graalvm
-            Class.forName(clazz.getName()).getDeclaredConstructor().newInstance();
-        } catch (Exception e) {
-            LoggerUtil.getLogger(Router.class).warning(clazz.getSimpleName() + " not find default " + "constructor");
         }
     }
 
@@ -67,13 +53,13 @@ public class Router {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        if (routerMap.size() > 0) {
+        if (!routerMap.isEmpty()) {
             sb.append("\r\n=========== Router Info ===========");
         }
         for (Map.Entry<String, Method> entry : routerMap.entrySet()) {
             sb.append("\r\n").append(entry.getKey()).append(" -> ").append(entry.getValue());
         }
-        if (routerMap.size() > 0) {
+        if (!routerMap.isEmpty()) {
             sb.append("\r\n===================================");
         }
         return sb.toString();
