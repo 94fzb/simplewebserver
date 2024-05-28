@@ -20,7 +20,7 @@ public enum HttpMethod {
     }
 
     public static HttpMethod parseHttpMethodByRequestLine(String httpRequestLine) {
-        if (Objects.isNull(httpRequestLine) || httpRequestLine.trim().length() == 0) {
+        if (Objects.isNull(httpRequestLine) || httpRequestLine.trim().isEmpty()) {
             throw new UnSupportMethodException("Empty request line");
         }
         for (HttpMethod httpMethod : HttpMethod.values()) {
