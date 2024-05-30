@@ -116,7 +116,7 @@ public class WebServerBuilder {
             applicationContext.getServerConfig().getRouter().getRouterMap().forEach((key, value) -> {
                 try {
                     HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, key, "127.0.0.1", "NativeImageAgent", requestConfig, applicationContext);
-                    value.invoke(Controller.buildController(value, httpRequest, new SimpleHttpResponse(httpRequest, responseConfig)));
+                    new MethodInterceptor().doInterceptor(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig));
                 } catch (Exception e) {
                     LOGGER.warning("Native image agent call error -> " + LoggerUtil.recordStackTraceMsg(e));
                 }
