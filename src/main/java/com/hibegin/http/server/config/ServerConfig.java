@@ -24,7 +24,7 @@ public class ServerConfig {
     private final Map<String, Map.Entry<String, StaticResourceLoader>> staticResourceMapper = new ConcurrentHashMap<>();
     private final List<Class<? extends Interceptor>> interceptors = new ArrayList<>();
     private final Router router = new Router();
-    private final Map<String,Object> attr = new ConcurrentHashMap<>();
+    private final Map<String, Object> attr = new ConcurrentHashMap<>();
     private final Map<Integer, HttpErrorHandle> httpErrorHandleMap = new ConcurrentHashMap<>();
     private final StaticResourceLoader defaultStaticResourceClassLoader = new StaticResourceLoader() {
         @Override
@@ -33,7 +33,7 @@ public class ServerConfig {
         }
     };
     private final List<HttpRequestListener> httpRequestListenerList = new ArrayList<>();
-    private boolean isSsl;
+    private boolean ssl;
     private String host = "0.0.0.0";
     private Integer port;
 
@@ -43,8 +43,9 @@ public class ServerConfig {
         return disableSession;
     }
 
-    public void setDisableSession(boolean disableSession) {
+    public ServerConfig setDisableSession(boolean disableSession) {
         this.disableSession = disableSession;
+        return this;
     }
 
 
@@ -64,6 +65,26 @@ public class ServerConfig {
     private HttpJsonMessageConverter httpJsonMessageConverter;
     private HttpRequestDecodeListener httpRequestDecodeListener;
     private Class<?> basicTemplateClass;
+    private String applicationName;
+    private boolean disablePrintWebServerInfo;
+
+    public String getApplicationName() {
+        return Objects.requireNonNullElse(applicationName, ServerInfo.getName());
+    }
+
+    public ServerConfig setApplicationName(String applicationName) {
+        this.applicationName = applicationName;
+        return this;
+    }
+
+    public boolean isDisablePrintWebServerInfo() {
+        return disablePrintWebServerInfo;
+    }
+
+    public ServerConfig setDisablePrintWebServerInfo(boolean disablePrintWebServerInfo) {
+        this.disablePrintWebServerInfo = disablePrintWebServerInfo;
+        return this;
+    }
 
     public String getServerInfo() {
         if (Objects.isNull(serverInfo) || serverInfo.trim().isEmpty()) {
@@ -80,32 +101,37 @@ public class ServerConfig {
         return nativeImageAgent;
     }
 
-    public void setNativeImageAgent(boolean nativeImageAgent) {
+    public ServerConfig setNativeImageAgent(boolean nativeImageAgent) {
         this.nativeImageAgent = nativeImageAgent;
+        return this;
     }
 
-    public void setBasicTemplateClass(Class<?> basicTemplateClass) {
+    public ServerConfig setBasicTemplateClass(Class<?> basicTemplateClass) {
         this.basicTemplateClass = basicTemplateClass;
+        return this;
     }
 
-    public void setServerInfo(String serverInfo) {
+    public ServerConfig setServerInfo(String serverInfo) {
         this.serverInfo = serverInfo;
+        return this;
     }
 
     public boolean isSsl() {
-        return isSsl;
+        return ssl;
     }
 
-    public void setIsSsl(boolean isSsl) {
-        this.isSsl = isSsl;
+    public ServerConfig setSsl(boolean ssl) {
+        this.ssl = ssl;
+        return this;
     }
 
     public Integer getPort() {
         return port;
     }
 
-    public void setPort(Integer port) {
+    public ServerConfig setPort(Integer port) {
         this.port = port;
+        return this;
     }
 
     public Executor getRequestExecutor() {
@@ -125,40 +151,45 @@ public class ServerConfig {
         return requestExecutor;
     }
 
-    public void setRequestExecutor(Executor requestExecutor) {
+    public ServerConfig setRequestExecutor(Executor requestExecutor) {
         this.requestExecutor = requestExecutor;
+        return this;
     }
 
     public HttpJsonMessageConverter getHttpJsonMessageConverter() {
         return httpJsonMessageConverter;
     }
 
-    public void setHttpJsonMessageConverter(HttpJsonMessageConverter httpJsonMessageConverter) {
+    public ServerConfig setHttpJsonMessageConverter(HttpJsonMessageConverter httpJsonMessageConverter) {
         this.httpJsonMessageConverter = httpJsonMessageConverter;
+        return this;
     }
 
     public String getSessionId() {
         return sessionId;
     }
 
-    public void setSessionId(String sessionId) {
+    public ServerConfig setSessionId(String sessionId) {
         this.sessionId = sessionId;
+        return this;
     }
 
     public int getTimeout() {
         return timeout;
     }
 
-    public void setTimeout(int timeout) {
+    public ServerConfig setTimeout(int timeout) {
         this.timeout = timeout;
+        return this;
     }
 
     public String getHost() {
         return host;
     }
 
-    public void setHost(String host) {
+    public ServerConfig setHost(String host) {
         this.host = host;
+        return this;
     }
 
     public Router getRouter() {
@@ -169,8 +200,9 @@ public class ServerConfig {
         return supportHttp2;
     }
 
-    public void setSupportHttp2(boolean supportHttp2) {
+    public ServerConfig setSupportHttp2(boolean supportHttp2) {
         this.supportHttp2 = supportHttp2;
+        return this;
     }
 
     public Executor getDecodeExecutor() {
@@ -190,15 +222,16 @@ public class ServerConfig {
         return decodeExecutor;
     }
 
-    public void setDecodeExecutor(Executor decodeExecutor) {
+    public ServerConfig setDecodeExecutor(Executor decodeExecutor) {
         this.decodeExecutor = decodeExecutor;
+        return this;
     }
 
     public List<Class<? extends Interceptor>> getInterceptors() {
         return interceptors;
     }
 
-    public void addInterceptor(Class<? extends Interceptor> interceptor) {
+    public ServerConfig addInterceptor(Class<? extends Interceptor> interceptor) {
         if (hasNoParameterPublicConstructor(interceptor)) {
             synchronized (interceptors) {
                 boolean flag = false;
@@ -215,6 +248,7 @@ public class ServerConfig {
         } else {
             LOGGER.log(Level.SEVERE, "the class " + interceptor.getCanonicalName() + " not implements Interceptor");
         }
+        return this;
     }
 
     private boolean hasNoParameterPublicConstructor(Class<?> clazz) {
@@ -226,15 +260,16 @@ public class ServerConfig {
         return false;
     }
 
-    public void addStaticResourceMapper(String path, String locationPath) {
+    public ServerConfig addStaticResourceMapper(String path, String locationPath) {
         addStaticResourceMapper(path, locationPath, defaultStaticResourceClassLoader);
+        return this;
     }
 
     public StaticResourceLoader getDefaultStaticResourceClassLoader() {
         return defaultStaticResourceClassLoader;
     }
 
-    public void addStaticResourceMapper(String path, String locationPath, StaticResourceLoader resourceClassLoader) {
+    public ServerConfig addStaticResourceMapper(String path, String locationPath, StaticResourceLoader resourceClassLoader) {
         String newPath = path;
         if (!path.endsWith("/")) {
             newPath = path + "/";
@@ -244,6 +279,7 @@ public class ServerConfig {
             newLocationPath = newLocationPath + "/";
         }
         staticResourceMapper.put(newPath, new AbstractMap.SimpleEntry<>(newLocationPath, resourceClassLoader));
+        return this;
     }
 
     public Map<String, Map.Entry<String, StaticResourceLoader>> getStaticResourceMapper() {
@@ -254,12 +290,14 @@ public class ServerConfig {
         return welcomeFile;
     }
 
-    public void setWelcomeFile(String welcomeFile) {
+    public ServerConfig setWelcomeFile(String welcomeFile) {
         this.welcomeFile = welcomeFile;
+        return this;
     }
 
-    public void addRequestListener(HttpRequestListener httpRequestListener) {
+    public ServerConfig addRequestListener(HttpRequestListener httpRequestListener) {
         httpRequestListenerList.add(httpRequestListener);
+        return this;
     }
 
     public List<HttpRequestListener> getHttpRequestListenerList() {
@@ -270,12 +308,14 @@ public class ServerConfig {
         return httpRequestDecodeListener;
     }
 
-    public void setHttpRequestDecodeListener(HttpRequestDecodeListener httpRequestDecodeListener) {
+    public ServerConfig setHttpRequestDecodeListener(HttpRequestDecodeListener httpRequestDecodeListener) {
         this.httpRequestDecodeListener = httpRequestDecodeListener;
+        return this;
     }
 
-    public void addErrorHandle(Integer errorCode, HttpErrorHandle errorHandle) {
+    public ServerConfig addErrorHandle(Integer errorCode, HttpErrorHandle errorHandle) {
         httpErrorHandleMap.put(errorCode, errorHandle);
+        return this;
     }
 
     public HttpErrorHandle getErrorHandle(Integer errorCode) {
@@ -286,7 +326,8 @@ public class ServerConfig {
         return selectNowSleepTime;
     }
 
-    public void setSelectNowSleepTime(int selectNowSleepTime) {
+    public ServerConfig setSelectNowSleepTime(int selectNowSleepTime) {
         this.selectNowSleepTime = selectNowSleepTime;
+        return this;
     }
 }

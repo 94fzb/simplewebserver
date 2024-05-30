@@ -203,8 +203,10 @@ public class SimpleWebServer implements ISocketServer {
             selector = Selector.open();
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
             serverConfig.setPort(serverChannel.socket().getLocalPort());
-            LOGGER.info(ServerInfo.getName() + " listening on port -> " + serverConfig.getPort());
-            tips();
+            LOGGER.info(serverConfig.getApplicationName() + " listening on port -> " + serverConfig.getPort());
+            if (!serverConfig.isDisablePrintWebServerInfo()) {
+                tips();
+            }
             return true;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Create server " + port + " error " + e.getMessage());
