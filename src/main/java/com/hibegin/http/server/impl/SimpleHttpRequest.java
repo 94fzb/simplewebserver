@@ -72,7 +72,7 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
 
     @Override
     public String getRemoteHost() {
-        if (Objects.isNull(handler)) {
+        if (Objects.isNull(handler) || Objects.isNull(handler.getChannel()) || Objects.isNull(handler.getChannel().socket())) {
             return null;
         }
         return ((InetSocketAddress) handler.getChannel().socket().getRemoteSocketAddress()).getHostString();
