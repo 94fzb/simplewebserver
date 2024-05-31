@@ -243,6 +243,6 @@ public class SimpleWebServer implements ISocketServer {
     }
 
     public CheckRequestRunnable getCheckRequestRunnable() {
-        return checkRequestRunnable;
+        return applicationContext.getCheckRequestRunnable();
     }
 }
