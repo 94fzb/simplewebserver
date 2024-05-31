@@ -1,7 +1,7 @@
 package com.hibegin.http.server.handler;
 
-import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
+import com.hibegin.http.server.config.ServerConfig;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -14,15 +14,18 @@ import java.util.concurrent.CopyOnWriteArraySet;
 public class CheckRequestRunnable implements Runnable {
 
     private final Map<SocketChannel, HttpRequestHandlerRunnable> channelHttpRequestHandlerThreadMap;
-    private final ApplicationContext applicationContext;
+    private final ServerConfig serverConfig;
+    private final Map<Socket, HttpRequestDeCoder> httpDeCoderMap;
 
-    public CheckRequestRunnable(ApplicationContext applicationContext) {
+
+    public CheckRequestRunnable(ServerConfig serverConfig, Map<Socket, HttpRequestDeCoder> httpDeCoderMap) {
         this.channelHttpRequestHandlerThreadMap = new ConcurrentHashMap<>();
-        this.applicationContext = applicationContext;
+        this.serverConfig  = serverConfig;
+        this.httpDeCoderMap = httpDeCoderMap;
     }
 
     private int getRequestTimeout() {
-        return applicationContext.getServerConfig().getTimeout();
+        return serverConfig.getTimeout();
     }
 
     @Override
@@ -66,7 +69,7 @@ public class CheckRequestRunnable implements Runnable {
 
     private Set<Socket> getClosedDecodedSocketSet() {
         Set<Socket> removeHttpRequestList = new CopyOnWriteArraySet<>();
-        for (Map.Entry<Socket, HttpRequestDeCoder> entry : applicationContext.getHttpDeCoderMap().entrySet()) {
+        for (Map.Entry<Socket, HttpRequestDeCoder> entry : httpDeCoderMap.entrySet()) {
             Socket socket = entry.getKey();
             if (socket.isClosed() || !socket.isConnected()) {
                 removeHttpRequestList.add(socket);
@@ -77,7 +80,7 @@ public class CheckRequestRunnable implements Runnable {
 
     private void clearRequestDecode(Set<Socket> removeHttpRequestList) {
         for (Socket socket : removeHttpRequestList) {
-            applicationContext.getHttpDeCoderMap().remove(socket);
+            httpDeCoderMap.remove(socket);
         }
     }
 

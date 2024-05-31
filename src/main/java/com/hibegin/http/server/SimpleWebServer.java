@@ -39,7 +39,6 @@ public class SimpleWebServer implements ISocketServer {
     protected final RequestConfig requestConfig;
     protected final ResponseConfig responseConfig;
     protected final ApplicationContext applicationContext;
-    private CheckRequestRunnable checkRequestRunnable;
     private Selector selector;
     private HttpDecodeRunnable httpDecodeRunnable;
     private ServerSocketChannel serverChannel;
@@ -156,14 +155,13 @@ public class SimpleWebServer implements ISocketServer {
      * 初始化处理请求的请求
      */
     private void startExecHttpRequestThread(int serverPort) {
-        checkRequestRunnable = new CheckRequestRunnable(applicationContext);
-        httpDecodeRunnable = new HttpDecodeRunnable(applicationContext, this, requestConfig, responseConfig, checkRequestRunnable);
+        httpDecodeRunnable = new HttpDecodeRunnable(applicationContext, this, requestConfig, responseConfig, applicationContext.getCheckRequestRunnable());
         checkRequestExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread thread = new Thread(r);
             thread.setName("request-checker-" + serverPort);
             return thread;
         });
-        checkRequestExecutor.scheduleAtFixedRate(checkRequestRunnable, 0, 1, TimeUnit.SECONDS);
+        checkRequestExecutor.scheduleAtFixedRate(applicationContext.getCheckRequestRunnable(), 0, 1, TimeUnit.SECONDS);
     }
 
     @Override

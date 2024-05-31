@@ -4,6 +4,7 @@ import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.config.ServerConfig;
+import com.hibegin.http.server.handler.CheckRequestRunnable;
 import com.hibegin.http.server.util.FileCacheKit;
 
 import java.lang.reflect.InvocationTargetException;
@@ -23,6 +24,7 @@ public class ApplicationContext {
     private boolean init;
     private List<Interceptor> interceptors;
     private ServerConfig serverConfig;
+    private CheckRequestRunnable checkRequestRunnable;
 
     public ApplicationContext() {
     }
@@ -59,10 +61,15 @@ public class ApplicationContext {
         return interceptors;
     }
 
+    public CheckRequestRunnable getCheckRequestRunnable() {
+        return checkRequestRunnable;
+    }
+
     public void init() {
         if (init) {
             return;
         }
+        checkRequestRunnable = new CheckRequestRunnable(serverConfig, httpDeCoderMap);
         //清空tmp目录
         FileCacheKit.cleanByFlag(serverConfig.getPort());
         init = true;
