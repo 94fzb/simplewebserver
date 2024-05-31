@@ -213,8 +213,9 @@ public class SimpleWebServer implements ISocketServer {
                     try {
                         HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, key, "127.0.0.1", "NativeImageAgent", requestConfig, applicationContext);
                         new MethodInterceptor().doInterceptor(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig));
+                        LOGGER.info("Native image agent call request " + key + " success");
                     } catch (Exception e) {
-                        LOGGER.warning("Native image agent call error -> " + LoggerUtil.recordStackTraceMsg(e));
+                        LOGGER.warning("Native image agent call request error -> " + LoggerUtil.recordStackTraceMsg(e));
                     }
                 });
             }
