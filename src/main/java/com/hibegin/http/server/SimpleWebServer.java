@@ -2,14 +2,19 @@ package com.hibegin.http.server;
 
 import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.HttpMethod;
+import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.ISocketServer;
 import com.hibegin.http.server.config.*;
 import com.hibegin.http.server.handler.CheckRequestRunnable;
 import com.hibegin.http.server.handler.HttpDecodeRunnable;
 import com.hibegin.http.server.handler.PlainReadWriteSelectorHandler;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
+import com.hibegin.http.server.impl.SimpleHttpResponse;
+import com.hibegin.http.server.util.HttpRequestBuilder;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
+import com.hibegin.http.server.web.MethodInterceptor;
 
 import java.io.File;
 import java.io.IOException;
@@ -105,17 +110,12 @@ public class SimpleWebServer implements ISocketServer {
         return new PlainReadWriteSelectorHandler(channel, requestConfig.getRequestMaxBufferSize());
     }
 
-    public void init() {
-        //开始初始化一些配置
-        applicationContext.init();
-        startExecHttpRequestThread(serverChannel.socket().getLocalPort());
-    }
-
     @Override
     public void listener() {
         if (selector == null) {
             return;
         }
+        startExecHttpRequestThread(serverChannel.socket().getLocalPort());
         while (selector.isOpen()) {
             try {
                 //not message, skip. to optimize high cpu
@@ -206,6 +206,19 @@ public class SimpleWebServer implements ISocketServer {
             LOGGER.info(serverConfig.getApplicationName() + " listening on port -> " + serverConfig.getPort());
             if (!serverConfig.isDisablePrintWebServerInfo()) {
                 tips();
+            }
+            //开始初始化一些配置
+            applicationContext.init();
+            //try init native image info
+            if (serverConfig.isNativeImageAgent()) {
+                applicationContext.getServerConfig().getRouter().getRouterMap().keySet().forEach((key) -> {
+                    try {
+                        HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, key, "127.0.0.1", "NativeImageAgent", requestConfig, applicationContext);
+                        new MethodInterceptor().doInterceptor(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig));
+                    } catch (Exception e) {
+                        LOGGER.warning("Native image agent call error -> " + LoggerUtil.recordStackTraceMsg(e));
+                    }
+                });
             }
             return true;
         } catch (Exception e) {
