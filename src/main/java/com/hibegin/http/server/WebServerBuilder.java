@@ -10,7 +10,6 @@ import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.impl.SimpleHttpResponse;
 import com.hibegin.http.server.util.HttpRequestBuilder;
 import com.hibegin.http.server.util.ServerInfo;
-import com.hibegin.http.server.web.Controller;
 import com.hibegin.http.server.web.MethodInterceptor;
 
 import java.util.ArrayList;
@@ -87,6 +86,18 @@ public class WebServerBuilder {
         }
         if (createSuccess) {
             this.webServer = simpleWebServer;
+            this.webServer.init();
+            if (serverConfig.isNativeImageAgent()) {
+                ApplicationContext applicationContext = webServer.getApplicationContext();
+                applicationContext.getServerConfig().getRouter().getRouterMap().keySet().forEach((key) -> {
+                    try {
+                        HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, key, "127.0.0.1", "NativeImageAgent", requestConfig, applicationContext);
+                        new MethodInterceptor().doInterceptor(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig));
+                    } catch (Exception e) {
+                        LOGGER.warning("Native image agent call error -> " + LoggerUtil.recordStackTraceMsg(e));
+                    }
+                });
+            }
         }
         if (!createSuccess) {
             onStartErrorHandles.forEach(e -> {
@@ -110,18 +121,6 @@ public class WebServerBuilder {
     }
 
     private void startListen() {
-        this.webServer.init();
-        if (serverConfig.isNativeImageAgent()) {
-            ApplicationContext applicationContext = webServer.getApplicationContext();
-            applicationContext.getServerConfig().getRouter().getRouterMap().forEach((key, value) -> {
-                try {
-                    HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, key, "127.0.0.1", "NativeImageAgent", requestConfig, applicationContext);
-                    new MethodInterceptor().doInterceptor(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig));
-                } catch (Exception e) {
-                    LOGGER.warning("Native image agent call error -> " + LoggerUtil.recordStackTraceMsg(e));
-                }
-            });
-        }
         onStartSuccessHandles.forEach(e -> {
             try {
                 e.call();
