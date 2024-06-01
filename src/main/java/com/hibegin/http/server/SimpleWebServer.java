@@ -86,22 +86,24 @@ public class SimpleWebServer implements ISocketServer {
         });
     }
 
+    private void savePid() {
+        try {
+            if (!EnvKit.isAndroid()) {
+                if (pidFile == null) {
+                    pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
+                }
+                EnvKit.savePid(pidFile.toString());
+                pidFile.deleteOnExit();
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "save pid error " + e.getMessage());
+        }
+    }
+
     private static void tips() {
         if (!tips) {
             tips = true;
             LOGGER.info(ServerInfo.getName() + " is run version -> " + ServerInfo.getVersion());
-
-            try {
-                if (!EnvKit.isAndroid()) {
-                    if (pidFile == null) {
-                        pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
-                    }
-                    EnvKit.savePid(pidFile.toString());
-                    pidFile.deleteOnExit();
-                }
-            } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "save pid error " + e.getMessage());
-            }
         }
     }
 
@@ -219,6 +221,7 @@ public class SimpleWebServer implements ISocketServer {
                     }
                 });
             }
+            savePid();
             return true;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Create server " + port + " error " + e.getMessage());
