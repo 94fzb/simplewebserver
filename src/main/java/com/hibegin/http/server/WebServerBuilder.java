@@ -98,7 +98,7 @@ public class WebServerBuilder {
     public boolean startWithThread() {
         startWithThread(runnable -> {
             Thread thread = new Thread(runnable);
-            thread.setName(ServerInfo.getName().toLowerCase() + "-main-thread");
+            thread.setName(serverConfig.getApplicationName().toLowerCase() + "-main-thread");
             return thread;
         });
         return false;

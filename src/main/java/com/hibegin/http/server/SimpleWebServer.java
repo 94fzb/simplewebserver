@@ -100,10 +100,10 @@ public class SimpleWebServer implements ISocketServer {
         }
     }
 
-    private static void tips() {
+    private void tips() {
         if (!tips) {
             tips = true;
-            LOGGER.info(ServerInfo.getName() + " is run version -> " + ServerInfo.getVersion());
+            LOGGER.info(serverConfig.getServerInfo() + " is run version -> " + ServerInfo.getVersion());
         }
     }
 
@@ -178,7 +178,7 @@ public class SimpleWebServer implements ISocketServer {
             if (Objects.nonNull(checkRequestExecutor)) {
                 checkRequestExecutor.shutdownNow();
             }
-            LOGGER.info(ServerInfo.getName() + " close success");
+            LOGGER.info(serverConfig.getApplicationName() + " close success");
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "close selector error");
         }
