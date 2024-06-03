@@ -5,7 +5,6 @@ import com.hibegin.http.server.config.AbstractServerConfig;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
-import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.MethodInterceptor;
 
 import java.util.ArrayList;
@@ -68,20 +67,18 @@ public class WebServerBuilder {
         if (serverConfig.getInterceptors().isEmpty()) {
             serverConfig.addInterceptor(MethodInterceptor.class);
         }
-        SimpleWebServer simpleWebServer;
-        if (serverConfig.isSsl()) {
-            simpleWebServer = new SimpleHttpsWebServer(serverConfig, requestConfig, responseConfig);
-        } else {
-            simpleWebServer = new SimpleWebServer(serverConfig, requestConfig, responseConfig);
+        if (Objects.isNull(this.webServer)) {
+            if (serverConfig.isSsl()) {
+                this.webServer = new SimpleHttpsWebServer(serverConfig, requestConfig, responseConfig);
+            } else {
+                this.webServer = new SimpleWebServer(serverConfig, requestConfig, responseConfig);
+            }
         }
         boolean createSuccess;
         if (Objects.nonNull(serverConfig.getPort()) && serverConfig.getPort() >= 0) {
-            createSuccess = simpleWebServer.create(serverConfig.getHost(), serverConfig.getPort());
+            createSuccess = webServer.create(serverConfig.getHost(), serverConfig.getPort());
         } else {
-            createSuccess = simpleWebServer.create();
-        }
-        if (createSuccess) {
-            this.webServer = simpleWebServer;
+            createSuccess = webServer.create();
         }
         if (!createSuccess) {
             onStartErrorHandles.forEach(e -> {
