@@ -37,6 +37,11 @@ public class HttpRequestHandlerRunnable implements Runnable {
                 httpRequestListener.create(request, response);
             }
             for (Interceptor interceptor : request.getApplicationContext().getInterceptors()) {
+                if (interceptor instanceof HandleAbleInterceptor) {
+                    if (!((HandleAbleInterceptor) interceptor).isHandleAble(request)) {
+                        continue;
+                    }
+                }
                 if (!interceptor.doInterceptor(request, response)) {
                     break;
                 }
