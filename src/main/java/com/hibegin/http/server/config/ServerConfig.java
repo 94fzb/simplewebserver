@@ -67,6 +67,16 @@ public class ServerConfig {
     private Class<?> basicTemplateClass;
     private String applicationName;
     private boolean disablePrintWebServerInfo;
+    private boolean disableSavePidFile;
+
+    public boolean isDisableSavePidFile() {
+        return disableSavePidFile;
+    }
+
+    public ServerConfig setDisableSavePidFile(boolean disableSavePidFile) {
+        this.disableSavePidFile = disableSavePidFile;
+        return this;
+    }
 
     public String getApplicationName() {
         return Objects.requireNonNullElse(applicationName, ServerInfo.getName());

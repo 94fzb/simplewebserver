@@ -78,33 +78,31 @@ public class SimpleWebServer implements ISocketServer {
         }
         this.applicationContext = new ApplicationContext(serverConfig);
         Runtime rt = Runtime.getRuntime();
-        rt.addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                SimpleWebServer.this.destroy();
-            }
-        });
+        rt.addShutdownHook(new Thread(SimpleWebServer.this::destroy));
     }
 
     private void savePid() {
+        if (Objects.nonNull(pidFile)) {
+            return;
+        }
+        if (EnvKit.isAndroid()) {
+            return;
+        }
         try {
-            if (!EnvKit.isAndroid()) {
-                if (pidFile == null) {
-                    pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
-                }
-                EnvKit.savePid(pidFile.toString());
-                pidFile.deleteOnExit();
-            }
+            pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
+            EnvKit.savePid(pidFile.toString());
+            pidFile.deleteOnExit();
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "save pid error " + e.getMessage());
         }
     }
 
     private void tips() {
-        if (!tips) {
-            tips = true;
-            LOGGER.info(serverConfig.getServerInfo() + " is run version -> " + ServerInfo.getVersion());
+        if (tips) {
+            return;
         }
+        tips = true;
+        LOGGER.info(serverConfig.getServerInfo() + " is run version -> " + ServerInfo.getVersion());
     }
 
     public ReadWriteSelectorHandler getReadWriteSelectorHandlerInstance(SocketChannel channel, SelectionKey key) throws IOException {
@@ -221,7 +219,9 @@ public class SimpleWebServer implements ISocketServer {
                     }
                 });
             }
-            savePid();
+            if (!serverConfig.isDisableSavePidFile()) {
+                savePid();
+            }
             return true;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Create server " + port + " error " + e.getMessage());
