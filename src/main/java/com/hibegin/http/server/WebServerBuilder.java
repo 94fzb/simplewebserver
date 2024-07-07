@@ -27,15 +27,20 @@ public class WebServerBuilder {
 
     private SimpleWebServer webServer;
 
-    private final List<Callable<Void>> onStartErrorHandles = new ArrayList<>();
-    private final List<Callable<Void>> onStartSuccessHandles = new ArrayList<>();
+    private final List<Callable<Void>> onCreateErrorHandles = new ArrayList<>();
+    private final List<Callable<Void>> onCreateSuccessHandles = new ArrayList<>();
+    private final List<Callable<Void>> onStartedSuccessHandles = new ArrayList<>();
 
-    public void addStartErrorHandle(Callable<Void> callable) {
-        onStartErrorHandles.add(callable);
+    public void addCreateErrorHandle(Callable<Void> callable) {
+        onCreateErrorHandles.add(callable);
     }
 
-    public void addStartSuccessHandle(Callable<Void> callable) {
-        onStartSuccessHandles.add(callable);
+    public void addStartedSuccessHandle(Callable<Void> callable) {
+        onStartedSuccessHandles.add(callable);
+    }
+
+    public void addCreateSuccessHandle(Callable<Void> callable) {
+        onCreateSuccessHandles.add(callable);
     }
 
     private WebServerBuilder(Builder builder) {
@@ -81,7 +86,7 @@ public class WebServerBuilder {
             createSuccess = webServer.create();
         }
         if (!createSuccess) {
-            onStartErrorHandles.forEach(e -> {
+            onCreateErrorHandles.forEach(e -> {
                 try {
                     e.call();
                 } catch (Exception ex) {
@@ -102,7 +107,7 @@ public class WebServerBuilder {
     }
 
     private void startListen() {
-        onStartSuccessHandles.forEach(e -> {
+        onCreateSuccessHandles.forEach(e -> {
             try {
                 e.call();
             } catch (Exception ex) {
@@ -110,6 +115,13 @@ public class WebServerBuilder {
             }
         });
         this.webServer.listener();
+        onStartedSuccessHandles.forEach(e -> {
+            try {
+                e.call();
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        });
     }
 
     public boolean startWithThread(ThreadFactory threadFactory) {
