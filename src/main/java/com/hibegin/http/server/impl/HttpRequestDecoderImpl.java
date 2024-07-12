@@ -4,6 +4,7 @@ import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
+import com.hibegin.http.io.ChunkedStreamUtils;
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
@@ -169,6 +170,17 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
 
     private byte[] getRequestBodyBytes() {
         if (request.tmpRequestBodyFile != null && request.tmpRequestBodyFile.exists()) {
+            if (Objects.equals(request.getHeader("Transfer-encoding"), "chunked") && requestConfig.isEnableRequestChunkedStream()) {
+                try (FileInputStream fileInputStream = new FileInputStream(request.tmpRequestBodyFile)) {
+                    try {
+                        return ChunkedStreamUtils.convertChunkedStream(fileInputStream);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
             return IOUtil.getByteByFile(request.tmpRequestBodyFile);
         } else {
             return null;

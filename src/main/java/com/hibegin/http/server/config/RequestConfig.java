@@ -6,6 +6,7 @@ public class RequestConfig {
 
     private boolean isSsl;
     private boolean disableSession;
+    private boolean enableRequestChunkedStream;
 
     public boolean isDisableSession() {
         return disableSession;
@@ -77,5 +78,13 @@ public class RequestConfig {
 
     public void setRequestMaxBufferSize(int requestMaxBufferSize) {
         this.requestMaxBufferSize = requestMaxBufferSize;
+    }
+
+    public boolean isEnableRequestChunkedStream() {
+        return enableRequestChunkedStream;
+    }
+
+    public void setEnableRequestChunkedStream(boolean enableRequestChunkedStream) {
+        this.enableRequestChunkedStream = enableRequestChunkedStream;
     }
 }
