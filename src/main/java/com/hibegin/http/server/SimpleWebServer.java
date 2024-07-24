@@ -202,7 +202,7 @@ public class SimpleWebServer implements ISocketServer {
             selector = Selector.open();
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
             serverConfig.setPort(serverChannel.socket().getLocalPort());
-            StringJoiner applicationInfo = new StringJoiner("@");
+            StringJoiner applicationInfo = new StringJoiner("-");
             applicationInfo.add(serverConfig.getApplicationName());
             if (Objects.nonNull(serverConfig.getApplicationVersion()) && !serverConfig.getApplicationVersion().trim().isEmpty()) {
                 applicationInfo.add(serverConfig.getApplicationVersion());
