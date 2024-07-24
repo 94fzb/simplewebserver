@@ -23,6 +23,7 @@ import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -201,7 +202,12 @@ public class SimpleWebServer implements ISocketServer {
             selector = Selector.open();
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
             serverConfig.setPort(serverChannel.socket().getLocalPort());
-            LOGGER.info(serverConfig.getApplicationName() + " listening on port -> " + serverConfig.getPort());
+            StringJoiner applicationInfo = new StringJoiner("@");
+            applicationInfo.add(serverConfig.getApplicationName());
+            if (Objects.nonNull(serverConfig.getApplicationVersion()) && !serverConfig.getApplicationVersion().trim().isEmpty()) {
+                applicationInfo.add(serverConfig.getApplicationVersion());
+            }
+            LOGGER.info(applicationInfo + " listening on port -> " + serverConfig.getPort());
             if (!serverConfig.isDisablePrintWebServerInfo()) {
                 tips();
             }

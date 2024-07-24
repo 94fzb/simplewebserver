@@ -66,6 +66,7 @@ public class ServerConfig {
     private HttpRequestDecodeListener httpRequestDecodeListener;
     private Class<?> basicTemplateClass;
     private String applicationName;
+    private String applicationVersion;
     private boolean disablePrintWebServerInfo;
     private boolean disableSavePidFile;
 
@@ -76,6 +77,15 @@ public class ServerConfig {
     public ServerConfig setDisableSavePidFile(boolean disableSavePidFile) {
         this.disableSavePidFile = disableSavePidFile;
         return this;
+    }
+
+    public ServerConfig setApplicationVersion(String applicationVersion) {
+        this.applicationVersion = applicationVersion;
+        return this;
+    }
+
+    public String getApplicationVersion() {
+        return applicationVersion;
     }
 
     public String getApplicationName() {
