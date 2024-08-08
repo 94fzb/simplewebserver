@@ -18,6 +18,7 @@ import com.hibegin.http.server.util.HttpQueryStringUtils;
 import java.io.*;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
+import java.nio.file.NoSuchFileException;
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
@@ -169,9 +170,13 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     }
 
     private byte[] getRequestBodyBytes() {
-        if (request.tmpRequestBodyFile != null && request.tmpRequestBodyFile.exists()) {
+        File tempFile = request.tmpRequestBodyFile;
+        if (Objects.isNull(tempFile) || !tempFile.exists()) {
+            return null;
+        }
+        try {
             if (Objects.equals(request.getHeader("Transfer-encoding"), "chunked") && requestConfig.isEnableRequestChunkedStream()) {
-                try (FileInputStream fileInputStream = new FileInputStream(request.tmpRequestBodyFile)) {
+                try (FileInputStream fileInputStream = new FileInputStream(tempFile)) {
                     try {
                         return ChunkedStreamUtils.convertChunkedStream(fileInputStream);
                     } catch (IOException e) {
@@ -181,9 +186,13 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
                     throw new RuntimeException(e);
                 }
             }
-            return IOUtil.getByteByFile(request.tmpRequestBodyFile);
-        } else {
-            return null;
+            return IOUtil.getByteByFile(tempFile);
+        } catch (RuntimeException e) {
+            //read file lost, ignore exception
+            if (Objects.nonNull(e.getCause()) && e.getCause() instanceof NoSuchFileException) {
+                return null;
+            }
+            throw e;
         }
     }
 
