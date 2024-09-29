@@ -8,6 +8,8 @@ import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.config.LocalFileStaticResourceLoader;
 import com.hibegin.http.server.config.StaticResourceLoader;
+import com.hibegin.http.server.execption.ForbiddenException;
+import com.hibegin.http.server.execption.InternalException;
 import com.hibegin.http.server.execption.NotFindResourceException;
 import com.hibegin.http.server.util.MimeTypeUtil;
 import com.hibegin.http.server.util.PathUtil;
@@ -31,20 +33,42 @@ public class MethodInterceptor implements Interceptor {
         return requestUri.startsWith(location);
     }
 
-    private String extractPath(String requestUri, String location){
-        if(requestUri.length() <= location.length()){
+    private String extractPath(String requestUri, String location) {
+        if (requestUri.length() <= location.length()) {
             return "/";
         }
         return requestUri.substring(location.length());
     }
 
+    private void doErrorHandle(HttpRequest request, HttpResponse response, int errorCode) {
+        HttpErrorHandle errorHandle = request.getServerConfig().getErrorHandle(errorCode);
+        if (errorHandle == null) {
+            response.renderCode(errorCode);
+        } else if (Objects.equals(errorCode, 404)) {
+            errorHandle.doHandle(request, response, new NotFindResourceException(StatusCodeUtil.getStatusCodeDesc(404)));
+        } else if (Objects.equals(errorCode, 403)) {
+            errorHandle.doHandle(request, response, new ForbiddenException(StatusCodeUtil.getStatusCodeDesc(403)));
+        } else if (Objects.equals(errorCode, 500)) {
+            errorHandle.doHandle(request, response, new InternalException(StatusCodeUtil.getStatusCodeDesc(500)));
+        }
+    }
+
     private void handleByStaticResource(HttpRequest request, HttpResponse response) {
         for (Map.Entry<String, Map.Entry<String, StaticResourceLoader>> entry : request.getServerConfig().getStaticResourceMapper().entrySet()) {
             if (isMatch(request.getUri(), entry.getKey())) {
-                String path = extractPath(request.getUri(),entry.getKey());
+                String path = extractPath(request.getUri(), entry.getKey());
                 InputStream inputStream = null;
                 if (entry.getValue().getValue() instanceof LocalFileStaticResourceLoader) {
-                    inputStream = entry.getValue().getValue().getInputStream(entry.getValue().getKey() + path);
+                    LocalFileStaticResourceLoader localFileStaticResourceLoader = (LocalFileStaticResourceLoader) entry.getValue().getValue();
+                    String renderPath = entry.getValue().getKey() + path;
+                    if (localFileStaticResourceLoader.isDirectory(renderPath) && !localFileStaticResourceLoader.isEnableAutoIndex()) {
+                        inputStream = localFileStaticResourceLoader.getInputStream(renderPath + "/" + request.getServerConfig().getWelcomeFile());
+                        if (Objects.isNull(inputStream)) {
+                            doErrorHandle(request, response, 403);
+                            return;
+                        }
+                    }
+                    inputStream = localFileStaticResourceLoader.getInputStream(renderPath);
                 }
                 if (Objects.isNull(inputStream)) {
                     if (request.getUri().endsWith("/")) {
@@ -75,13 +99,7 @@ public class MethodInterceptor implements Interceptor {
                 return;
             }
         }
-
-        HttpErrorHandle errorHandle = request.getServerConfig().getErrorHandle(404);
-        if (errorHandle == null) {
-            response.renderCode(404);
-        } else {
-            errorHandle.doHandle(request, response, new NotFindResourceException(StatusCodeUtil.getStatusCodeDesc(404)));
-        }
+        doErrorHandle(request, response, 404);
     }
 
     @Override

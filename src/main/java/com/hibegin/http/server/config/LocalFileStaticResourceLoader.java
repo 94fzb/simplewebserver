@@ -1,6 +1,5 @@
 package com.hibegin.http.server.config;
 
-import com.hibegin.http.server.execption.ForbiddenException;
 import com.hibegin.template.BasicTemplateRender;
 
 import java.io.*;
@@ -96,6 +95,14 @@ public class LocalFileStaticResourceLoader implements StaticResourceLoader {
         this.location = location;
     }
 
+    public boolean isDirectory(String path) {
+        return new File(path).isDirectory();
+    }
+
+    public boolean isEnableAutoIndex() {
+        return enableAutoIndex;
+    }
+
     @Override
     public InputStream getInputStream(String path) {
         File file = new File(path);
@@ -103,9 +110,6 @@ public class LocalFileStaticResourceLoader implements StaticResourceLoader {
             return null;
         }
         if (file.isDirectory()) {
-            if (!enableAutoIndex) {
-                throw new ForbiddenException(path);
-            }
             String fileFolder = file.toString().substring(aliasPath.length());
             //System.out.println("uri = " + fileFolder);
             Map<String, Object> map = new HashMap<>();
