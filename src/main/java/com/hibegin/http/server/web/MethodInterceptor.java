@@ -68,7 +68,9 @@ public class MethodInterceptor implements Interceptor {
                             return;
                         }
                     }
-                    inputStream = localFileStaticResourceLoader.getInputStream(renderPath);
+                    if (Objects.isNull(inputStream)) {
+                        inputStream = localFileStaticResourceLoader.getInputStream(renderPath);
+                    }
                 }
                 if (Objects.isNull(inputStream)) {
                     if (request.getUri().endsWith("/")) {
