@@ -15,15 +15,13 @@ import com.hibegin.http.server.util.HttpRequestBuilder;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.MethodInterceptor;
+import com.hibegin.template.BasicTemplateRender;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
-import java.util.Iterator;
-import java.util.Objects;
-import java.util.Set;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -224,6 +222,10 @@ public class SimpleWebServer implements ISocketServer {
                         LOGGER.warning("Native image agent call request error -> " + LoggerUtil.recordStackTraceMsg(e));
                     }
                 });
+                Map<String, Object> objectMap = new HashMap<>();
+                objectMap.put("startPath", "/");
+                objectMap.put("fileHtmlStr", "<br/>");
+                new BasicTemplateRender(objectMap, SimpleWebServer.class).render("/template/sf/index.html");
             }
             if (!serverConfig.isDisableSavePidFile()) {
                 savePid();

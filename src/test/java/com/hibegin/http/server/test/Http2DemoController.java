@@ -10,7 +10,7 @@ public class Http2DemoController extends Controller {
     public static void main(String[] args) throws InterruptedException {
         ServerConfig serverConfig = new ServerConfig();
         serverConfig.setSupportHttp2(true);
-        serverConfig.setIsSsl(true);
+        //serverConfig.setIsSsl(true);
         serverConfig.getRouter().addMapper("/", Http2DemoController.class);
         new WebServerBuilder.Builder().serverConfig(serverConfig).build().startWithThread();
     }

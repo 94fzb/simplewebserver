@@ -37,6 +37,20 @@ public class SimpleHttpResponse implements HttpResponse {
         this.responseConfig = responseConfig;
     }
 
+    private static final Set<String> textContentTypes = Set.of(
+            "application/json",
+            "application/xml",
+            "application/javascript",
+            "application/x-www-form-urlencoded",
+            "application/vnd.api+json",
+            "application/x-yaml"
+    );
+
+
+    private boolean isTextContent(String contentType) {
+        return contentType.startsWith("text/") || textContentTypes.contains(contentType);
+    }
+
     @Override
     public void writeFile(File file) {
         if (!file.exists()) {
@@ -190,7 +204,7 @@ public class SimpleHttpResponse implements HttpResponse {
 
     private void renderByMimeType(String ext, byte[] body, int code) {
         if (ext != null && !ext.isEmpty()) {
-            trySetResponseContentType(MimeTypeUtil.getMimeStrByExt(ext) + ";charset=" + responseConfig.getCharSet());
+            trySetResponseContentType(MimeTypeUtil.getMimeStrByExt(ext));
         }
         if (body != null && body.length > 0) {
             write(new ByteArrayInputStream(body), code, body.length);
@@ -201,7 +215,11 @@ public class SimpleHttpResponse implements HttpResponse {
 
     private void trySetResponseContentType(String contentType) {
         if (getHeader("Content-Type") == null) {
-            header.put("Content-Type", contentType);
+            String cType = contentType;
+            if (!cType.contains(";") && isTextContent(cType)) {
+                cType = contentType + ";charset=" + responseConfig.getCharSet();
+            }
+            header.put("Content-Type", cType);
         }
     }
 
@@ -220,6 +238,10 @@ public class SimpleHttpResponse implements HttpResponse {
 
     @Override
     public void addHeader(String name, String value) {
+        if (name.equalsIgnoreCase("Content-type")) {
+            trySetResponseContentType(value);
+            return;
+        }
         header.put(name, value);
     }
 

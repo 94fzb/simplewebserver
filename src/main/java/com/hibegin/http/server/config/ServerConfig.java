@@ -26,12 +26,7 @@ public class ServerConfig {
     private final Router router = new Router();
     private final Map<String, Object> attr = new ConcurrentHashMap<>();
     private final Map<Integer, HttpErrorHandle> httpErrorHandleMap = new ConcurrentHashMap<>();
-    private final StaticResourceLoader defaultStaticResourceClassLoader = new StaticResourceLoader() {
-        @Override
-        public InputStream getInputStream(String path) {
-            return SimpleWebServer.class.getResourceAsStream(path);
-        }
-    };
+    private final StaticResourceLoader defaultStaticResourceClassLoader = ServerConfig.class::getResourceAsStream;
     private final List<HttpRequestListener> httpRequestListenerList = new ArrayList<>();
     private boolean ssl;
     private String host = "0.0.0.0";
@@ -282,6 +277,11 @@ public class ServerConfig {
 
     public ServerConfig addStaticResourceMapper(String path, String locationPath) {
         addStaticResourceMapper(path, locationPath, defaultStaticResourceClassLoader);
+        return this;
+    }
+
+    public ServerConfig addLocalFileStaticResourceMapper(String path, String locationPath, boolean autoIndex) {
+        addStaticResourceMapper(path, locationPath, new LocalFileStaticResourceLoader(autoIndex, path, locationPath));
         return this;
     }
 
