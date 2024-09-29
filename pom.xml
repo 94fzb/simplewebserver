@@ -32,7 +32,7 @@
         <connection>scm:git:https://github.com/94fzb/simplewebserver</connection>
         <developerConnection>scm:git:https://github.com/94fzb/simplewebserver</developerConnection>
         <url>https://github.com/94fzb/simplewebserver</url>
-      <tag>simplewebserver-0.3.119</tag>
+      <tag>simplewebserver-0.3.130</tag>
   </scm>
     <issueManagement>
         <system>Github Issue</system>
