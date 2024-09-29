@@ -22,7 +22,7 @@ public class LocalFileStaticResourceLoader implements StaticResourceLoader {
                 sb.append("<a href=\"../\">../</a>\n");
             }
             if (files.isEmpty()) {
-                sb.append("<div>Empty folder (").append(file).append(")</div>");
+                sb.append("<div>Empty folder</div>");
             }
             sortFiles(files);
             for (File f : files) {
@@ -113,8 +113,9 @@ public class LocalFileStaticResourceLoader implements StaticResourceLoader {
             String fileFolder = file.toString().substring(aliasPath.length());
             //System.out.println("uri = " + fileFolder);
             Map<String, Object> map = new HashMap<>();
-            map.put("startPath", path);
-            map.put("fileHtmlStr", buildHtmlStr(file, changeFileSplitUriPath(location + fileFolder + "/").replace("//", "/")));
+            String startPath = changeFileSplitUriPath(location + fileFolder + "/").replace("//", "/");
+            map.put("startPath", startPath);
+            map.put("fileHtmlStr", buildHtmlStr(file, startPath));
             return new ByteArrayInputStream(new BasicTemplateRender(map, LocalFileStaticResourceLoader.class).renderByTemplateName("/template/sf/index.html").getBytes());
         }
         try {
