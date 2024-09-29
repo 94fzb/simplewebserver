@@ -92,7 +92,7 @@ public class LocalFileStaticResourceLoader implements StaticResourceLoader {
 
     public LocalFileStaticResourceLoader(boolean enableAutoIndex, String location, String aliasPath) {
         this.enableAutoIndex = enableAutoIndex;
-        this.aliasPath = aliasPath;
+        this.aliasPath = new File(changeFileSplitUriPath(aliasPath)).toString();
         this.location = location;
     }
 
