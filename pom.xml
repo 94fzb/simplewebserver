@@ -52,6 +52,7 @@
                 <directory>src/main/resources</directory>
                 <includes>
                     <include>**/*.properties</include>
+                    <include>template/sf/index.html</include>
                 </includes>
             </resource>
         </resources>

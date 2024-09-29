@@ -6,6 +6,7 @@ import com.hibegin.http.server.api.HttpErrorHandle;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.api.Interceptor;
+import com.hibegin.http.server.config.LocalFileStaticResourceLoader;
 import com.hibegin.http.server.config.StaticResourceLoader;
 import com.hibegin.http.server.execption.NotFindResourceException;
 import com.hibegin.http.server.util.MimeTypeUtil;
@@ -23,19 +24,41 @@ public class MethodInterceptor implements Interceptor {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(MethodInterceptor.class);
 
+    private boolean isMatch(String requestUri, String location) {
+        if (location.endsWith("/")) {
+            return requestUri.startsWith(location.substring(0, location.length() - 1));
+        }
+        return requestUri.startsWith(location);
+    }
+
+    private String extractPath(String requestUri, String location){
+        if(requestUri.length() <= location.length()){
+            return "/";
+        }
+        return requestUri.substring(location.length());
+    }
+
     private void handleByStaticResource(HttpRequest request, HttpResponse response) {
         for (Map.Entry<String, Map.Entry<String, StaticResourceLoader>> entry : request.getServerConfig().getStaticResourceMapper().entrySet()) {
-            if (request.getUri().startsWith(entry.getKey())) {
-                String path = request.getUri().substring(entry.getKey().length());
-                if (request.getUri().endsWith("/")) {
-                    path += request.getServerConfig().getWelcomeFile();
+            if (isMatch(request.getUri(), entry.getKey())) {
+                String path = extractPath(request.getUri(),entry.getKey());
+                InputStream inputStream = null;
+                if (entry.getValue().getValue() instanceof LocalFileStaticResourceLoader) {
+                    inputStream = entry.getValue().getValue().getInputStream(entry.getValue().getKey() + path);
                 }
-                InputStream inputStream = entry.getValue().getValue().getInputStream(entry.getValue().getKey() + path);
                 if (Objects.isNull(inputStream)) {
-                    continue;
+                    if (request.getUri().endsWith("/")) {
+                        path += request.getServerConfig().getWelcomeFile();
+                    }
+                    inputStream = entry.getValue().getValue().getInputStream(entry.getValue().getKey() + path);
                 }
-                if (request.getUri().contains(".")) {
-                    response.addHeader("Content-Type", MimeTypeUtil.getMimeStrByExt(request.getUri().substring(request.getUri().lastIndexOf(".") + 1)));
+                if (Objects.nonNull(inputStream)) {
+                    if (path.contains(".")) {
+                        String contentType = MimeTypeUtil.getMimeStrByExt(request.getUri().substring(request.getUri().lastIndexOf(".") + 1));
+                        response.addHeader("Content-Type", contentType);
+                    } else if (entry.getValue().getValue() instanceof LocalFileStaticResourceLoader) {
+                        response.addHeader("Content-Type", MimeTypeUtil.getMimeStrByExt("html"));
+                    }
                     response.write(inputStream);
                     return;
                 }
