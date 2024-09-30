@@ -336,6 +336,11 @@ public class SimpleHttpResponse implements HttpResponse {
 
     private void write(InputStream inputStream, int code, long bodyLength) {
         try {
+            //处理文件流，避免不传输实际的文件大小
+            if (Objects.nonNull(inputStream) && inputStream instanceof FileInputStream) {
+                FileInputStream fin = (FileInputStream) inputStream;
+                bodyLength = fin.getChannel().size();
+            }
             boolean chunked = needChunked(inputStream, bodyLength);
             if (chunked) {
                 header.put("Transfer-Encoding", "chunked");

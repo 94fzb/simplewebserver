@@ -16,6 +16,7 @@ import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.StatusCodeUtil;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.util.Map;
