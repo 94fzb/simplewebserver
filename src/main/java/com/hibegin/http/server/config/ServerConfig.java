@@ -1,7 +1,6 @@
 package com.hibegin.http.server.config;
 
 import com.hibegin.common.util.LoggerUtil;
-import com.hibegin.http.server.SimpleWebServer;
 import com.hibegin.http.server.api.HttpErrorHandle;
 import com.hibegin.http.server.api.HttpRequestDecodeListener;
 import com.hibegin.http.server.api.HttpRequestListener;
@@ -9,7 +8,6 @@ import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.Router;
 
-import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.concurrent.*;
@@ -277,6 +275,11 @@ public class ServerConfig {
 
     public ServerConfig addStaticResourceMapper(String path, String locationPath) {
         addStaticResourceMapper(path, locationPath, defaultStaticResourceClassLoader);
+        return this;
+    }
+
+    public ServerConfig addLocalFileStaticResourceMapper(String path, String locationPath) {
+        addLocalFileStaticResourceMapper(path, locationPath, false);
         return this;
     }
 
