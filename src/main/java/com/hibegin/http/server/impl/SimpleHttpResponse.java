@@ -4,6 +4,7 @@ import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.io.ChunkedOutputStream;
 import com.hibegin.http.io.GzipCompressingInputStream;
+import com.hibegin.http.io.LengthByteArrayInputStream;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.config.ResponseConfig;
@@ -336,10 +337,13 @@ public class SimpleHttpResponse implements HttpResponse {
 
     private void write(InputStream inputStream, int code, long bodyLength) {
         try {
-            //处理文件流，避免不传输实际的文件大小
+            //处理流，避免不传输实际的文件大小
             if (Objects.nonNull(inputStream) && inputStream instanceof FileInputStream) {
                 FileInputStream fin = (FileInputStream) inputStream;
                 bodyLength = fin.getChannel().size();
+            } else if (Objects.nonNull(inputStream) && inputStream instanceof LengthByteArrayInputStream) {
+                LengthByteArrayInputStream lengthByteArrayInputStream = (LengthByteArrayInputStream) inputStream;
+                bodyLength = lengthByteArrayInputStream.getLength();
             }
             boolean chunked = needChunked(inputStream, bodyLength);
             if (chunked) {

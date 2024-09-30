@@ -1,5 +1,6 @@
 package com.hibegin.http.server.config;
 
+import com.hibegin.http.io.LengthByteArrayInputStream;
 import com.hibegin.template.BasicTemplateRender;
 
 import java.io.*;
@@ -116,7 +117,7 @@ public class LocalFileStaticResourceLoader implements StaticResourceLoader {
             String startPath = changeFileSplitUriPath(location + fileFolder + "/").replace("//", "/");
             map.put("startPath", startPath);
             map.put("fileHtmlStr", buildHtmlStr(file, startPath));
-            return new ByteArrayInputStream(new BasicTemplateRender(map, LocalFileStaticResourceLoader.class).renderByTemplateName("/template/sf/index.html").getBytes());
+            return new LengthByteArrayInputStream(new BasicTemplateRender(map, LocalFileStaticResourceLoader.class).renderByTemplateName("/template/sf/index.html").getBytes());
         }
         try {
             return new FileInputStream(file);
