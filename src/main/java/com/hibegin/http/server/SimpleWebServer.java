@@ -224,7 +224,7 @@ public class SimpleWebServer implements ISocketServer {
                         LOGGER.warning("Native image agent call request error -> " + LoggerUtil.recordStackTraceMsg(e));
                     }
                 });
-                new LocalFileStaticResourceLoader(true, "/" + System.currentTimeMillis(), PathUtil.getStaticPath()).getInputStream("/");
+                new LocalFileStaticResourceLoader(true, "/" + System.currentTimeMillis(), PathUtil.getRootPath()).getInputStream(PathUtil.getRootPath());
             }
             if (!serverConfig.isDisableSavePidFile()) {
                 savePid();
