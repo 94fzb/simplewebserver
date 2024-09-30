@@ -273,18 +273,18 @@ public class ServerConfig {
         return false;
     }
 
-    public ServerConfig addStaticResourceMapper(String path, String locationPath) {
-        addStaticResourceMapper(path, locationPath, defaultStaticResourceClassLoader);
+    public ServerConfig addStaticResourceMapper(String uriPath, String locationPath) {
+        addStaticResourceMapper(uriPath, locationPath, defaultStaticResourceClassLoader);
         return this;
     }
 
-    public ServerConfig addLocalFileStaticResourceMapper(String path, String locationPath) {
-        addLocalFileStaticResourceMapper(path, locationPath, false);
+    public ServerConfig addLocalFileStaticResourceMapper(String uriPath, String filePath) {
+        addLocalFileStaticResourceMapper(uriPath, filePath, false);
         return this;
     }
 
-    public ServerConfig addLocalFileStaticResourceMapper(String path, String locationPath, boolean autoIndex) {
-        addStaticResourceMapper(path, locationPath, new LocalFileStaticResourceLoader(autoIndex, path, locationPath));
+    public ServerConfig addLocalFileStaticResourceMapper(String uriPath, String filePath, boolean autoIndex) {
+        addStaticResourceMapper(uriPath, filePath, new LocalFileStaticResourceLoader(autoIndex, uriPath, filePath));
         return this;
     }
 
@@ -292,10 +292,10 @@ public class ServerConfig {
         return defaultStaticResourceClassLoader;
     }
 
-    public ServerConfig addStaticResourceMapper(String path, String locationPath, StaticResourceLoader resourceClassLoader) {
-        String newPath = path;
-        if (!path.endsWith("/")) {
-            newPath = path + "/";
+    public ServerConfig addStaticResourceMapper(String uriPath, String locationPath, StaticResourceLoader resourceClassLoader) {
+        String newPath = uriPath;
+        if (!uriPath.endsWith("/")) {
+            newPath = uriPath + "/";
         }
         String newLocationPath = locationPath;
         if (!newLocationPath.endsWith("/")) {
