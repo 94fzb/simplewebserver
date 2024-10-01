@@ -31,11 +31,17 @@
 
 Java21 loom + GraalVM Native 让应用有更小的内存占用和更快捷的运行体验
 
+在使用 Native 后，单个可执行文件大概 25mb 左右，通过 zip 后程序在 10m 左右，足够小（对比完整 JDK）
+
 ### SimpleWebServer-Cli
 
 快速体验：https://github.com/94fzb/simplewebserver-cli 
 
-基于 simplewebserver，提供一个简单文件服务，类似 python 的一行代码启动一个 server 服务，比 python 更简单，无需 pip
+基于 simplewebserver，使用 GraalVM Native Image，提供一个简单文件服务分享服务（无需 Java环境）
+
+类似 python 的一行代码启动一个基于 http 的文件服务，比 python 更简单，无需 pip
+
+### 快速上手
 
 ```xml
 <dependency>
@@ -114,4 +120,4 @@ public class DemoController extends Controller{
 
 ## License
 
-SimpleWebServer is Open Source software released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
+SimpleWebServer is Open Source software released under the [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0.html).
