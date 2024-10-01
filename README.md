@@ -7,19 +7,41 @@
 是否遇到有时候想做一些小的Web程序，但是迫于Java运行环境过于繁琐而迟迟没有下手，那么现在除了SpringBoot，广大的Java程序员又多了一个选择
 
 ### 轻量级
+
 并不基于servlet，源代码仅3000行左右，jar包仅 0.1m 左右，零依赖，无xml，极低的内存占用，所以不用担心程序能不能在嵌入式（树莓派）/Android 上能否正常运行
 
 ### 完整
-Cookie，Interceptor，Json，模板，文件上传，基本常用API都有，使得写Web应用更容易
 
-### 快速上手
-request, response, controller. interceptor 还是熟悉的配方，熟悉的味道
+```
+基本常用API都有，还是熟悉的配方，熟悉的味道，web程序编写更容易
+```
+
+- Request
+- Response
+- Controller
+- Cookie/Session
+- Interceptor
+- Json
+- Freemarker 模板
+- 文件上传
+- GZip
+- 静态文件服务器
+
+### GraalVM Native
+
+Java21 loom + GraalVM Native 让应用有更小的内存占用和更快捷的运行体验
+
+### SimpleWebServer-Cli
+
+快速体验：https://github.com/94fzb/simplewebserver-cli 
+
+基于 simplewebserver，提供一个简单文件服务，类似 python 的一行代码启动一个 server 服务，比 python 更简单，无需 pip
 
 ```xml
 <dependency>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.3.52</version>
+    <version>0.3.142</version>
 </dependency>
 ```
 
