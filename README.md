@@ -8,7 +8,8 @@
 
 ### 轻量级
 
-并不基于servlet，源代码仅3000行左右，jar包仅 0.1m 左右，零依赖，无xml，极低的内存占用，所以不用担心程序能不能在嵌入式（树莓派）/Android 上能否正常运行
+并不基于servlet，源代码仅3000行左右，jar包仅 0.1m 左右，零依赖，无xml，极低的内存占用，所以不用担心程序能不能在嵌入式（树莓派）/Android
+上能否正常运行
 
 ### 完整
 
@@ -35,7 +36,7 @@ Java21 loom + GraalVM Native 让应用有更小的内存占用和更快捷的运
 
 ### SimpleWebServer-Cli
 
-快速体验：https://github.com/94fzb/simplewebserver-cli 
+快速体验：https://github.com/94fzb/simplewebserver-cli
 
 基于 simplewebserver，使用 GraalVM Native Image，提供一个简单文件服务分享服务（无需 Java环境）
 
@@ -43,9 +44,13 @@ Java21 loom + GraalVM Native 让应用有更小的内存占用和更快捷的运
 
 ### 快速上手
 
-**请使用 Java11 后的版本**
+#### Java 版本
+
+- 必须： Java8 及以后版本，
+- 推荐： Java11 及以上的版本
 
 ```xml
+
 <dependency>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
@@ -54,7 +59,7 @@ Java21 loom + GraalVM Native 让应用有更小的内存占用和更快捷的运
 ```
 
 ```java
-public class DemoController extends Controller{
+public class DemoController extends Controller {
 
     public static void main(String[] args) {
         ServerConfig serverConfig = new ServerConfig();
@@ -63,7 +68,7 @@ public class DemoController extends Controller{
     }
 
     public void index() {
-          getResponse().renderText("Hello world/v" + ServerInfo.getVersion());
+        getResponse().renderText("Hello world/v" + ServerInfo.getVersion());
     }
 }
 ```
@@ -75,6 +80,7 @@ public class DemoController extends Controller{
 **推荐使用 maven-assembly-plugin**
 
 ```xml
+
 <build>
     <plugins>
         <plugin>
@@ -99,6 +105,7 @@ public class DemoController extends Controller{
 `mvn clean compile assembly:single`
 
 ### 性能
+
 简单与号称 “性能打爆网卡的tio” 对比，感兴趣移步到 https://gitee.com/94fzb/simplewebserver-performance
 
 ## Changelog
@@ -122,4 +129,5 @@ public class DemoController extends Controller{
 
 ## License
 
-SimpleWebServer is Open Source software released under the [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0.html).
+SimpleWebServer is Open Source software released under
+the [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0.html).
