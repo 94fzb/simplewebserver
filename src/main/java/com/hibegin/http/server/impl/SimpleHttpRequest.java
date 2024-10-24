@@ -3,6 +3,7 @@ package com.hibegin.http.server.impl;
 import com.hibegin.common.BaseLockObject;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpRequest;
@@ -114,7 +115,7 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
     }
 
     private void dealWithCookie(boolean create) {
-        String cookieStr = Objects.requireNonNullElse(getHeader("Cookie"), "");
+        String cookieStr = ObjectUtil.requireNonNullElse(getHeader("Cookie"), "");
         cookies = Cookie.saxToCookie(cookieStr);
         if (requestConfig.isDisableSession()) {
             return;
@@ -254,7 +255,11 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
         for (Map.Entry<String, String[]> entry : getParamMap().entrySet()) {
             String[] strings = new String[entry.getValue().length];
             for (int i = 0; i < entry.getValue().length; i++) {
-                strings[i] = URLDecoder.decode(entry.getValue()[i], StandardCharsets.UTF_8);
+                try {
+                    strings[i] = URLDecoder.decode(entry.getValue()[i], StandardCharsets.UTF_8.name());
+                } catch (UnsupportedEncodingException e) {
+                    throw new RuntimeException(e);
+                }
             }
             encodeMap.put(entry.getKey(), strings);
         }

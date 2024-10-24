@@ -1,6 +1,7 @@
 package com.hibegin.http.server.config;
 
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.http.server.api.HttpErrorHandle;
 import com.hibegin.http.server.api.HttpRequestDecodeListener;
 import com.hibegin.http.server.api.HttpRequestListener;
@@ -82,7 +83,7 @@ public class ServerConfig {
     }
 
     public String getApplicationName() {
-        return Objects.requireNonNullElse(applicationName, ServerInfo.getName());
+        return ObjectUtil.requireNonNullElse(applicationName, ServerInfo.getName());
     }
 
     public ServerConfig setApplicationName(String applicationName) {

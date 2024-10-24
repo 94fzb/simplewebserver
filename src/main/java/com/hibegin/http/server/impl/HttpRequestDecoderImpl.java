@@ -3,6 +3,7 @@ package com.hibegin.http.server.impl;
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.io.ChunkedStreamUtils;
 import com.hibegin.http.server.ApplicationContext;
@@ -244,7 +245,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     }
 
     private long getContentLength() {
-        return Long.parseLong(Objects.requireNonNullElse(request.getHeader("Content-Length"), "0"));
+        return Long.parseLong(ObjectUtil.requireNonNullElse(request.getHeader("Content-Length"), "0"));
     }
 
     private void dealRequestHeaderString(String str) {

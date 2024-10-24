@@ -2,6 +2,7 @@ package com.hibegin.http.server.impl;
 
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.http.io.ChunkedOutputStream;
 import com.hibegin.http.io.GzipCompressingInputStream;
 import com.hibegin.http.io.LengthByteArrayInputStream;
@@ -38,7 +39,7 @@ public class SimpleHttpResponse implements HttpResponse {
         this.responseConfig = responseConfig;
     }
 
-    private static final Set<String> textContentTypes = Set.of(
+    private static final List<String> textContentTypes = Arrays.asList(
             "application/json",
             "application/xml",
             "application/javascript",
@@ -280,7 +281,7 @@ public class SimpleHttpResponse implements HttpResponse {
     @Override
     public void renderBasicTemplate(String name) {
         try {
-            renderHtmlStr(new BasicTemplateRender(request.getAttr(), Objects.requireNonNullElse(request.getServerConfig().getBasicTemplateClass(), SimpleHttpResponse.class)).renderByTemplateName(name));
+            renderHtmlStr(new BasicTemplateRender(request.getAttr(), ObjectUtil.requireNonNullElse(request.getServerConfig().getBasicTemplateClass(), SimpleHttpResponse.class)).renderByTemplateName(name));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "", e);
             throw new InternalException(e);

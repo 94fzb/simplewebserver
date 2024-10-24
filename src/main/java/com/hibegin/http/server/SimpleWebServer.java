@@ -2,6 +2,7 @@ package com.hibegin.http.server;
 
 import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.ISocketServer;
@@ -62,8 +63,8 @@ public class SimpleWebServer implements ISocketServer {
         }
 
         this.serverConfig = serverConf;
-        this.requestConfig = Objects.requireNonNullElseGet(requestConf, this::getDefaultRequestConfig);
-        this.responseConfig = Objects.requireNonNullElseGet(responseConf, this::getDefaultResponseConfig);
+        this.requestConfig = ObjectUtil.requireNonNullElseGet(requestConf, this::getDefaultRequestConfig);
+        this.responseConfig = ObjectUtil.requireNonNullElseGet(responseConf, this::getDefaultResponseConfig);
         if (this.requestConfig.getMaxRequestBodySize() < 0) {
             this.requestConfig.setMaxRequestBodySize(Integer.MAX_VALUE);
         } else if (this.requestConfig.getMaxRequestBodySize() == 0) {
@@ -185,7 +186,7 @@ public class SimpleWebServer implements ISocketServer {
 
     @Override
     public boolean create() {
-        return create(Objects.requireNonNullElse(serverConfig.getPort(), ConfigKit.getServerPort()));
+        return create(ObjectUtil.requireNonNullElse(serverConfig.getPort(), ConfigKit.getServerPort()));
     }
 
     @Override

@@ -48,6 +48,15 @@ public class LocalFileStaticResourceLoader implements StaticResourceLoader {
         }
     }
 
+    public static String repeat(String str, int times) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < times; i++) {
+            sb.append(str);
+        }
+        return sb.toString();
+    }
+
+
     private static String[] fullBlankChar(String str, int maxLength) {
         String newStr = str;
         String[] newStrArr = new String[2];
@@ -55,7 +64,7 @@ public class LocalFileStaticResourceLoader implements StaticResourceLoader {
         if (str.length() > maxLength) {
             newStr = newStr.substring(0, maxLength - 3) + "...";
         } else {
-            blank = " ".repeat(maxLength - str.length());
+            blank = repeat(" ", maxLength - str.length());
         }
         newStrArr[0] = newStr;
         newStrArr[1] = blank + "   ";

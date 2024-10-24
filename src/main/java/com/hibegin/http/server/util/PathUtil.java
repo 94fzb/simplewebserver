@@ -2,6 +2,7 @@ package com.hibegin.http.server.util;
 
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.common.util.ObjectUtil;
 
 import java.io.*;
 import java.net.URL;
@@ -20,7 +21,7 @@ public class PathUtil {
     private static String ROOT_PATH = "";
 
     public static String getConfPath() {
-        return Objects.requireNonNullElse(System.getProperty("sws.conf.path"), getRootPath() + "/conf/");
+        return ObjectUtil.requireNonNullElse(System.getProperty("sws.conf.path"), getRootPath() + "/conf/");
     }
 
     public static String getRootPath() {
@@ -36,7 +37,11 @@ public class PathUtil {
             return System.getProperty("user.dir");
         }
         String tPath = url.getPath().replace("file:", "");
-        return new File(URLDecoder.decode(tPath, StandardCharsets.UTF_8)).getParent();
+        try {
+            return new File(URLDecoder.decode(tPath, StandardCharsets.UTF_8.name())).getParent();
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void setRootPath(String rootPath) {
@@ -95,15 +100,15 @@ public class PathUtil {
     }
 
     public static String getStaticPath() {
-        return Objects.requireNonNullElse(System.getProperty("sws.static.path"), getRootPath() + "/static/");
+        return ObjectUtil.requireNonNullElse(System.getProperty("sws.static.path"), getRootPath() + "/static/");
     }
 
     public static String getCachePath() {
-        return Objects.requireNonNullElse(System.getProperty("sws.cache.path"), getRootPath() + "/cache/");
+        return ObjectUtil.requireNonNullElse(System.getProperty("sws.cache.path"), getRootPath() + "/cache/");
     }
 
     public static String getLogPath() {
-        return Objects.requireNonNullElse(System.getProperty("sws.log.path"), getRootPath() + "/log/");
+        return ObjectUtil.requireNonNullElse(System.getProperty("sws.log.path"), getRootPath() + "/log/");
     }
 
     public static File getStaticFile(String filename) {
@@ -111,7 +116,7 @@ public class PathUtil {
     }
 
     public static String getTempPath() {
-        String str = Objects.requireNonNullElse(System.getProperty("sws.temp.path"), getRootPath() + "/temp/");
+        String str = ObjectUtil.requireNonNullElse(System.getProperty("sws.temp.path"), getRootPath() + "/temp/");
         new File(str).mkdirs();
         return str;
     }
