@@ -43,11 +43,13 @@ Java21 loom + GraalVM Native 让应用有更小的内存占用和更快捷的运
 
 ### 快速上手
 
+**请使用 Java11 后的版本**
+
 ```xml
 <dependency>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.3.142</version>
+    <version>0.3.143</version>
 </dependency>
 ```
 
