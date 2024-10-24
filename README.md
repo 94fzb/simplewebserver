@@ -46,7 +46,7 @@ Java21 loom + GraalVM Native 让应用有更小的内存占用和更快捷的运
 
 #### Java 版本
 
-- 必须： Java8 及以后版本，
+- 必须： Java8 及以上版本，
 - 推荐： Java11 及以上的版本
 
 ```xml
