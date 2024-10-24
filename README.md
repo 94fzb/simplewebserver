@@ -49,7 +49,7 @@ Java21 loom + GraalVM Native 让应用有更小的内存占用和更快捷的运
 <dependency>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.3.143</version>
+    <version>0.3.144</version>
 </dependency>
 ```
 
