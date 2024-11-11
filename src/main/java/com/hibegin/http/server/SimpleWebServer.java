@@ -25,8 +25,6 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,7 +42,6 @@ public class SimpleWebServer implements ISocketServer {
     private Selector selector;
     private HttpDecodeRunnable httpDecodeRunnable;
     private ServerSocketChannel serverChannel;
-    private ScheduledExecutorService checkRequestExecutor;
 
     public ApplicationContext getApplicationContext() {
         return applicationContext;
@@ -116,7 +113,7 @@ public class SimpleWebServer implements ISocketServer {
         if (selector == null) {
             return;
         }
-        startExecHttpRequestThread(serverChannel.socket().getLocalPort());
+        startExecHttpRequestThread();
         while (selector.isOpen()) {
             try {
                 //not message, skip. to optimize high cpu
@@ -156,14 +153,9 @@ public class SimpleWebServer implements ISocketServer {
     /**
      * 初始化处理请求的请求
      */
-    private void startExecHttpRequestThread(int serverPort) {
+    private void startExecHttpRequestThread() {
         httpDecodeRunnable = new HttpDecodeRunnable(applicationContext, this, requestConfig, responseConfig, applicationContext.getCheckRequestRunnable());
-        checkRequestExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread thread = new Thread(r);
-            thread.setName("request-checker-" + serverPort);
-            return thread;
-        });
-        checkRequestExecutor.scheduleAtFixedRate(applicationContext.getCheckRequestRunnable(), 0, 1, TimeUnit.SECONDS);
+        serverConfig.getRequestCheckerExecutor().scheduleAtFixedRate(applicationContext.getCheckRequestRunnable(), 0, 1, TimeUnit.SECONDS);
     }
 
     @Override
@@ -175,8 +167,8 @@ public class SimpleWebServer implements ISocketServer {
             if (Objects.nonNull(serverChannel)) {
                 serverChannel.socket().close();
             }
-            if (Objects.nonNull(checkRequestExecutor)) {
-                checkRequestExecutor.shutdownNow();
+            if (Objects.nonNull(serverConfig.getRequestCheckerExecutor())) {
+                serverConfig.getRequestCheckerExecutor().shutdownNow();
             }
             LOGGER.info(serverConfig.getApplicationName() + " close success");
         } catch (IOException e) {

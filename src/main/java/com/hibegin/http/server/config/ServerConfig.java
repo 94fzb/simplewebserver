@@ -51,6 +51,7 @@ public class ServerConfig {
     private boolean supportHttp2;
     private String welcomeFile = "index.html";
     private Executor requestExecutor;
+    private ScheduledExecutorService requestCheckerExecutor;
     private Executor decodeExecutor;
     private String sessionId = "JSESSIONID";
     private String serverInfo;
@@ -168,6 +169,22 @@ public class ServerConfig {
     public ServerConfig setRequestExecutor(Executor requestExecutor) {
         this.requestExecutor = requestExecutor;
         return this;
+    }
+
+    public ServerConfig setRequestCheckerExecutor(ScheduledExecutorService requestCheckerExecutor) {
+        this.requestCheckerExecutor = requestCheckerExecutor;
+        return this;
+    }
+
+    public ScheduledExecutorService getRequestCheckerExecutor() {
+        if (requestCheckerExecutor == null) {
+            requestCheckerExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread thread = new Thread(r);
+                thread.setName("request-checker-" + port);
+                return thread;
+            });
+        }
+        return requestCheckerExecutor;
     }
 
     public HttpJsonMessageConverter getHttpJsonMessageConverter() {
