@@ -12,10 +12,7 @@ import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.FileHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
+import java.util.logging.*;
 
 public class LoggerUtil {
 
@@ -49,6 +46,24 @@ public class LoggerUtil {
         return fileHandler;
     }
 
+    private static CustomConsoleHandler buildOutConsoleHandler() {
+        CustomConsoleHandler consoleHandler = new CustomConsoleHandler();
+        consoleHandler.setFormatter(new ColorfulFormatter());
+        consoleHandler.setOutputStream(System.out);
+        consoleHandler.setFilter((p) -> p.getLevel().intValue() >= Level.INFO.intValue());
+        consoleHandler.setFormatter(new ConsoleHandler().getFormatter());
+        return consoleHandler;
+    }
+
+    private static CustomConsoleHandler buildErrConsoleHandler() {
+        CustomConsoleHandler consoleHandler = new CustomConsoleHandler();
+        consoleHandler.setFormatter(new ColorfulFormatter());
+        consoleHandler.setOutputStream(System.err);
+        consoleHandler.setFilter((p) -> p.getLevel().intValue() <= Level.INFO.intValue());
+        consoleHandler.setFormatter(new ConsoleHandler().getFormatter());
+        return consoleHandler;
+    }
+
     public static Logger getLogger(Class<?> clazz) {
         loadLock.lock();
         try {
@@ -57,6 +72,8 @@ public class LoggerUtil {
             if (Arrays.stream(logger.getHandlers()).anyMatch(x -> Objects.equals(x, fileHandler))) {
                 return logger;
             }
+            logger.addHandler(buildErrConsoleHandler());
+            logger.addHandler(buildOutConsoleHandler());
             try {
                 if (Objects.isNull(fileHandler)) {
                     fileHandler = buildFileHandle();
@@ -98,5 +115,28 @@ public class LoggerUtil {
         return buffer.toString();
     }
 
+    // 自定义 Formatter 实现控制台日志的颜色输出
+    static class ColorfulFormatter extends Formatter {
+        private static final String RESET = "\u001B[0m";
+        private static final String RED = "\u001B[31m";
+        private static final String YELLOW = "\u001B[33m";
+        private static final String BLUE = "\u001B[34m";
+        private static final String GREEN = "\u001B[32m";
+
+        @Override
+        public String format(LogRecord record) {
+            String color;
+            if (record.getLevel().intValue() >= Level.SEVERE.intValue()) {
+                color = RED;
+            } else if (record.getLevel().intValue() >= Level.WARNING.intValue()) {
+                color = YELLOW;
+            } else if (record.getLevel().intValue() >= Level.INFO.intValue()) {
+                color = GREEN;
+            } else {
+                color = BLUE;
+            }
+            return color + formatMessage(record) + RESET + "\n";
+        }
+    }
 
 }
