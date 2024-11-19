@@ -1,11 +1,13 @@
 package com.hibegin.http.server.config;
 
+import com.hibegin.common.HybridStorage;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.http.server.api.HttpErrorHandle;
 import com.hibegin.http.server.api.HttpRequestDecodeListener;
 import com.hibegin.http.server.api.HttpRequestListener;
 import com.hibegin.http.server.api.Interceptor;
+import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.Router;
 
@@ -64,6 +66,7 @@ public class ServerConfig {
     private String applicationVersion;
     private boolean disablePrintWebServerInfo;
     private boolean disableSavePidFile;
+    private HybridStorage hybridStorage;
 
     public boolean isDisableSavePidFile() {
         return disableSavePidFile;
@@ -77,6 +80,18 @@ public class ServerConfig {
     public ServerConfig setApplicationVersion(String applicationVersion) {
         this.applicationVersion = applicationVersion;
         return this;
+    }
+
+    public ServerConfig setHybridStorage(HybridStorage hybridStorage) {
+        this.hybridStorage = hybridStorage;
+        return this;
+    }
+
+    public HybridStorage getHybridStorage() {
+        if (Objects.isNull(hybridStorage)) {
+            this.hybridStorage = new HybridStorage(Long.MAX_VALUE, PathUtil.getTempPath());
+        }
+        return hybridStorage;
     }
 
     public String getApplicationVersion() {
@@ -238,7 +253,7 @@ public class ServerConfig {
 
     public Executor getDecodeExecutor() {
         if (decodeExecutor == null) {
-            decodeExecutor = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors() + 1, 20, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100), new ThreadFactory() {
+            decodeExecutor = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors() + 1, Runtime.getRuntime().availableProcessors() * 2, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100), new ThreadFactory() {
 
                 private final AtomicLong count = new AtomicLong();
 

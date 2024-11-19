@@ -20,7 +20,7 @@ public class FileCacheKit {
         return file;
     }
 
-    private static String suffix(String flag) {
+    public static String suffix(String flag) {
         return ".tmp." + flag;
     }
 
