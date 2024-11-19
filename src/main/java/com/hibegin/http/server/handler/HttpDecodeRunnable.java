@@ -84,8 +84,9 @@ public class HttpDecodeRunnable implements Runnable {
                 workingChannel.add(socket);
                 serverConfig.getDecodeExecutor().execute(() -> {
                     try {
-                        doParseHttpMessage(requestEvent, socket, key);
+                        doParseHttpMessage(requestEvent, socket);
                     } finally {
+                        serverConfig.getHybridStorage().remove(key);
                         workingChannel.remove(socket);
                         HttpDecodeRunnable.this.run();
                     }
@@ -132,7 +133,7 @@ public class HttpDecodeRunnable implements Runnable {
         serverConfig.getRequestExecutor().execute(httpRequestHandlerRunnable);
     }
 
-    private void doParseHttpMessage(RequestEvent requestEvent, Socket socket, String cacheKey) {
+    private void doParseHttpMessage(RequestEvent requestEvent, Socket socket) {
         SelectionKey key = requestEvent.getSelectionKey();
         HttpRequestDeCoder requestDeCoder = applicationContext.getHttpDeCoderMap().get(socket);
         try {
@@ -164,8 +165,6 @@ public class HttpDecodeRunnable implements Runnable {
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "", e);
             handleException(key, requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 500, e);
-        } finally {
-            serverConfig.getHybridStorage().remove(cacheKey);
         }
     }
 
@@ -174,6 +173,10 @@ public class HttpDecodeRunnable implements Runnable {
         String a = m.computeIfAbsent("a", (k) -> "2");
         System.out.println("m = " + m);
         System.out.println("a = " + a);
+    }
+
+    private static String generatorFileName(long port) {
+        return FileCacheKit.SERVER_WEB_SERVER_TEMP_FILE_PREFIX + "req-event-" + System.currentTimeMillis() + "-" + FILE_ID.incrementAndGet() + FileCacheKit.suffix(port + "");
     }
 
     private void addBytesToQueue(SelectionKey key, Socket socket, byte[] bytes, boolean toFirst) throws Exception {
@@ -185,8 +188,7 @@ public class HttpDecodeRunnable implements Runnable {
             return serverConfig.getHybridStorage().getLengthByKey(e);
         }).sum() + bytes.length;
         boolean toDisk = newBufferSize > requestConfig.getRequestMaxBufferSize();
-        String fileName = FileCacheKit.SERVER_WEB_SERVER_TEMP_FILE_PREFIX + System.currentTimeMillis() + FILE_ID.incrementAndGet() + FileCacheKit.suffix(serverConfig.getPort() + "");
-        RequestEventStorable requestEventStorable = new RequestEventStorable(key, bytes, fileName);
+        RequestEventStorable requestEventStorable = new RequestEventStorable(key, bytes, generatorFileName(serverConfig.getPort()));
         String cacheKey = toDisk ? serverConfig.getHybridStorage().putToDisk(requestEventStorable) : serverConfig.getHybridStorage().put(requestEventStorable);
         if (toFirst) {
             entryBlockingQueue.addFirst(cacheKey);
