@@ -31,8 +31,7 @@ public class HybridStorage {
             return 0;
         }).sum();
         if (totalSize + storable.length() > memoryThreshold) {
-            storable.saveToDisk(storageDir);
-            LOGGER.warning("Put " + storable.getClass().getSimpleName() + " -> to files ...");
+            return putToDisk(storable);
         }
         return doPut(storable);
     }
@@ -50,6 +49,9 @@ public class HybridStorage {
 
     public String putToDisk(Storable<?> storable) throws Exception {
         storable.saveToDisk(storageDir);
+        File tempFile = storable.getFile();
+        String fileName = Objects.nonNull(tempFile) ? tempFile.getName() : "unknown";
+        LOGGER.warning("HybridStorage put " + storable.getClass().getSimpleName() + " temp file:" + fileName + " -> to disk ...");
         return doPut(storable);
     }
 

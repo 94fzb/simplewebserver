@@ -27,6 +27,11 @@ public abstract class AbstractStorable<T> implements Storable<T> {
     }
 
     @Override
+    public File getFile() {
+        return file;
+    }
+
+    @Override
     public T getData() throws Exception {
         if (data != null) {
             return data;

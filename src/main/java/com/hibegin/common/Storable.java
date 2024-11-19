@@ -1,5 +1,6 @@
 package com.hibegin.common;
 
+import java.io.File;
 import java.io.IOException;
 
 public interface Storable<T> {
@@ -9,6 +10,8 @@ public interface Storable<T> {
      * @return 数据的长度
      */
     long length();
+
+    File getFile();
 
     /**
      * 读取原始数据。
