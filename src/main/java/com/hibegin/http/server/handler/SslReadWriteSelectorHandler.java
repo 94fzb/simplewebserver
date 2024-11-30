@@ -118,8 +118,8 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
      * as a source buffer during initial handshake wraps or for close
      * operations.
      */
-    private static ByteBuffer hsBB = ByteBuffer.allocate(0);
-    private SSLEngine sslEngine;
+    private static final ByteBuffer hsBB = ByteBuffer.allocate(0);
+    private final SSLEngine sslEngine;
     /**
      * All I/O goes through these buffers.
      * <p>
@@ -129,8 +129,8 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
      * We use our superclass' requestBB for our application input buffer.
      * Outbound application data is supplied to us by our callers.
      */
-    private ByteBuffer inNetBB;
-    private ByteBuffer outNetBB;
+    private final ByteBuffer inNetBB;
+    private final ByteBuffer outNetBB;
     /**
      * The FileChannel we're currently transferTo'ing (reading).
      */

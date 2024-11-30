@@ -24,7 +24,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
     public PlainReadWriteSelectorHandler(SocketChannel sc, int maxRequestBbSize) {
         this.sc = sc;
         this.maxRequestBbSize = maxRequestBbSize;
-        this.requestBB = ByteBuffer.allocate(maxRequestBbSize);
+        this.requestBB = ByteBuffer.allocate(INIT_REQUEST_BB_SIZE);
     }
 
     @Override
