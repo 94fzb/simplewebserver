@@ -50,6 +50,9 @@ public class IOUtil {
 
     public static void writeBytesToFile(byte[] bytes, File file) {
         try {
+            if (!file.getParentFile().exists()) {
+                file.getParentFile().mkdirs();
+            }
             Files.write(file.toPath(), bytes);
         } catch (IOException e) {
             throw new RuntimeException(e);
