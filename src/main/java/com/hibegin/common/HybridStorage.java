@@ -86,6 +86,6 @@ public class HybridStorage {
     }
 
     public void clear() {
-        storage.keySet().forEach(storage::remove);
+        storage.keySet().forEach(this::remove);
     }
 }
