@@ -23,14 +23,17 @@ public class HybridStorage {
         new File(storageDir).mkdirs(); // 确保目录存在
     }
 
-    public String put(Storable<?> storable) throws Exception {
-        long totalSize = storage.values().stream().mapToLong(e -> {
+    public long getMemoryUsage() {
+        return storage.values().stream().mapToLong(e -> {
             if (e.isInMemory()) {
                 return e.length();
             }
             return 0;
         }).sum();
-        if (totalSize + storable.length() > memoryThreshold) {
+    }
+
+    public String put(Storable<?> storable) throws Exception {
+        if (getMemoryUsage() + storable.length() > memoryThreshold) {
             return putToDisk(storable);
         }
         return doPut(storable);
