@@ -64,6 +64,9 @@ public class HybridStorage {
     }
 
     public long getLengthByKey(String key) {
+        if (Objects.isNull(key)) {
+            return 0;
+        }
         Storable<?> value = storage.get(key);
         if (value == null) {
             return 0;
@@ -72,6 +75,9 @@ public class HybridStorage {
     }
 
     public void remove(String key) {
+        if (Objects.isNull(key)) {
+            return;
+        }
         Storable<?> value = storage.get(key);
         if (Objects.nonNull(value)) {
             storage.remove(key);
