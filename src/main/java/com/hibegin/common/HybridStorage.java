@@ -23,6 +23,10 @@ public class HybridStorage {
         new File(storageDir).mkdirs(); // 确保目录存在
     }
 
+    public long getMemoryThreshold() {
+        return memoryThreshold;
+    }
+
     public long getMemoryUsage() {
         return storage.values().stream().mapToLong(e -> {
             if (e.isInMemory()) {
