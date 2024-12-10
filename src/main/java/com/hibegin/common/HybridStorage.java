@@ -93,9 +93,11 @@ public class HybridStorage extends BaseLockObject {
     }
 
     public <T> T getAndRemove(String key) throws Exception {
-        T t = get(key);
-        remove(key);
-        return t;
+        try {
+            return get(key);
+        } finally {
+            remove(key);
+        }
     }
 
     public void clear() {
