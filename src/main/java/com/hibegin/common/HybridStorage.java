@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
-public class HybridStorage {
+public class HybridStorage extends BaseLockObject {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(HybridStorage.class);
     private final Map<String, Storable<?>> storage = new ConcurrentHashMap<>();
@@ -90,6 +90,12 @@ public class HybridStorage {
             storage.remove(key);
             value.clear();
         }
+    }
+
+    public <T> T getAndRemove(String key) throws Exception {
+        T t = get(key);
+        remove(key);
+        return t;
     }
 
     public void clear() {
