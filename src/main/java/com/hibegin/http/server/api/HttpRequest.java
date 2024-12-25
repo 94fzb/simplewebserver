@@ -1,6 +1,7 @@
 package com.hibegin.http.server.api;
 
 import com.hibegin.http.HttpMethod;
+import com.hibegin.http.HttpVersion;
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ServerConfig;
@@ -72,5 +73,5 @@ public interface HttpRequest {
 
     ApplicationContext getApplicationContext();
 
-    String getHttpVersion();
+    HttpVersion getHttpVersion();
 }

@@ -5,6 +5,7 @@ import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.http.HttpMethod;
+import com.hibegin.http.HttpVersion;
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.config.RequestConfig;
@@ -340,15 +341,21 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
     }
 
     @Override
-    public String getHttpVersion() {
+    public HttpVersion getHttpVersion() {
         if (requestHeaderStr != null) {
             String[] tempArr = requestHeaderStr.split("\r\n");
             if (tempArr.length > 0) {
                 if (tempArr[0].split(" ").length > 2) {
-                    return tempArr[0].split(" ")[2];
+                    String version = tempArr[0].split(" ")[2];
+                    if (Objects.equals(version, HttpVersion.HTTP_1_0.getValue())) {
+                        return HttpVersion.HTTP_1_0;
+                    }
+                    if (Objects.equals(version, HttpVersion.HTTP_1_1.getValue())) {
+                        return HttpVersion.HTTP_1_1;
+                    }
                 }
             }
         }
-        return "";
+        return HttpVersion.HTTP_1_0;
     }
 }

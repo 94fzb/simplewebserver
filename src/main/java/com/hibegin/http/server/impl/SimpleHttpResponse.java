@@ -3,6 +3,7 @@ package com.hibegin.http.server.impl;
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.common.util.ObjectUtil;
+import com.hibegin.http.HttpVersion;
 import com.hibegin.http.io.ChunkedOutputStream;
 import com.hibegin.http.io.GzipCompressingInputStream;
 import com.hibegin.http.io.LengthByteArrayInputStream;
@@ -120,23 +121,23 @@ public class SimpleHttpResponse implements HttpResponse {
 
     private byte[] wrapperBaseResponseHeader(int statusCode) {
         header.put("Server", request.getServerConfig().getServerInfo());
-        if (!getHeader().containsKey("Connection")) {
-            boolean keepAlive = request.getHeader("Connection") == null;
-            if (keepAlive) {
-                String httpVersion = request.getHttpVersion();
-                if ("".equals(httpVersion.trim()) || "HTTP/1.0".equals(httpVersion)) {
-                    getHeader().put("Connection", "close");
-                } else {
+        //1.0 不支持长连接
+        if (request.getHttpVersion() == HttpVersion.HTTP_1_0) {
+            getHeader().put("Connection", "close");
+        } else {
+            //如果业务没有设置该字段的情况
+            if (!getHeader().containsKey("Connection")) {
+                String requestConnection = request.getHeader("Connection");
+                boolean keepAlive = Objects.isNull(requestConnection) || !"close".equalsIgnoreCase(requestConnection);
+                if (keepAlive) {
                     getHeader().put("Connection", "keep-alive");
+                } else {
+                    getHeader().put("Connection", "close");
                 }
-            } else if (!"close".equals(request.getHeader("Connection"))) {
-                getHeader().put("Connection", "keep-alive");
-            } else {
-                getHeader().put("Connection", "close");
             }
         }
         StringBuilder sb = new StringBuilder();
-        sb.append("HTTP/1.1 ").append(statusCode).append(" ").append(StatusCodeUtil.getStatusCodeDesc(statusCode)).append(CRLF);
+        sb.append(request.getHttpVersion().getValue()).append(" ").append(statusCode).append(" ").append(StatusCodeUtil.getStatusCodeDesc(statusCode)).append(CRLF);
         for (Entry<String, String> he : header.entrySet()) {
             sb.append(he.getKey()).append(": ").append(he.getValue()).append(CRLF);
         }
