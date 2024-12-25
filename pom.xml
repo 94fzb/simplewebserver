@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.3.164-SNAPSHOT</version>
+    <version>0.3.164</version>
     <packaging>jar</packaging>
     <url>https://github.com/94fzb/simplewebserver</url>
 
@@ -32,7 +32,7 @@
         <connection>scm:git:https://github.com/94fzb/simplewebserver</connection>
         <developerConnection>scm:git:https://github.com/94fzb/simplewebserver</developerConnection>
         <url>https://github.com/94fzb/simplewebserver</url>
-      <tag>simplewebserver-0.3.144</tag>
+      <tag>simplewebserver-0.3.164</tag>
   </scm>
     <issueManagement>
         <system>Github Issue</system>
