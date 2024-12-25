@@ -165,7 +165,7 @@ public class SimpleWebServer implements ISocketServer {
                 selector.close();
             }
             if (Objects.nonNull(serverChannel)) {
-                serverChannel.socket().close();
+                serverChannel.close();
             }
             if (Objects.nonNull(serverConfig.getRequestCheckerExecutor())) {
                 serverConfig.getRequestCheckerExecutor().shutdownNow();
