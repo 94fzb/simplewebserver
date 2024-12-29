@@ -3,11 +3,11 @@ package com.hibegin.common;
 import com.hibegin.common.util.LoggerUtil;
 
 import java.io.File;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class HybridStorage extends BaseLockObject {
 
@@ -21,6 +21,21 @@ public class HybridStorage extends BaseLockObject {
         this.memoryThreshold = memoryThreshold;
         this.storageDir = storageDir;
         new File(storageDir).mkdirs(); // 确保目录存在
+    }
+
+    public Map<String, Long> getStorageSizeInfoMap() {
+        Map<String, Long> storageSizeInfoMap = new HashMap<>();
+        storage.entrySet().forEach((e -> {
+            storageSizeInfoMap.put(e.getKey(), e.getValue().length());
+        }));
+        return storageSizeInfoMap.entrySet()
+                .stream()
+                .sorted((entry1, entry2) -> entry2.getValue().compareTo(entry1.getValue())) // 从大到小排序
+                .collect(
+                        LinkedHashMap::new, // 结果存放到 LinkedHashMap，保证顺序
+                        (m, entry) -> m.put(entry.getKey(), entry.getValue()), // 添加元素
+                        Map::putAll // 合并元素
+                );
     }
 
     public long getMemoryThreshold() {
