@@ -60,12 +60,15 @@ public class HybridStorage extends BaseLockObject {
 
     private String doPut(Storable<?> storable) {
         String key = keyGenerator.incrementAndGet() + "";
+        lock.lock();
         try {
             storage.put(key, storable);
             return key;
         } catch (Exception e) {
             remove(key);
             throw e;
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -78,11 +81,16 @@ public class HybridStorage extends BaseLockObject {
     }
 
     public <T> T get(String key) throws Exception {
-        Storable<?> value = storage.get(key);
-        if (value == null) {
-            return null;
+        lock.lock();
+        try {
+            Storable<?> value = storage.get(key);
+            if (value == null) {
+                return null;
+            }
+            return (T) value.getData();
+        } finally {
+            lock.unlock();
         }
-        return (T) value.getData();
     }
 
     public long getLengthByKey(String key) {
@@ -100,11 +108,16 @@ public class HybridStorage extends BaseLockObject {
         if (Objects.isNull(key)) {
             return;
         }
-        Storable<?> value = storage.get(key);
-        if (Objects.nonNull(value)) {
-            storage.remove(key);
-            value.clear();
+        lock.lock();
+        try {
+            Storable<?> value = storage.remove(key);
+            if (Objects.nonNull(value)) {
+                value.clear();
+            }
+        } finally {
+            lock.unlock();
         }
+
     }
 
     public <T> T getAndRemove(String key) throws Exception {
