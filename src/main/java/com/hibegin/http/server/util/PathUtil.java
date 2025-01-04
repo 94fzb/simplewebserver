@@ -1,5 +1,6 @@
 package com.hibegin.http.server.util;
 
+import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.common.util.ObjectUtil;
@@ -115,8 +116,15 @@ public class PathUtil {
         return safeAppendFilePath(getStaticPath(), filename);
     }
 
+    private static String getDefaultTempPath() {
+        if (EnvKit.isAndroid()) {
+            return getCachePath() + "/temp/";
+        }
+        return getRootPath() + "/temp/";
+    }
+
     public static String getTempPath() {
-        String str = ObjectUtil.requireNonNullElse(System.getProperty("sws.temp.path"), getRootPath() + "/temp/");
+        String str = ObjectUtil.requireNonNullElse(System.getProperty("sws.temp.path"), getDefaultTempPath());
         new File(str).mkdirs();
         return str;
     }
