@@ -18,12 +18,15 @@ public abstract class AbstractStorable<T> implements Storable<T> {
 
     @Override
     public long length() {
-        if (data != null) {
-            return getDataSize(data);
-        } else if (file != null && file.exists()) {
-            return file.length();
+        long length = 0;
+        T dataT = this.data;
+        File fileT = this.file;
+        if (Objects.nonNull(dataT)) {
+            return getDataSize(dataT);
+        } else if (Objects.nonNull(fileT) && fileT.exists()) {
+            return fileT.length();
         }
-        return 0;
+        return length;
     }
 
     @Override
