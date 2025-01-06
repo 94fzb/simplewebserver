@@ -18,7 +18,6 @@ public abstract class AbstractStorable<T> implements Storable<T> {
 
     @Override
     public long length() {
-        long length = 0;
         T dataT = this.data;
         File fileT = this.file;
         if (Objects.nonNull(dataT)) {
@@ -26,7 +25,7 @@ public abstract class AbstractStorable<T> implements Storable<T> {
         } else if (Objects.nonNull(fileT) && fileT.exists()) {
             return fileT.length();
         }
-        return length;
+        return 0;
     }
 
     @Override
