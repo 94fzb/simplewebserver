@@ -2,7 +2,7 @@ package com.hibegin.common;
 
 import com.hibegin.common.util.IOUtil;
 
-import java.io.File;
+import java.io.*;
 
 public class ByteStorable extends AbstractStorable<byte[]> {
 
@@ -26,5 +26,13 @@ public class ByteStorable extends AbstractStorable<byte[]> {
     @Override
     protected byte[] deserialize(byte[] bytes) {
         return bytes;
+    }
+
+    @Override
+    public InputStream getInputStream() throws IOException {
+        if (isInMemory()) {
+            return new ByteArrayInputStream(data);
+        }
+        return new FileInputStream(tempFileName);
     }
 }

@@ -3,7 +3,11 @@ package com.hibegin.common;
 import com.hibegin.common.util.LoggerUtil;
 
 import java.io.File;
-import java.util.*;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
@@ -87,6 +91,19 @@ public class HybridStorage extends BaseLockObject {
                 return null;
             }
             return (T) value.getData();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public InputStream getInputStream(String key) throws Exception {
+        lock.lock();
+        try {
+            Storable<?> value = storage.get(key);
+            if (value == null) {
+                return null;
+            }
+            return value.getInputStream();
         } finally {
             lock.unlock();
         }

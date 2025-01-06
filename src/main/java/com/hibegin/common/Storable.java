@@ -2,6 +2,7 @@ package com.hibegin.common;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 public interface Storable<T> {
     /**
@@ -38,5 +39,9 @@ public interface Storable<T> {
 
 
     void clear();
+
+    default InputStream getInputStream() throws IOException {
+        throw new UnsupportedOperationException();
+    }
 
 }
