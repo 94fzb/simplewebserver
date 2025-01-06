@@ -7,9 +7,9 @@ import java.io.IOException;
 import java.util.Objects;
 
 public abstract class AbstractStorable<T> implements Storable<T> {
-    protected T data;
-    protected String tempFileName;
-    protected File file;
+    protected volatile T data;
+    protected final String tempFileName;
+    protected volatile File file;
 
     public AbstractStorable(T data, String tempFileName) {
         this.data = data;
