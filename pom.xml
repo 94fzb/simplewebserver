@@ -24,7 +24,7 @@
     </properties>
     <developers>
         <developer>
-            <email>xchun90@163.com</email>
+            <email>90xchun@gmail.com</email>
             <url>https://xiaochun.zrlog.com</url>
         </developer>
     </developers>
@@ -32,7 +32,6 @@
         <connection>scm:git:https://github.com/94fzb/simplewebserver</connection>
         <developerConnection>scm:git:https://github.com/94fzb/simplewebserver</developerConnection>
         <url>https://github.com/94fzb/simplewebserver</url>
-      <tag>simplewebserver-0.3.144</tag>
   </scm>
     <issueManagement>
         <system>Github Issue</system>
