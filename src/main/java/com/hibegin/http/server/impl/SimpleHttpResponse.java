@@ -1,6 +1,7 @@
 package com.hibegin.http.server.impl;
 
 import com.hibegin.common.util.BytesUtil;
+import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.http.HttpVersion;
@@ -79,7 +80,9 @@ public class SimpleHttpResponse implements HttpResponse {
     private void send(byte[] bytes, boolean close) {
         if (Objects.isNull(request.getHandler())) {
             if (!request.getServerConfig().isNativeImageAgent()) {
-                LOGGER.warning("Request missing channel handler");
+                if (EnvKit.isDevMode()) {
+                    LOGGER.warning("Request missing channel handler");
+                }
             }
             return;
         }

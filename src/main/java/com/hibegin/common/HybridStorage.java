@@ -1,5 +1,6 @@
 package com.hibegin.common;
 
+import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
 
 import java.io.File;
@@ -77,9 +78,11 @@ public class HybridStorage extends BaseLockObject {
 
     public String putToDisk(Storable<?> storable) throws Exception {
         storable.saveToDisk(storageDir);
-        File tempFile = storable.getFile();
-        String fileInfo = Objects.nonNull(tempFile) ? tempFile.toString() : "unknown";
-        LOGGER.warning("HybridStorage put " + storable.getClass().getSimpleName() + " temp file:" + fileInfo + " -> to disk ...");
+        if (EnvKit.isDevMode()) {
+            File tempFile = storable.getFile();
+            String fileInfo = Objects.nonNull(tempFile) ? tempFile.toString() : "unknown";
+            LOGGER.warning("HybridStorage put " + storable.getClass().getSimpleName() + " temp file:" + fileInfo + " -> to disk ...");
+        }
         return doPut(storable);
     }
 

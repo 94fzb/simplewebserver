@@ -1,6 +1,7 @@
 package com.hibegin.common.util;
 
 import java.io.File;
+import java.util.Objects;
 
 public class EnvKit {
 
@@ -31,5 +32,9 @@ public class EnvKit {
 
     public static boolean isAndroid() {
         return ANDROID;
+    }
+
+    public static boolean isDevMode() {
+        return Objects.equals(System.getProperty("sws.debug"), "true");
     }
 }

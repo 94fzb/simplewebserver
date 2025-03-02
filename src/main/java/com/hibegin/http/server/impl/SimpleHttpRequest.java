@@ -1,6 +1,7 @@
 package com.hibegin.http.server.impl;
 
 import com.hibegin.common.BaseLockObject;
+import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.common.util.ObjectUtil;
@@ -316,7 +317,9 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
                 return ByteBuffer.wrap(new byte[0]);
             }
         } catch (Exception e) {
-            LOGGER.warning("Load requestBody error " + e.getMessage());
+            if (EnvKit.isDevMode()) {
+                LOGGER.warning("Load requestBody error " + e.getMessage());
+            }
             return ByteBuffer.wrap(new byte[0]);
         } finally {
             lock.unlock();

@@ -13,8 +13,10 @@ import com.hibegin.http.server.handler.SslReadWriteSelectorHandler;
 import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,14 +32,15 @@ public class SimpleHttpsWebServer extends SimpleWebServer {
         String fileString = ConfigKit.get("server.ssl.keystore", null).toString();
         File file = null;
         if (fileString.startsWith("classpath:")) {
-            byte[] fileBytes = IOUtil.getByteByInputStream(SimpleHttpsWebServer.class.getResourceAsStream(fileString.substring("classpath:".length())));
-            try {
-                file = File.createTempFile("keystore", fileString.substring(fileString.lastIndexOf(".")));
-                IOUtil.writeBytesToFile(fileBytes, file);
+            try (InputStream inputStream = SimpleHttpsWebServer.class.getResourceAsStream(fileString.substring("classpath:".length()))) {
+                if (Objects.nonNull(inputStream)) {
+                    byte[] fileBytes = IOUtil.getByteByInputStream(inputStream);
+                    file = File.createTempFile("keystore", fileString.substring(fileString.lastIndexOf(".")));
+                    IOUtil.writeBytesToFile(fileBytes, file);
+                }
             } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, "", e);
             }
-
         } else {
             file = new File(fileString);
         }
