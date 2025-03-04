@@ -35,6 +35,10 @@ public class EnvKit {
     }
 
     public static boolean isDevMode() {
-        return Objects.equals(System.getProperty("sws.debug"), "true");
+        return Objects.equals(System.getProperty("sws.run.mode"), "dev");
+    }
+
+    public static boolean isDebugMode() {
+        return Objects.equals(System.getProperty("sws.run.mode"), "debug");
     }
 }
