@@ -67,6 +67,26 @@ public class ServerConfig {
     private boolean disablePrintWebServerInfo;
     private boolean disableSavePidFile;
     private HybridStorage hybridStorage;
+    private String pidFilePathEnvKey;
+    private String serverPortFilePathEnvKey;
+
+    public String getPidFilePathEnvKey() {
+        return pidFilePathEnvKey;
+    }
+
+    public ServerConfig setPidFilePathEnvKey(String pidFilePathEnvKey) {
+        this.pidFilePathEnvKey = pidFilePathEnvKey;
+        return this;
+    }
+
+    public String getServerPortFilePathEnvKey() {
+        return serverPortFilePathEnvKey;
+    }
+
+    public ServerConfig setServerPortFilePathEnvKey(String serverPortFilePathEnvKey) {
+        this.serverPortFilePathEnvKey = serverPortFilePathEnvKey;
+        return this;
+    }
 
     public boolean isDisableSavePidFile() {
         return disableSavePidFile;

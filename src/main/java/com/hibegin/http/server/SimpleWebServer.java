@@ -88,9 +88,14 @@ public class SimpleWebServer implements ISocketServer {
             return;
         }
         try {
-            pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
-            EnvKit.savePid(pidFile.toString());
-            pidFile.deleteOnExit();
+            if (Objects.isNull(serverConfig.getPidFilePathEnvKey())) {
+                pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
+                EnvKit.savePid(pidFile.toString());
+                pidFile.deleteOnExit();
+            } else {
+                pidFile = EnvKit.savePidBySystemEnvKey(serverConfig.getPidFilePathEnvKey());
+            }
+
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "save pid error " + e.getMessage());
         }
@@ -221,6 +226,9 @@ public class SimpleWebServer implements ISocketServer {
             }
             if (!serverConfig.isDisableSavePidFile()) {
                 savePid();
+            }
+            if (Objects.nonNull(serverConfig.getServerPortFilePathEnvKey())) {
+                EnvKit.saveHttpPortToFile(serverConfig.getServerPortFilePathEnvKey(), serverConfig.getPort());
             }
             return true;
         } catch (Exception e) {
