@@ -88,14 +88,13 @@ public class SimpleWebServer implements ISocketServer {
             return;
         }
         try {
-            if (Objects.isNull(serverConfig.getPidFilePathEnvKey())) {
+            if (Objects.nonNull(serverConfig.getPidFilePathEnvKey()) && Objects.nonNull(System.getenv(serverConfig.getPidFilePathEnvKey()))) {
+                pidFile = EnvKit.savePidBySystemEnvKey(serverConfig.getPidFilePathEnvKey());
+            } else {
                 pidFile = new File(PathUtil.getRootPath() + "/sim.pid");
                 EnvKit.savePid(pidFile.toString());
                 pidFile.deleteOnExit();
-            } else {
-                pidFile = EnvKit.savePidBySystemEnvKey(serverConfig.getPidFilePathEnvKey());
             }
-
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "save pid error " + e.getMessage());
         }
