@@ -15,17 +15,17 @@ import java.util.logging.Logger;
 public class ConfigKit {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(ConfigKit.class);
-    private static final Properties prop;
 
-    static {
-        prop = new Properties();
+    private static Properties getProp() {
+        Properties prop = new Properties();
         try (InputStream inputStream = PathUtil.getConfInputStream("/conf.properties")) {
-            if(Objects.nonNull(inputStream)){
+            if (Objects.nonNull(inputStream)) {
                 prop.load(inputStream);
             }
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "", e);
         }
+        return prop;
     }
 
     public static Integer getMaxRequestBodySize() {
@@ -41,11 +41,11 @@ public class ConfigKit {
     }
 
     public static boolean contains(String key) {
-        return prop.get(key) != null;
+        return getProp().get(key) != null;
     }
 
     public static Object get(String key, Object defaultValue) {
-        Object obj = prop.get(key);
+        Object obj = getProp().get(key);
         if (obj != null) {
             return obj;
         }
@@ -53,9 +53,9 @@ public class ConfigKit {
     }
 
     public static int getInt(String key, int defaultValue) {
-        Object obj = prop.get(key);
+        Object obj = getProp().get(key);
         if (obj != null) {
-            return Integer.valueOf(obj + "");
+            return Integer.parseInt(obj + "");
         }
         return defaultValue;
     }
