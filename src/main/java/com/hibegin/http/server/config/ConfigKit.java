@@ -36,6 +36,10 @@ public class ConfigKit {
         return getInt("server.port", 6058);
     }
 
+    public static Integer getServerPort(int defaultPort) {
+        return getInt("server.port", defaultPort);
+    }
+
     public static Integer getHttpsServerPort() {
         return getInt("server.ssl.port", 6443);
     }
