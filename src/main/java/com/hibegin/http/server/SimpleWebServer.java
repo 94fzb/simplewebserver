@@ -21,10 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
-import java.util.Iterator;
-import java.util.Objects;
-import java.util.Set;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,10 +39,6 @@ public class SimpleWebServer implements ISocketServer {
     private Selector selector;
     private HttpDecodeRunnable httpDecodeRunnable;
     private ServerSocketChannel serverChannel;
-
-    public ApplicationContext getApplicationContext() {
-        return applicationContext;
-    }
 
     public SimpleWebServer() {
         this(null, null, null);
@@ -78,6 +71,10 @@ public class SimpleWebServer implements ISocketServer {
         this.applicationContext = new ApplicationContext(serverConfig);
         Runtime rt = Runtime.getRuntime();
         rt.addShutdownHook(new Thread(SimpleWebServer.this::destroy));
+    }
+
+    public ApplicationContext getApplicationContext() {
+        return applicationContext;
     }
 
     private void savePid() {
@@ -143,7 +140,13 @@ public class SimpleWebServer implements ISocketServer {
                     } catch (Exception e) {
                         LOGGER.log(Level.SEVERE, "", e);
                     } finally {
-                        iterator.remove();
+                        try {
+                            iterator.remove();
+                        } catch (ConcurrentModificationException e) {
+                            if (EnvKit.isDevMode()) {
+                                LOGGER.log(Level.SEVERE, "", e);
+                            }
+                        }
                     }
                 }
             } catch (CancelledKeyException e) {
