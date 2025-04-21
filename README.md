@@ -1,6 +1,6 @@
 # SimpleWebServer
 
-[![Maven Central](https://img.shields.io/maven-central/v/com.hibegin/simplewebserver.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.hibegin%22%20AND%20a:%22simplewebserver%22)
+[![Maven Central](https://img.shields.io/maven-central/v/com.hibegin/simplewebserver.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/com.hibegin/simplewebserver)
 
 > SimpleWebServer 是一款使用Java基于NIO编写的超轻量级开源Web Application Server
 
@@ -54,7 +54,7 @@ Java21 loom + GraalVM Native 让应用有更小的内存占用和更快捷的运
 <dependency>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.3.145</version>
+    <version>0.3.175</version>
 </dependency>
 ```
 
