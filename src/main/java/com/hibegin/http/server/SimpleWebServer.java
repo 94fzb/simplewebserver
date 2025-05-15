@@ -172,15 +172,19 @@ public class SimpleWebServer implements ISocketServer {
             if (Objects.nonNull(selector)) {
                 selector.close();
             }
+            if (!selector.isOpen()) {
+                return;
+            }
             if (Objects.nonNull(serverChannel)) {
                 serverChannel.close();
-            }
-            if (Objects.nonNull(serverConfig.getRequestCheckerExecutor())) {
-                serverConfig.getRequestCheckerExecutor().shutdownNow();
             }
             LOGGER.info(serverConfig.getApplicationName() + " close success, reason " + ObjectUtil.requireNonNullElse(reason, ""));
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "close selector error");
+        } finally {
+            if (Objects.nonNull(serverConfig.getRequestCheckerExecutor())) {
+                serverConfig.getRequestCheckerExecutor().shutdownNow();
+            }
         }
     }
 
