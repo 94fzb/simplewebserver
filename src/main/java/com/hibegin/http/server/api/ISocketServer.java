@@ -5,7 +5,7 @@ public interface ISocketServer {
     void listen();
 
     default void destroy() {
-        destroy("");
+        destroy(null);
     }
 
     void destroy(String reason);
