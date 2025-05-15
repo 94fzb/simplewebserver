@@ -155,6 +155,7 @@ public class SimpleWebServer implements ISocketServer {
                 LOGGER.log(Level.SEVERE, "", e);
             }
         }
+        destroy("selector closed");
     }
 
     /**
