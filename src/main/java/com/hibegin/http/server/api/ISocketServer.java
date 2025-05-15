@@ -2,7 +2,7 @@ package com.hibegin.http.server.api;
 
 public interface ISocketServer {
 
-    void listener();
+    void listen();
 
     void destroy();
 

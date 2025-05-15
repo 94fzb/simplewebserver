@@ -110,7 +110,7 @@ public class SimpleWebServer implements ISocketServer {
     }
 
     @Override
-    public void listener() {
+    public void listen() {
         if (selector == null) {
             return;
         }
