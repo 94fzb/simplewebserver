@@ -4,7 +4,11 @@ public interface ISocketServer {
 
     void listen();
 
-    void destroy();
+    default void destroy() {
+        destroy("");
+    }
+
+    void destroy(String reason);
 
     boolean create();
 
