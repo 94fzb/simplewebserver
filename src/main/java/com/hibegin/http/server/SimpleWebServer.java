@@ -70,7 +70,7 @@ public class SimpleWebServer implements ISocketServer {
         }
         this.applicationContext = new ApplicationContext(serverConfig);
         Runtime rt = Runtime.getRuntime();
-        rt.addShutdownHook(new Thread(() -> this.destroy("shutdown")));
+        rt.addShutdownHook(new Thread(() -> this.destroy("shutdown hook")));
     }
 
     public ApplicationContext getApplicationContext() {
@@ -178,7 +178,7 @@ public class SimpleWebServer implements ISocketServer {
             if (Objects.nonNull(serverChannel)) {
                 serverChannel.close();
             }
-            LOGGER.info(serverConfig.getApplicationName() + " close success, reason " + ObjectUtil.requireNonNullElse(reason, ""));
+            LOGGER.info(serverConfig.getApplicationName() + " destroyed, reason " + ObjectUtil.requireNonNullElse(reason, ""));
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "close selector error");
         } finally {
