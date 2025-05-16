@@ -180,7 +180,7 @@ public class SimpleWebServer implements ISocketServer {
             }
             LOGGER.info(serverConfig.getApplicationName() + " destroyed, reason " + ObjectUtil.requireNonNullElse(reason, ""));
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "close selector error");
+            LOGGER.log(Level.SEVERE,  serverConfig.getApplicationName() + " close selector error");
         } finally {
             if (Objects.nonNull(serverConfig.getRequestCheckerExecutor())) {
                 serverConfig.getRequestCheckerExecutor().shutdownNow();
