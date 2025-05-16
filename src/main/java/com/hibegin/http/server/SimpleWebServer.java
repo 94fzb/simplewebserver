@@ -169,11 +169,11 @@ public class SimpleWebServer implements ISocketServer {
     @Override
     public void destroy(String reason) {
         try {
+            if (Objects.nonNull(selector) && !selector.isOpen()) {
+                return;
+            }
             if (Objects.nonNull(selector)) {
                 selector.close();
-            }
-            if (!selector.isOpen()) {
-                return;
             }
             if (Objects.nonNull(serverChannel)) {
                 serverChannel.close();
