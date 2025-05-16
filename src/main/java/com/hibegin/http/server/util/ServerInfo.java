@@ -2,8 +2,8 @@ package com.hibegin.http.server.util;
 
 import com.hibegin.common.util.LoggerUtil;
 
-import java.io.IOException;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -23,10 +23,14 @@ public class ServerInfo {
             try {
                 properties.load(inputStream);
                 String key = "git.build.version";
+                String buildTime = "git.build.time";
                 if (properties.get(key) != null && !"".equals(properties.get(key))) {
                     version = properties.get(key).toString();
                 }
-            } catch (IOException e) {
+                if (properties.get(buildTime) != null && !"".equals(properties.get(buildTime))) {
+                    time = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse(properties.get(buildTime).toString());
+                }
+            } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "", e);
             }
         } else {

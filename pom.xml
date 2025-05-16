@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.3.180-SNAPSHOT</version>
+    <version>3.1.47-SNAPSHOT</version>
     <packaging>jar</packaging>
     <url>https://github.com/94fzb/simplewebserver</url>
 
@@ -14,13 +14,12 @@
     </description>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <freemarker.version>2.3.30</freemarker.version>
-        <gson.version>2.10.1</gson.version>
+        <freemarker.version>2.3.34</freemarker.version>
+        <gson.version>2.13.1</gson.version>
         <maven.compiler.target>8</maven.compiler.target>
         <maven.compiler.source>8</maven.compiler.source>
-        <java11.sourceDirectory>${project.basedir}/src/main/java11</java11.sourceDirectory>
-        <java11.build.outputDirectory>${project.build.directory}/classes-java11</java11.build.outputDirectory>
         <maven.test.skip>true</maven.test.skip>
+        <gpg.passphrase />
     </properties>
     <developers>
         <developer>
@@ -32,8 +31,8 @@
         <connection>scm:git:https://github.com/94fzb/simplewebserver</connection>
         <developerConnection>scm:git:https://github.com/94fzb/simplewebserver</developerConnection>
         <url>https://github.com/94fzb/simplewebserver</url>
-    <tag>HEAD</tag>
-  </scm>
+        <tag>simplewebserver-0.4.42</tag>
+    </scm>
     <issueManagement>
         <system>Github Issue</system>
         <url>https://github.com/94fzb/simplewebserver</url>
@@ -82,29 +81,23 @@
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <excludes>
-                                <exclude>module-info.java</exclude>
-                            </excludes>
                             <source>${maven.compiler.source}</source>
                             <target>${maven.compiler.target}</target>
                         </configuration>
                     </execution>
 
                     <execution>
-                        <id>compile-module-info-java</id>
+                        <id>compile-java-11</id>
                         <phase>compile</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <source>11</source>
-                            <target>11</target>
-                            <includes>
-                                <include>module-info.java</include>
-                            </includes>
-                            <excludes>
-                                <exclude>**/com/hibegin/**</exclude>
-                            </excludes>
+                            <release>11</release>
+                            <compileSourceRoots>
+                                <compileSourceRoot>${project.basedir}/src/main/java11</compileSourceRoot>
+                            </compileSourceRoots>
+                            <multiReleaseOutput>true</multiReleaseOutput>
                         </configuration>
                     </execution>
                 </executions>
@@ -123,50 +116,8 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>1.8</version>
-                <executions>
-                    <execution>
-                        <id>compile-java11</id>
-                        <phase>compile</phase>
-                        <configuration>
-                            <target>
-                                <mkdir dir="${java11.build.outputDirectory}" />
-                                <javac srcdir="${java11.sourceDirectory}" destdir="${java11.build.outputDirectory}" classpath="${project.build.outputDirectory}" includeantruntime="false" source="11" target="11" />
-                            </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <id>copy-resources</id>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${project.build.outputDirectory}/META-INF/versions/11</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${java11.build.outputDirectory}</directory>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>3.11.2</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -190,6 +141,15 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <passphrase>${gpg.passphrase}</passphrase>
+                    <useAgent>false</useAgent>
+                    <executable>gpg</executable>
+                    <gpgArguments>
+                        <argument>--pinentry-mode</argument>
+                        <argument>loopback</argument>
+                    </gpgArguments>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
@@ -264,11 +224,18 @@
                         <abbrev>7</abbrev>
                         <dirty>-dirty</dirty>
                         <match>*</match>
-                        <tags>false</tags>
+                        <tags>true</tags>
                         <forceLongFormat>false</forceLongFormat>
                     </gitDescribe>
                     <validationShouldFailIfNoMatch>true</validationShouldFailIfNoMatch>
                     <evaluateOnCommit>HEAD</evaluateOnCommit>
+                    <includeOnlyProperties>
+                        <includeOnlyProperty>git.commit.id.abbrev</includeOnlyProperty>
+                        <includeOnlyProperty>git.commit.id</includeOnlyProperty>
+                        <includeOnlyProperty>git.closest.tag.name</includeOnlyProperty>
+                        <includeOnlyProperty>git.build.version</includeOnlyProperty>
+                        <includeOnlyProperty>git.build.time</includeOnlyProperty>
+                    </includeOnlyProperties>
                 </configuration>
             </plugin>
         </plugins>

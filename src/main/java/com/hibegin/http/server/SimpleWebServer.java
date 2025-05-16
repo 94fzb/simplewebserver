@@ -7,8 +7,8 @@ import com.hibegin.http.server.api.ISocketServer;
 import com.hibegin.http.server.config.*;
 import com.hibegin.http.server.handler.CheckRequestRunnable;
 import com.hibegin.http.server.handler.HttpDecodeRunnable;
-import com.hibegin.http.server.handler.PlainReadWriteSelectorHandler;
-import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
+import com.hibegin.common.io.handler.PlainReadWriteSelectorHandler;
+import com.hibegin.common.io.handler.ReadWriteSelectorHandler;
 import com.hibegin.http.server.util.NativeImageUtils;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
@@ -147,7 +147,7 @@ public class SimpleWebServer implements ISocketServer {
                 }
             } catch (CancelledKeyException e) {
                 //ignore
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 LOGGER.log(Level.SEVERE, "", e);
             }
         }

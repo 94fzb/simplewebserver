@@ -60,7 +60,7 @@ public class EnvKit {
                 return host;
             }
             host = System.getenv("HOSTNAME");
-            return Objects.requireNonNullElse(host, "unknown");
+            return ObjectUtil.requireNonNullElse(host, "unknown");
         } catch (Exception e) {
             return "unknown";
         }

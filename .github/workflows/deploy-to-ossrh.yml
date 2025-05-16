@@ -1,0 +1,49 @@
+name: Release to Maven Central
+
+on:
+  push:
+    tags:
+      - 'v*'  # Only run on version tags like v1.2.3
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+        cache: 'maven'
+        server-id: ossrh
+        settings-path: ${{ github.workspace }}
+
+    - name: Generate settings.xml
+      run: |
+        cat > $GITHUB_WORKSPACE/settings.xml <<EOF
+        <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+          <servers>
+            <server>
+              <id>ossrh</id>
+              <username>${{ secrets.OSSRH_USERNAME }}</username>
+              <password>${{ secrets.OSSRH_PASSWORD }}</password>
+            </server>
+          </servers>
+        </settings>
+        EOF
+    - name: Import GPG key
+      run: |
+        echo "$GPG_PRIVATE_KEY" | gpg --batch --yes --import
+      env:
+        GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+
+    - name: Build and Deploy to OSSRH
+      run: ./mvnw clean deploy -s $GITHUB_WORKSPACE/settings.xml -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
+      env:
+        GPG_TTY: $(tty)

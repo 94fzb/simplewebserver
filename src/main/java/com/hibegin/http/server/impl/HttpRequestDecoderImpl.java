@@ -12,7 +12,7 @@ import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.config.ConfigKit;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.execption.RequestBodyTooLargeException;
-import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
+import com.hibegin.common.io.handler.ReadWriteSelectorHandler;
 import com.hibegin.http.server.util.FileCacheKit;
 import com.hibegin.http.server.util.HttpQueryStringUtils;
 
@@ -112,9 +112,6 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             dealRequestBodyData();
             //处理完成，清空byte[]
             inputBytes = new byte[]{};
-            if (Objects.nonNull(request.getHandler())) {
-                request.getHandler().flushRequestBB();
-            }
         }
         return result;
     }

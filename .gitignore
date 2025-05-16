@@ -1,5 +1,3 @@
-/bin
-
 .idea
 **/log
 *.pid
@@ -15,6 +13,7 @@
 .project
 *.*~
 pom.xml.releaseBackup
+pom.xml.versionsBackup
 release.properties
 pom.xml.next
 **/.DS_Store

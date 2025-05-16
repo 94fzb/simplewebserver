@@ -1,4 +1,4 @@
-package com.hibegin.http.server.handler;
+package com.hibegin.common.io.handler;
 
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.LoggerUtil;
@@ -14,17 +14,28 @@ import java.util.logging.Logger;
 public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(PlainReadWriteSelectorHandler.class);
-    private final int maxRequestBbSize;
     private static final int INIT_REQUEST_BB_SIZE = 8 * 1024;
+    private static final int MIN_REQUEST_BB_SIZE = 2 * 1024;
+
     final ReentrantLock writeLock = new ReentrantLock();
     final ReentrantLock readLock = new ReentrantLock();
     protected ByteBuffer requestBB;
     protected SocketChannel sc;
+    private final AdaptiveBufferAllocator bufferAllocator;
+
+    public PlainReadWriteSelectorHandler(SocketChannel sc) {
+        this(sc, AdaptiveBufferAllocator.MAX_REQUEST_BB_SIZE);
+    }
 
     public PlainReadWriteSelectorHandler(SocketChannel sc, int maxRequestBbSize) {
         this.sc = sc;
-        this.maxRequestBbSize = maxRequestBbSize;
-        this.requestBB = ByteBuffer.allocate(INIT_REQUEST_BB_SIZE);
+        this.bufferAllocator = new AdaptiveBufferAllocator(MIN_REQUEST_BB_SIZE, INIT_REQUEST_BB_SIZE, Math.max(Math.min(maxRequestBbSize, AdaptiveBufferAllocator.MAX_REQUEST_BB_SIZE), INIT_REQUEST_BB_SIZE));
+        this.requestBB = bufferAllocator.allocateByteBuffer();
+    }
+
+    @Override
+    public boolean isPlain() {
+        return true;
     }
 
     @Override
@@ -43,16 +54,18 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     }
 
+
     @Override
     public ByteBuffer handleRead() throws IOException {
         readLock.lock();
         try {
-            checkRequestBB();
+            initRequestBB();
             int length = sc.read(requestBB);
             if (length != -1) {
                 ByteBuffer byteBuffer = ByteBuffer.allocate(length);
                 byteBuffer.put(BytesUtil.subBytes(requestBB.array(), 0, length));
-                resizeRequestBB(length);
+                flushRequestBB(length);
+                //System.out.println("bufferAllocator = " + bufferAllocator.currentSize());
                 return byteBuffer;
             }
             throw new EOFException();
@@ -64,28 +77,26 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
         }
     }
 
-    void checkRequestBB() {
-        if (requestBB.capacity() == 0) {
-            requestBB = ByteBuffer.allocate(INIT_REQUEST_BB_SIZE);
+    void initRequestBB() {
+        if (requestBB.capacity() > 0) {
+            return;
         }
+        //Expand buffer for large request
+        requestBB = bufferAllocator.allocateByteBuffer();
     }
 
-    void resizeRequestBB(int remaining) {
-        if (requestBB.remaining() < remaining) {
-            int bbSize = requestBB.capacity() * 2;
-            //Expand buffer for large request
-            requestBB = ByteBuffer.allocate(Math.min(bbSize, maxRequestBbSize));
-        } else {
-            requestBB = ByteBuffer.allocate(requestBB.capacity());
-        }
-    }
 
     @Override
     public void close() {
         try {
+            if (!sc.isOpen()) {
+                return;
+            }
             sc.close();
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "close SocketChannel", e);
+        } finally {
+            requestBB = ByteBuffer.allocate(0);
         }
     }
 
@@ -94,10 +105,14 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
         return sc;
     }
 
-    @Override
-    public void flushRequestBB() {
-        readLock.lock();
+    void cleanRequestBB() {
         requestBB = ByteBuffer.allocate(0);
+    }
+
+    void flushRequestBB(int lastReadLength) {
+        readLock.lock();
+        cleanRequestBB();
+        bufferAllocator.record(lastReadLength);
         readLock.unlock();
     }
 }

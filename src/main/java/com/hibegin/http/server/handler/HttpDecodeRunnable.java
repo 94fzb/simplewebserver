@@ -5,6 +5,7 @@ import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.SimpleWebServer;
 import com.hibegin.http.server.api.HttpErrorHandle;
+import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.config.RequestConfig;
@@ -16,8 +17,10 @@ import com.hibegin.http.server.impl.HttpRequestDecoderImpl;
 import com.hibegin.http.server.impl.SimpleHttpResponse;
 import com.hibegin.http.server.util.FileCacheKit;
 import com.hibegin.http.server.util.FrameUtil;
+import com.hibegin.http.server.util.HttpRequestBuilder;
 import com.hibegin.http.server.util.StatusCodeUtil;
 
+import javax.net.ssl.SSLException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -204,21 +207,19 @@ public class HttpDecodeRunnable implements Runnable {
         try {
             HttpRequestDeCoder codecEntry = applicationContext.getHttpDeCoderMap().get(channel.socket());
             if (Objects.isNull(codecEntry)) {
-                ReadWriteSelectorHandler handler = simpleWebServer.getReadWriteSelectorHandlerInstance(channel, key);
-                byte[] data = handler.handleRead().array();
+                codecEntry = new HttpRequestDecoderImpl(requestConfig, applicationContext, simpleWebServer.getReadWriteSelectorHandlerInstance(channel, key));
+                applicationContext.getHttpDeCoderMap().put(channel.socket(), codecEntry);
+            }
+            try {
+                byte[] data = codecEntry.getHandler().handleRead().array();
                 if (data.length == 0) {
                     return;
                 }
-                HttpRequestDeCoder requestDeCoder = new HttpRequestDecoderImpl(requestConfig, applicationContext, handler);
-                applicationContext.getHttpDeCoderMap().put(channel.socket(), requestDeCoder);
                 addBytesToQueue(key, channel.socket(), data, false);
-                return;
+            } catch (SSLException e) {
+                HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, "/", "127.0.0.1", "", requestConfig, applicationContext);
+                handleException(key, codecEntry, new HttpRequestHandlerRunnable(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig)), 400, e);
             }
-            byte[] data = codecEntry.getHandler().handleRead().array();
-            if (data.length == 0) {
-                return;
-            }
-            addBytesToQueue(key, channel.socket(), data, false);
         } finally {
             this.run();
         }

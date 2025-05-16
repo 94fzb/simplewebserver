@@ -19,5 +19,6 @@ module hibegin.simplewebserver {
     exports com.hibegin.http.server.web;
     exports com.hibegin.http.server.web.cookie;
     exports com.hibegin.http.server.web.session;
+    exports com.hibegin.common.io.handler;
     opens template.sf;
 }
