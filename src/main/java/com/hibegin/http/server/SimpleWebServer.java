@@ -3,19 +3,15 @@ package com.hibegin.http.server;
 import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.common.util.ObjectUtil;
-import com.hibegin.http.HttpMethod;
-import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.ISocketServer;
 import com.hibegin.http.server.config.*;
 import com.hibegin.http.server.handler.CheckRequestRunnable;
 import com.hibegin.http.server.handler.HttpDecodeRunnable;
 import com.hibegin.http.server.handler.PlainReadWriteSelectorHandler;
 import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
-import com.hibegin.http.server.impl.SimpleHttpResponse;
-import com.hibegin.http.server.util.HttpRequestBuilder;
+import com.hibegin.http.server.util.NativeImageUtils;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
-import com.hibegin.http.server.web.MethodInterceptor;
 
 import java.io.File;
 import java.io.IOException;
@@ -180,7 +176,7 @@ public class SimpleWebServer implements ISocketServer {
             }
             LOGGER.info(serverConfig.getApplicationName() + " destroyed, reason " + ObjectUtil.requireNonNullElse(reason, ""));
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE,  serverConfig.getApplicationName() + " close selector error");
+            LOGGER.log(Level.SEVERE, serverConfig.getApplicationName() + " close selector error");
         } finally {
             if (Objects.nonNull(serverConfig.getRequestCheckerExecutor())) {
                 serverConfig.getRequestCheckerExecutor().shutdownNow();
@@ -220,16 +216,7 @@ public class SimpleWebServer implements ISocketServer {
             applicationContext.init();
             //try init native image info
             if (serverConfig.isNativeImageAgent()) {
-                applicationContext.getServerConfig().getRouter().getRouterMap().keySet().forEach((key) -> {
-                    try {
-                        HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, key, "127.0.0.1", "NativeImageAgent", requestConfig, applicationContext);
-                        new MethodInterceptor().doInterceptor(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig));
-                        LOGGER.info("Native image agent call request " + key + " success");
-                    } catch (Exception e) {
-                        LOGGER.warning("Native image agent call request error -> " + LoggerUtil.recordStackTraceMsg(e));
-                    }
-                });
-                new LocalFileStaticResourceLoader(true, "/" + System.currentTimeMillis(), PathUtil.getRootPath()).getInputStream(PathUtil.getRootPath());
+                NativeImageUtils.routerMethodInvoke(applicationContext, requestConfig, responseConfig);
             }
             if (!serverConfig.isDisableSavePidFile()) {
                 savePid();

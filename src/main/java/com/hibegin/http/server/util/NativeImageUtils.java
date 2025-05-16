@@ -1,6 +1,14 @@
 package com.hibegin.http.server.util;
 
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.HttpMethod;
+import com.hibegin.http.server.ApplicationContext;
+import com.hibegin.http.server.api.HttpRequest;
+import com.hibegin.http.server.config.LocalFileStaticResourceLoader;
+import com.hibegin.http.server.config.RequestConfig;
+import com.hibegin.http.server.config.ResponseConfig;
+import com.hibegin.http.server.impl.SimpleHttpResponse;
+import com.hibegin.http.server.web.MethodInterceptor;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,5 +39,19 @@ public class NativeImageUtils {
                 }
             }
         }
+    }
+
+    public static void routerMethodInvoke(ApplicationContext applicationContext, RequestConfig requestConfig, ResponseConfig responseConfig) {
+        applicationContext.getServerConfig().getRouter().getRouterMap().keySet().forEach((key) -> {
+            try {
+                HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, key, "127.0.0.1", "NativeImageAgent", requestConfig, applicationContext);
+                new MethodInterceptor().doInterceptor(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig));
+                LOGGER.info("Native image agent call request " + key + " success");
+            } catch (Exception e) {
+                LOGGER.warning("Native image agent call request error -> " + LoggerUtil.recordStackTraceMsg(e));
+            }
+        });
+        new LocalFileStaticResourceLoader(true, "/" + System.currentTimeMillis(), PathUtil.getRootPath()).getInputStream(PathUtil.getRootPath());
+
     }
 }
