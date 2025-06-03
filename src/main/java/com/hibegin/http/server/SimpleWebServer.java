@@ -147,7 +147,7 @@ public class SimpleWebServer implements ISocketServer {
                 }
             } catch (CancelledKeyException e) {
                 //ignore
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 LOGGER.log(Level.SEVERE, "", e);
             }
         }
