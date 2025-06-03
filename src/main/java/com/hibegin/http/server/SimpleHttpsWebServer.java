@@ -1,14 +1,14 @@
 package com.hibegin.http.server;
 
+import com.hibegin.common.io.handler.ReadWriteSelectorHandler;
+import com.hibegin.common.io.handler.ReadWriteSelectorHandlerUtils;
+import com.hibegin.common.io.handler.SslChannelFactory;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.config.ConfigKit;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
-import com.hibegin.http.server.handler.ReadWriteSelectorHandler;
-import com.hibegin.http.server.handler.SslChannelFactory;
-import com.hibegin.http.server.handler.SslReadWriteSelectorHandler;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
@@ -57,7 +57,7 @@ public class SimpleHttpsWebServer extends SimpleWebServer {
 
     @Override
     public ReadWriteSelectorHandler getReadWriteSelectorHandlerInstance(SocketChannel channel, SelectionKey key) throws IOException {
-        return new SslReadWriteSelectorHandler(channel, key, sslContext, requestConfig.getRequestMaxBufferSize());
+        return ReadWriteSelectorHandlerUtils.buildServerReadWriteSelectorHandler(channel, requestConfig.getRequestMaxBufferSize(), key, sslContext, false);
     }
 
     @Override
