@@ -44,6 +44,7 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
+import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -156,16 +157,27 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
     private final SelectionKey selectionKey;
 
+    private ByteArrayOutputStream writePendingStream = new ByteArrayOutputStream();
+
+
     /**
      * Constructor for a secure ChannelIO variant.
      */
     public SslReadWriteSelectorHandler(SocketChannel sc, SelectionKey selectionKey,
                                        SSLContext sslContext,
-                                       int maxRequestBbSize,boolean clientMode) throws IOException {
-        super(sc, maxRequestBbSize);
+                                       boolean clientMode) throws IOException {
+        this(sc, selectionKey, sslContext, clientMode, null, 0);
+    }
 
-        sslEngine = sslContext.createSSLEngine();
+    public SslReadWriteSelectorHandler(SocketChannel sc, SelectionKey selectionKey,
+                                       SSLContext sslContext,
+                                       boolean clientMode,
+                                       String host, int port) throws IOException {
+        super(sc, -1);
+
+        sslEngine = clientMode ? sslContext.createSSLEngine(host, port) : sslContext.createSSLEngine();
         sslEngine.setUseClientMode(clientMode);
+
         initialHSStatus = HandshakeStatus.NEED_UNWRAP;
         initialHSComplete = false;
 
@@ -196,7 +208,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
         requestBB.flip();  // limit = 当前写入位置, position = 0
 
-        int newCapacity = Math.min(Math.max(requestBB.limit() + remaining, requestBB.capacity() * 2), maxRequestBbSize);
+        int newCapacity = Math.min(Math.max(requestBB.limit() + remaining, requestBB.capacity() * 2), sslEngine.getSession().getApplicationBufferSize());
         ByteBuffer newBuffer = ByteBuffer.allocate(newCapacity);
 
         newBuffer.put(requestBB); // 把全部写入数据 copy 过去（0 到 limit）
@@ -281,6 +293,12 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
                 case FINISHED:
                     initialHSComplete = true;
+                    // flush pending write after handshake
+                    byte[] byteArray = writePendingStream.toByteArray();
+                    if (byteArray.length > 0) {
+                        handleWrite(ByteBuffer.wrap(byteArray));
+                        writePendingStream = new ByteArrayOutputStream();
+                    }
                     return;
 
                 case NOT_HANDSHAKING:
@@ -354,7 +372,8 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                             LOGGER.warning("SSL closed without close_notify: " + e.getMessage());
                         }
                         return ByteBuffer.allocate(0);
-
+                    case BUFFER_OVERFLOW:
+                        resizeRequestBB(1);
                     default:
                         throw new IOException("sslEngine error during data read: " + result.getStatus());
                 }
@@ -480,7 +499,8 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         try {
             doHandshake();
             if (!initialHSComplete) {
-                throw new IllegalStateException();
+                writePendingStream.write(byteBuffer.array());
+                return;
             }
             while (byteBuffer.hasRemaining() && sc.isOpen()) {
                 int len = doWrite(byteBuffer);

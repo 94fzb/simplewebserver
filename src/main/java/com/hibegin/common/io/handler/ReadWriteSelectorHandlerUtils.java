@@ -12,13 +12,22 @@ public class ReadWriteSelectorHandlerUtils {
         return new PlainReadWriteSelectorHandler(socketChannel, maxRequestBufferSize);
     }
 
-    public static ReadWriteSelectorHandler buildReadWriteSelectorHandler(SocketChannel socketChannel, int maxRequestBufferSize,
-                                                                         SelectionKey selectionKey,
-                                                                         SSLContext sslContext,
-                                                                         boolean clientMode) throws IOException {
+    public static ReadWriteSelectorHandler buildServerReadWriteSelectorHandler(SocketChannel socketChannel, int maxRequestBufferSize,
+                                                                               SelectionKey selectionKey,
+                                                                               SSLContext sslContext) throws IOException {
         if (Objects.isNull(sslContext)) {
             return buildReadWriteSelectorHandler(socketChannel, maxRequestBufferSize);
         }
-        return new SslReadWriteSelectorHandler(socketChannel, selectionKey, sslContext, maxRequestBufferSize, clientMode);
+        return new SslReadWriteSelectorHandler(socketChannel, selectionKey, sslContext, false);
+    }
+
+    public static ReadWriteSelectorHandler buildClientReadWriteSelectorHandler(SocketChannel socketChannel, int maxRequestBufferSize,
+                                                                               SelectionKey selectionKey,
+                                                                               SSLContext sslContext,
+                                                                               String host, int port) throws IOException {
+        if (Objects.isNull(sslContext)) {
+            return buildReadWriteSelectorHandler(socketChannel, maxRequestBufferSize);
+        }
+        return new SslReadWriteSelectorHandler(socketChannel, selectionKey, sslContext, true, host, port);
     }
 }

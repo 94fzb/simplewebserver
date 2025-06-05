@@ -57,7 +57,7 @@ public class SimpleHttpsWebServer extends SimpleWebServer {
 
     @Override
     public ReadWriteSelectorHandler getReadWriteSelectorHandlerInstance(SocketChannel channel, SelectionKey key) throws IOException {
-        return ReadWriteSelectorHandlerUtils.buildReadWriteSelectorHandler(channel, requestConfig.getRequestMaxBufferSize(), key, sslContext, false);
+        return ReadWriteSelectorHandlerUtils.buildServerReadWriteSelectorHandler(channel, requestConfig.getRequestMaxBufferSize(), key, sslContext);
     }
 
     @Override
