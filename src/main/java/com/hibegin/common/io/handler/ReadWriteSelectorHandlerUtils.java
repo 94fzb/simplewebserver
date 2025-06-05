@@ -12,10 +12,13 @@ public class ReadWriteSelectorHandlerUtils {
         return new PlainReadWriteSelectorHandler(socketChannel, maxRequestBufferSize);
     }
 
-    public static ReadWriteSelectorHandler buildReadWriteSelectorHandler(SocketChannel socketChannel, int maxRequestBufferSize, SelectionKey selectionKey, SSLContext sslContext) throws IOException {
+    public static ReadWriteSelectorHandler buildReadWriteSelectorHandler(SocketChannel socketChannel, int maxRequestBufferSize,
+                                                                         SelectionKey selectionKey,
+                                                                         SSLContext sslContext,
+                                                                         boolean clientMode) throws IOException {
         if (Objects.isNull(sslContext)) {
             return buildReadWriteSelectorHandler(socketChannel, maxRequestBufferSize);
         }
-        return new SslReadWriteSelectorHandler(socketChannel, selectionKey, sslContext, maxRequestBufferSize);
+        return new SslReadWriteSelectorHandler(socketChannel, selectionKey, sslContext, maxRequestBufferSize, clientMode);
     }
 }
