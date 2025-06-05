@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(PlainReadWriteSelectorHandler.class);
-    private final int maxRequestBbSize;
+    protected final int maxRequestBbSize;
     private static final int INIT_REQUEST_BB_SIZE = 8 * 1024;
     final ReentrantLock writeLock = new ReentrantLock();
     final ReentrantLock readLock = new ReentrantLock();
@@ -43,6 +43,16 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     }
 
+    private void reallocateRequestBB(int readLength) {
+        if (requestBB.remaining() < readLength) {
+            int bbSize = requestBB.capacity() * 2;
+            //Expand buffer for large request
+            requestBB = ByteBuffer.allocate(Math.min(bbSize, maxRequestBbSize));
+        } else {
+            requestBB = ByteBuffer.allocate(requestBB.capacity());
+        }
+    }
+
     @Override
     public ByteBuffer handleRead() throws IOException {
         readLock.lock();
@@ -52,7 +62,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
             if (length != -1) {
                 ByteBuffer byteBuffer = ByteBuffer.allocate(length);
                 byteBuffer.put(BytesUtil.subBytes(requestBB.array(), 0, length));
-                resizeRequestBB(length);
+                reallocateRequestBB(length);
                 return byteBuffer;
             }
             throw new EOFException();
@@ -70,17 +80,6 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
         }
     }
 
-    void resizeRequestBB(int remaining) {
-        if (requestBB.remaining() >= remaining) return;
-
-        requestBB.flip();  // limit = 当前写入位置, position = 0
-
-        int newCapacity = Math.min(Math.max(requestBB.limit() + remaining, requestBB.capacity() * 2), maxRequestBbSize);
-        ByteBuffer newBuffer = ByteBuffer.allocate(newCapacity);
-
-        newBuffer.put(requestBB); // 把全部写入数据 copy 过去（0 到 limit）
-        requestBB = newBuffer;
-    }
 
     @Override
     public void close() {

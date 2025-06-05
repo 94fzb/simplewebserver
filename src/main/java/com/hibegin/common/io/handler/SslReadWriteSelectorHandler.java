@@ -194,6 +194,18 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         return !bb.hasRemaining();
     }
 
+    private void resizeRequestBB(int remaining) {
+        if (requestBB.remaining() >= remaining) return;
+
+        requestBB.flip();  // limit = 当前写入位置, position = 0
+
+        int newCapacity = Math.min(Math.max(requestBB.limit() + remaining, requestBB.capacity() * 2), maxRequestBbSize);
+        ByteBuffer newBuffer = ByteBuffer.allocate(newCapacity);
+
+        newBuffer.put(requestBB); // 把全部写入数据 copy 过去（0 到 limit）
+        requestBB = newBuffer;
+    }
+
     /**
      * Perform any handshaking processing.
      * <p>
