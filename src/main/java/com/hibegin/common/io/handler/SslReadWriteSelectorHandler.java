@@ -136,7 +136,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
     /**
      * The FileChannel we're currently transferTo'ing (reading).
      */
-    private ByteBuffer fileChannelBB = null;
+    private final ByteBuffer fileChannelBB = null;
 
     /**
      * During our initial handshake, keep track of the next
@@ -156,7 +156,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
      */
     private boolean shutdown = false;
 
-    private AtomicBoolean closed = new AtomicBoolean(false);
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     /**
      * Constructor for a secure ChannelIO variant.
