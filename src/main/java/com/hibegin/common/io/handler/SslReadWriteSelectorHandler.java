@@ -50,6 +50,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -154,6 +155,8 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
      * closed our outbound side.
      */
     private boolean shutdown = false;
+
+    private AtomicBoolean closed = new AtomicBoolean(false);
 
     /**
      * Constructor for a secure ChannelIO variant.
@@ -557,18 +560,20 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
     @Override
     public void close() {
-        try {
-            while (!dataFlush()) {
+        if (closed.compareAndSet(false, true)) {
+            try {
+                while (!dataFlush()) {
 
+                }
+                do {
+                } while (!shutdown());
+            } catch (IOException e) {
+                if (!Objects.equals(e.getMessage(), "Broken pipe")) {
+                    LOGGER.log(Level.SEVERE, "", e);
+                }
+            } finally {
+                super.close();
             }
-            do {
-            } while (!shutdown());
-        } catch (IOException e) {
-            if (!Objects.equals(e.getMessage(), "Broken pipe")) {
-                LOGGER.log(Level.SEVERE, "", e);
-            }
-        } finally {
-            super.close();
         }
     }
 }
