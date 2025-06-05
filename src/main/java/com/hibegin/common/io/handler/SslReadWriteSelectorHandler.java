@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -563,7 +564,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             do {
             } while (!shutdown());
         } catch (IOException e) {
-            if (!e.getMessage().equals("Broken pipe")) {
+            if (!Objects.equals(e.getMessage(), "Broken pipe")) {
                 LOGGER.log(Level.SEVERE, "", e);
             }
         } finally {
