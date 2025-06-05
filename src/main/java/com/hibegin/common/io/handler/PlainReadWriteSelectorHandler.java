@@ -82,6 +82,9 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     @Override
     public void close() {
+        if (!sc.isOpen()) {
+            return;
+        }
         try {
             sc.close();
         } catch (IOException e) {
