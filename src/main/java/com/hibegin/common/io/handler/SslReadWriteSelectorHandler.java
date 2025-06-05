@@ -396,33 +396,31 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             }
 
             do {
-                // guarantees enough room for unwrap
                 resizeRequestBB(inNetBB.remaining());
                 inNetBB.flip();
                 result = sslEngine.unwrap(inNetBB, requestBB);
                 inNetBB.compact();
 
-                /*
-                 * Could check here for a renegotation, but we're only
-                 * doing a simple read/write, and won't have enough state
-                 * transitions to do a complete handshake, so ignore that
-                 * possibility.
-                 */
                 switch (result.getStatus()) {
-
-                    case BUFFER_UNDERFLOW:
                     case OK:
+                    case BUFFER_UNDERFLOW:
                         if (result.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
                             doTasks();
                         }
                         break;
 
+                    case CLOSED:
+                        try {
+                            sslEngine.closeInbound();
+                        } catch (SSLException e) {
+                            LOGGER.warning("SSL closed without close_notify: " + e.getMessage());
+                        }
+                        return ByteBuffer.allocate(0);
+
                     default:
-                        throw new IOException("sslEngine error during data read: " +
-                                result.getStatus());
+                        throw new IOException("sslEngine error during data read: " + result.getStatus());
                 }
-            } while ((inNetBB.position() != 0) &&
-                    result.getStatus() != Status.BUFFER_UNDERFLOW);
+            } while (result.getStatus() == Status.OK);
             int readLength = requestBB.position() - pos;
             ByteBuffer byteBuffer = ByteBuffer.allocate(readLength);
             byteBuffer.put(BytesUtil.subBytes(requestBB.array(), pos, readLength));

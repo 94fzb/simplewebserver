@@ -71,13 +71,15 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
     }
 
     void resizeRequestBB(int remaining) {
-        if (requestBB.remaining() < remaining) {
-            int bbSize = requestBB.capacity() * 2;
-            //Expand buffer for large request
-            requestBB = ByteBuffer.allocate(Math.min(bbSize, maxRequestBbSize));
-        } else {
-            requestBB = ByteBuffer.allocate(requestBB.capacity());
-        }
+        if (requestBB.remaining() >= remaining) return;
+
+        requestBB.flip();  // limit = 当前写入位置, position = 0
+
+        int newCapacity = Math.min(Math.max(requestBB.limit() + remaining, requestBB.capacity() * 2), maxRequestBbSize);
+        ByteBuffer newBuffer = ByteBuffer.allocate(newCapacity);
+
+        newBuffer.put(requestBB); // 把全部写入数据 copy 过去（0 到 limit）
+        requestBB = newBuffer;
     }
 
     @Override
