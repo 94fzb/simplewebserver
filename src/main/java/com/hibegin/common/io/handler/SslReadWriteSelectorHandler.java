@@ -203,15 +203,15 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         return !bb.hasRemaining();
     }
 
-    private void resizeRequestBB(int remaining) {
-        if (requestBB.remaining() >= remaining) return;
+    private void resizeRequestBB(int minRemaining) {
+        if (requestBB.remaining() >= minRemaining) return;
 
-        requestBB.flip();  // limit = 当前写入位置, position = 0
+        requestBB.flip();
+        int required = requestBB.remaining() + minRemaining;
+        int newCapacity = Math.max(required, requestBB.capacity() * 2);
 
-        int newCapacity = Math.min(Math.max(requestBB.limit() + remaining, requestBB.capacity() * 2), sslEngine.getSession().getApplicationBufferSize());
         ByteBuffer newBuffer = ByteBuffer.allocate(newCapacity);
-
-        newBuffer.put(requestBB); // 把全部写入数据 copy 过去（0 到 limit）
+        newBuffer.put(requestBB);
         requestBB = newBuffer;
     }
 
@@ -343,7 +343,6 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             checkRequestBB();
             SSLEngineResult result;
 
-            int pos = requestBB.position();
 
             if (sc.read(inNetBB) == -1) {
                 // probably throws exception
@@ -351,18 +350,22 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                 throw new EOFException();
             }
 
-            do {
-                resizeRequestBB(inNetBB.remaining());
-                inNetBB.flip();
+            inNetBB.flip();
+
+            while (inNetBB.hasRemaining()) {
                 result = sslEngine.unwrap(inNetBB, requestBB);
-                inNetBB.compact();
 
                 switch (result.getStatus()) {
                     case OK:
+                        break;
+
                     case BUFFER_UNDERFLOW:
-                        if (result.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
-                            doTasks();
-                        }
+                        inNetBB.compact();  // 留数据给下次 read
+                        return ByteBuffer.allocate(0);
+
+                    case BUFFER_OVERFLOW:
+                        // 说明 requestBB 太小，扩容！
+                        resizeRequestBB(sslEngine.getSession().getApplicationBufferSize());
                         break;
 
                     case CLOSED:
@@ -372,17 +375,23 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                             LOGGER.warning("SSL closed without close_notify: " + e.getMessage());
                         }
                         return ByteBuffer.allocate(0);
-                    case BUFFER_OVERFLOW:
-                        resizeRequestBB(1);
+
                     default:
-                        throw new IOException("sslEngine error during data read: " + result.getStatus());
+                        throw new IOException("sslEngine error during unwrap: " + result.getStatus());
                 }
-            } while (result.getStatus() == Status.OK);
-            int readLength = requestBB.position() - pos;
-            ByteBuffer byteBuffer = ByteBuffer.allocate(readLength);
-            byteBuffer.put(BytesUtil.subBytes(requestBB.array(), pos, readLength));
+
+                if (result.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
+                    doTasks();
+                }
+            }
+
+            inNetBB.compact();
+            requestBB.flip();
+            ByteBuffer output = ByteBuffer.allocate(requestBB.remaining());
+            output.put(requestBB);
+            output.flip();
             requestBB.clear();
-            return byteBuffer;
+            return output;
         } catch (IOException e) {
             close();
             throw e;
