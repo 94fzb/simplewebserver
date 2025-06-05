@@ -409,42 +409,31 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
      * waiting to be flushed.
      */
     private int doWrite(ByteBuffer src) throws IOException {
-        int retValue = 0;
-
         if (outNetBB.hasRemaining() && !tryFlush(outNetBB)) {
-            return retValue;
+            return 0;
         }
 
-        /*
-         * The data buffer is empty, we can reuse the entire buffer.
-         */
         outNetBB.clear();
 
-        SSLEngineResult result = sslEngine.wrap(src, outNetBB);
-        retValue = result.bytesConsumed();
+        // 控制最多 wrap 一段
+        int maxWrapLen = sslEngine.getSession().getApplicationBufferSize();
+        int oldLimit = src.limit();
+        if (src.remaining() > maxWrapLen) {
+            src.limit(src.position() + maxWrapLen);
+        }
 
+        SSLEngineResult result = sslEngine.wrap(src, outNetBB);
+        src.limit(oldLimit); // 恢复原来的 limit
+
+        int consumed = result.bytesConsumed();
         outNetBB.flip();
 
-        if (result.getStatus() == Status.OK) {
-            if (result.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
-                doTasks();
-            }
-        } else {
+        if (result.getStatus() != SSLEngineResult.Status.OK) {
             throw new IOException("sslEngine error during data write: " +
-                    result.getStatus());
-        }
+                    result.getStatus());        }
 
-        /*
-         * Try to flush the data, regardless of whether or not
-         * it's been selected.  Odds of a write buffer being full
-         * is less than a read buffer being empty.
-         */
-        tryFlush(src);
-        if (outNetBB.hasRemaining()) {
-            tryFlush(outNetBB);
-        }
-
-        return retValue;
+        tryFlush(outNetBB);
+        return consumed;
     }
 
     /**
