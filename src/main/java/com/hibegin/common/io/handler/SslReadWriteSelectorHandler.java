@@ -133,10 +133,6 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
      */
     private final ByteBuffer inNetBB;
     private final ByteBuffer outNetBB;
-    /**
-     * The FileChannel we're currently transferTo'ing (reading).
-     */
-    private final ByteBuffer fileChannelBB = null;
 
     /**
      * During our initial handshake, keep track of the next
@@ -158,6 +154,8 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
+    private final SelectionKey selectionKey;
+
     /**
      * Constructor for a secure ChannelIO variant.
      */
@@ -178,10 +176,8 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
         int appBBSize = sslEngine.getSession().getApplicationBufferSize();
         requestBB = ByteBuffer.allocate(appBBSize);
-
-        while (!doHandshake(selectionKey)) {
-
-        }
+        this.selectionKey = selectionKey;
+        doHandshake();
     }
 
     /**
@@ -223,60 +219,16 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
      * true when handshake is done.
      * false while handshake is in progress
      */
-    boolean doHandshake(SelectionKey sk) throws IOException {
-
-        SSLEngineResult result;
-
-        if (initialHSComplete) {
-            return true;
-        }
-
-        /*
-         * Flush out the outgoing buffer, if there's anything left in
-         * it.
-         */
-        if (outNetBB.hasRemaining()) {
-
-            if (!tryFlush(outNetBB)) {
-                return false;
-            }
-
-            // See if we need to switch from write to read mode.
-
+    void doHandshake() throws IOException {
+        while (!initialHSComplete) {
+            SSLEngineResult result;
             switch (initialHSStatus) {
-
-                /*
-                 * Is this the last buffer?
-                 */
-                case FINISHED:
-                    initialHSComplete = true;
-                    // Fall-through to reregister need for a Read.
-
                 case NEED_UNWRAP:
-                    if (sk != null) {
-                        sk.interestOps(SelectionKey.OP_READ);
+                    if (sc.read(inNetBB) == -1) {
+                        sslEngine.closeInbound();
+                        throw new EOFException("Connection closed during handshake");
                     }
-                    break;
-            }
 
-            return initialHSComplete;
-        }
-
-
-        switch (initialHSStatus) {
-
-            case NEED_UNWRAP:
-                if (sc.read(inNetBB) == -1) {
-                    sslEngine.closeInbound();
-                    return initialHSComplete;
-                }
-
-                needIO:
-                while (initialHSStatus == HandshakeStatus.NEED_UNWRAP) {
-                    /*
-                     * Don't need to resize requestBB, since no app data should
-                     * be generated here.
-                     */
                     inNetBB.flip();
                     result = sslEngine.unwrap(inNetBB, requestBB);
                     inNetBB.compact();
@@ -284,83 +236,56 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                     initialHSStatus = result.getHandshakeStatus();
 
                     switch (result.getStatus()) {
-
                         case OK:
-                            switch (initialHSStatus) {
-                                case NOT_HANDSHAKING:
-                                    throw new IOException(
-                                            "Not handshaking during initial handshake");
-
-                                case NEED_TASK:
-                                    initialHSStatus = doTasks();
-                                    break;
-
-                                case FINISHED:
-                                    initialHSComplete = true;
-                                    break needIO;
-                            }
-
+                            // fallthrough
                             break;
-
                         case BUFFER_UNDERFLOW:
-                            /*
-                             * Need to go reread the Channel for more data.
-                             */
-                            if (sk != null) {
-                                sk.interestOps(SelectionKey.OP_READ);
-                            }
-                            break needIO;
-
-                        default: // BUFFER_OVERFLOW/CLOSED:
-                            throw new IOException("Received" + result.getStatus() +
-                                    "during initial handshaking");
+                            if (selectionKey != null) selectionKey.interestOps(SelectionKey.OP_READ);
+                            return;
+                        case CLOSED:
+                            throw new IOException("SSLEngine closed during handshake");
+                        default:
+                            throw new IOException("Unexpected unwrap result: " + result.getStatus());
                     }
-                }  // "needIO" block.
 
-                /*
-                 * Just transitioned from read to write.
-                 */
-                if (initialHSStatus != HandshakeStatus.NEED_WRAP) {
                     break;
-                }
 
-                // Fall through and fill the write buffers.
+                case NEED_WRAP:
+                    outNetBB.clear();
+                    result = sslEngine.wrap(hsBB, outNetBB);
+                    outNetBB.flip();
 
-            case NEED_WRAP:
-                /*
-                 * The flush above guarantees the out buffer to be empty
-                 */
-                outNetBB.clear();
-                result = sslEngine.wrap(hsBB, outNetBB);
-                outNetBB.flip();
+                    initialHSStatus = result.getHandshakeStatus();
 
-                initialHSStatus = result.getHandshakeStatus();
+                    switch (result.getStatus()) {
+                        case OK:
+                            while (outNetBB.hasRemaining()) {
+                                if (sc.write(outNetBB) <= 0) {
+                                    if (selectionKey != null) selectionKey.interestOps(SelectionKey.OP_WRITE);
+                                    return;
+                                }
+                            }
+                            break;
+                        case CLOSED:
+                            throw new IOException("SSLEngine closed during wrap");
+                        default:
+                            throw new IOException("Unexpected wrap result: " + result.getStatus());
+                    }
 
-                switch (result.getStatus()) {
-                    case OK:
+                    break;
 
-                        if (initialHSStatus == HandshakeStatus.NEED_TASK) {
-                            initialHSStatus = doTasks();
-                        }
+                case NEED_TASK:
+                    initialHSStatus = doTasks();
+                    break;
 
-                        if (sk != null) {
-                            sk.interestOps(SelectionKey.OP_WRITE);
-                        }
+                case FINISHED:
+                    initialHSComplete = true;
+                    return;
 
-                        break;
-
-                    default: // BUFFER_OVERFLOW/BUFFER_UNDERFLOW/CLOSED:
-                        throw new IOException("Received" + result.getStatus() +
-                                "during initial handshaking");
-                }
-                break;
-
-            default: // NOT_HANDSHAKING/NEED_TASK/FINISHED
-                throw new RuntimeException("Invalid Handshaking State" +
-                        initialHSStatus);
-        } // switch
-
-        return initialHSComplete;
+                case NOT_HANDSHAKING:
+                    throw new IllegalStateException("SSLEngine not handshaking");
+            }
+        }
     }
 
     /**
@@ -392,12 +317,12 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
     public ByteBuffer handleRead() throws IOException {
         readLock.lock();
         try {
+            doHandshake();
+            if (!initialHSComplete) {
+                return ByteBuffer.allocate(0);
+            }
             checkRequestBB();
             SSLEngineResult result;
-
-            if (!initialHSComplete) {
-                throw new IllegalStateException();
-            }
 
             int pos = requestBB.position();
 
@@ -499,16 +424,11 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
      * Return true when the fileChannelBB and outNetBB are empty.
      */
     private boolean dataFlush() throws IOException {
-        boolean fileFlushed = true;
-
-        if ((fileChannelBB != null) && fileChannelBB.hasRemaining()) {
-            doWrite(fileChannelBB);
-            fileFlushed = !fileChannelBB.hasRemaining();
-        } else if (outNetBB.hasRemaining()) {
+        if (outNetBB.hasRemaining()) {
             tryFlush(outNetBB);
         }
 
-        return (fileFlushed && !outNetBB.hasRemaining());
+        return !outNetBB.hasRemaining();
     }
 
     /**
@@ -557,6 +477,10 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
     public void handleWrite(ByteBuffer byteBuffer) throws IOException {
         writeLock.lock();
         try {
+            doHandshake();
+            if (!initialHSComplete) {
+                throw new IllegalStateException();
+            }
             while (byteBuffer.hasRemaining() && sc.isOpen()) {
                 int len = doWrite(byteBuffer);
                 if (len < 0) {
