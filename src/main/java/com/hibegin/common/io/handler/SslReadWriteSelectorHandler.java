@@ -420,6 +420,10 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             } while ((inNetBB.position() != 0) &&
                     result.getStatus() != Status.BUFFER_UNDERFLOW);
             int readLength = requestBB.position() - pos;
+            if (readLength <= 0) {
+                LOGGER.fine("No new decrypted data available (readLength=" + readLength + ")");
+                return ByteBuffer.allocate(0);
+            }
             ByteBuffer byteBuffer = ByteBuffer.allocate(readLength);
             byteBuffer.put(BytesUtil.subBytes(requestBB.array(), pos, readLength));
             return byteBuffer;
