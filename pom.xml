@@ -14,8 +14,8 @@
     </description>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <freemarker.version>2.3.30</freemarker.version>
-        <gson.version>2.10.1</gson.version>
+        <freemarker.version>2.3.34</freemarker.version>
+        <gson.version>2.13.1</gson.version>
         <maven.compiler.target>8</maven.compiler.target>
         <maven.compiler.source>8</maven.compiler.source>
         <java11.sourceDirectory>${project.basedir}/src/main/java11</java11.sourceDirectory>

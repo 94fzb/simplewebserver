@@ -1,4 +1,4 @@
-package com.hibegin.http.server.handler;
+package com.hibegin.common.io.handler;
 /*
  * @(#)ChannelIOSecure.java	1.2 04/07/26
  *

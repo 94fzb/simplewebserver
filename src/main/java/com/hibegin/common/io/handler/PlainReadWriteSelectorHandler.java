@@ -1,4 +1,4 @@
-package com.hibegin.http.server.handler;
+package com.hibegin.common.io.handler;
 
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.LoggerUtil;
