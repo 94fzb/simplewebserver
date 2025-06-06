@@ -15,7 +15,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(PlainReadWriteSelectorHandler.class);
     protected final int maxRequestBbSize;
-    protected static final int INIT_REQUEST_BB_SIZE = 8 * 1024;
+    protected static final int INIT_REQUEST_BB_SIZE = 16 * 1024;
     protected static final int DEFAULT_MAX_REQUEST_BB_SIZE = 512 * 1024;
     final ReentrantLock writeLock = new ReentrantLock();
     final ReentrantLock readLock = new ReentrantLock();
@@ -55,9 +55,14 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     protected void reallocateRequestBB(int readLength) {
         if (requestBB.remaining() < readLength) {
-            int bbSize = requestBB.capacity() * 2;
-            //Expand buffer for large request
-            requestBB = ByteBuffer.allocate(Math.min(bbSize, maxRequestBbSize));
+            if (requestBB.capacity() > 128 * 1024 && requestBB.position() == 0) {
+                //缩小容量
+                requestBB = ByteBuffer.allocate(INIT_REQUEST_BB_SIZE);
+            } else {
+                int bbSize = requestBB.capacity() * 2;
+                //Expand buffer for large request
+                requestBB = ByteBuffer.allocate(Math.min(bbSize, maxRequestBbSize));
+            }
         } else {
             requestBB = ByteBuffer.allocate(requestBB.capacity());
         }
