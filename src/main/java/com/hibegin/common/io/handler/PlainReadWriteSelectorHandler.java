@@ -15,7 +15,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(PlainReadWriteSelectorHandler.class);
     protected final int maxRequestBbSize;
-    private static final int INIT_REQUEST_BB_SIZE = 16 * 1024;
+    private static final int INIT_REQUEST_BB_SIZE = 8 * 1024;
     private static final int MAX_REQUEST_BB_SIZE = 512 * 1024;
     final ReentrantLock writeLock = new ReentrantLock();
     final ReentrantLock readLock = new ReentrantLock();
@@ -28,7 +28,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     public PlainReadWriteSelectorHandler(SocketChannel sc, int maxRequestBbSize) {
         this.sc = sc;
-        this.maxRequestBbSize = Math.min(maxRequestBbSize, MAX_REQUEST_BB_SIZE);
+        this.maxRequestBbSize = Math.max(Math.min(maxRequestBbSize, MAX_REQUEST_BB_SIZE), INIT_REQUEST_BB_SIZE);
         this.requestBB = ByteBuffer.allocate(0);
     }
 
