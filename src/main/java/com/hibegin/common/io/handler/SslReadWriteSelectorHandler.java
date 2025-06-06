@@ -356,6 +356,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         }
         readLock.lock();
         try {
+            initRequestBB();
             doHandshake();
             if (!initialHSComplete) {
                 return ByteBuffer.allocate(0);

@@ -77,6 +77,9 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
     }
 
     void initRequestBB() {
+        if (requestBB.capacity() > 0) {
+            return;
+        }
         int bbSize = lastReadLength == 0 ? INIT_REQUEST_BB_SIZE : lastReadLength * 2;
         //Expand buffer for large request
         requestBB = ByteBuffer.allocate(Math.min(bbSize, maxRequestBbSize));
