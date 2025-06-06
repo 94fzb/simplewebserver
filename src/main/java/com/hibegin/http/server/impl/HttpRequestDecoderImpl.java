@@ -79,7 +79,6 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
         //代理头，直接保存到body
         if (request.method == HttpMethod.CONNECT) {
             result = saveRequestBodyBytes(byteBuffer.array());
-            request.getHandler().flushRequestBB();
         }
         //存在body需要处理
         else if (inputBytes.length > 0 && getContentLength() > 0) {
@@ -113,9 +112,6 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             dealRequestBodyData();
             //处理完成，清空byte[]
             inputBytes = new byte[]{};
-            if (Objects.nonNull(request.getHandler())) {
-                request.getHandler().flushRequestBB();
-            }
         }
         return result;
     }

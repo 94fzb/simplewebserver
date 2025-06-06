@@ -21,6 +21,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
     final ReentrantLock readLock = new ReentrantLock();
     protected ByteBuffer requestBB;
     protected SocketChannel sc;
+    private volatile int lastReadLength = 0;
 
     public PlainReadWriteSelectorHandler(SocketChannel sc) {
         this(sc, MAX_REQUEST_BB_SIZE);
@@ -53,32 +54,17 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     }
 
-    protected void reallocateRequestBB(int readLength) {
-        if (requestBB.remaining() < readLength) {
-            if (requestBB.capacity() > 128 * 1024 && requestBB.position() == 0) {
-                //缩小容量
-                requestBB = ByteBuffer.allocate(INIT_REQUEST_BB_SIZE);
-            } else {
-                int bbSize = requestBB.capacity() * 2;
-                //Expand buffer for large request
-                requestBB = ByteBuffer.allocate(Math.min(bbSize, maxRequestBbSize));
-            }
-        } else {
-            requestBB = ByteBuffer.allocate(requestBB.capacity());
-        }
-    }
-
 
     @Override
     public ByteBuffer handleRead() throws IOException {
         readLock.lock();
         try {
-            checkRequestBB();
+            initRequestBB();
             int length = sc.read(requestBB);
             if (length != -1) {
                 ByteBuffer byteBuffer = ByteBuffer.allocate(length);
                 byteBuffer.put(BytesUtil.subBytes(requestBB.array(), 0, length));
-                reallocateRequestBB(length);
+                flushRequestBB(length);
                 return byteBuffer;
             }
             throw new EOFException();
@@ -90,10 +76,10 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
         }
     }
 
-    private void checkRequestBB() {
-        if (requestBB.capacity() == 0) {
-            requestBB = ByteBuffer.allocate(INIT_REQUEST_BB_SIZE);
-        }
+    void initRequestBB() {
+        int bbSize = lastReadLength == 0 ? INIT_REQUEST_BB_SIZE : lastReadLength * 2;
+        //Expand buffer for large request
+        requestBB = ByteBuffer.allocate(Math.min(bbSize, maxRequestBbSize));
     }
 
 
@@ -114,10 +100,10 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
         return sc;
     }
 
-    @Override
-    public void flushRequestBB() {
+    void flushRequestBB(int lastReadLength) {
         readLock.lock();
         requestBB = ByteBuffer.allocate(0);
+        this.lastReadLength = lastReadLength;
         readLock.unlock();
     }
 }
