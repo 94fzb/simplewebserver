@@ -169,17 +169,19 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
      */
     public SslReadWriteSelectorHandler(SocketChannel sc, SelectionKey selectionKey,
                                        SSLContext sslContext,
+                                       int maxRequestBufferSize,
                                        boolean clientMode,
                                        boolean disablePlainRead) throws IOException {
-        this(sc, selectionKey, sslContext, clientMode, disablePlainRead, null, 0);
+        this(sc, selectionKey, sslContext, maxRequestBufferSize, clientMode, disablePlainRead, null, 0);
     }
 
     public SslReadWriteSelectorHandler(SocketChannel sc, SelectionKey selectionKey,
                                        SSLContext sslContext,
+                                       int maxRequestBufferSize,
                                        boolean clientMode,
                                        boolean disablePlainRead,
                                        String host, int port) throws IOException {
-        super(sc, -1);
+        super(sc, maxRequestBufferSize);
         this.disablePlainRead = disablePlainRead;
         sslEngine = clientMode ? sslContext.createSSLEngine(host, port) : sslContext.createSSLEngine();
         sslEngine.setUseClientMode(clientMode);
@@ -353,7 +355,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             SSLEngineResult result;
 
 
-            if ( sc.read(inNetBB) == -1) {
+            if (sc.read(inNetBB) == -1) {
                 // probably throws exception
                 sslEngine.closeInbound();
                 throw new EOFException();

@@ -19,7 +19,7 @@ public class ReadWriteSelectorHandlerUtils {
         if (Objects.isNull(sslContext)) {
             return buildReadWriteSelectorHandler(socketChannel, maxRequestBufferSize);
         }
-        return new SslReadWriteSelectorHandler(socketChannel, selectionKey, sslContext, false, disablePlainRead);
+        return new SslReadWriteSelectorHandler(socketChannel, selectionKey, sslContext, maxRequestBufferSize, false, disablePlainRead);
     }
 
     public static ReadWriteSelectorHandler buildClientReadWriteSelectorHandler(SocketChannel socketChannel, int maxRequestBufferSize,
@@ -29,6 +29,6 @@ public class ReadWriteSelectorHandlerUtils {
         if (Objects.isNull(sslContext)) {
             return buildReadWriteSelectorHandler(socketChannel, maxRequestBufferSize);
         }
-        return new SslReadWriteSelectorHandler(socketChannel, selectionKey, sslContext, true, false, host, port);
+        return new SslReadWriteSelectorHandler(socketChannel, selectionKey, sslContext, maxRequestBufferSize, true, false, host, port);
     }
 }
