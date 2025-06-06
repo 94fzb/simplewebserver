@@ -16,7 +16,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
     private static final Logger LOGGER = LoggerUtil.getLogger(PlainReadWriteSelectorHandler.class);
     protected final int maxRequestBbSize;
     protected static final int INIT_REQUEST_BB_SIZE = 8 * 1024;
-    protected static final int DEFAULT_MAX_REQUEST_BB_SIZE = 64 * 1024;
+    protected static final int DEFAULT_MAX_REQUEST_BB_SIZE = 512 * 1024;
     final ReentrantLock writeLock = new ReentrantLock();
     final ReentrantLock readLock = new ReentrantLock();
     protected ByteBuffer requestBB;
