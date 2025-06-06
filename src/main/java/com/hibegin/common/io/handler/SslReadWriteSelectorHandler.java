@@ -500,8 +500,8 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
          */
         outNetBB.clear();
         SSLEngineResult result = sslEngine.wrap(hsBB, outNetBB);
-        if (result.getStatus() != Status.CLOSED) {
-            throw new SSLException("Improper close state");
+        if (result.getStatus() != Status.OK && result.getStatus() != Status.CLOSED) {
+            throw new SSLException("Unexpected status during shutdown: " + result.getStatus());
         }
         outNetBB.flip();
 
