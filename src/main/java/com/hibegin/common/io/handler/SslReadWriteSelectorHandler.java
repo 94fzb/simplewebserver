@@ -35,6 +35,7 @@ package com.hibegin.common.io.handler;
  * nuclear facility.
  */
 
+import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.LoggerUtil;
 
 import javax.net.ssl.SSLContext;
@@ -158,22 +159,28 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
     private ByteArrayOutputStream writePendingStream = new ByteArrayOutputStream();
 
+    private final boolean disablePlainRead;
+
+    private boolean plain;
+
 
     /**
      * Constructor for a secure ChannelIO variant.
      */
     public SslReadWriteSelectorHandler(SocketChannel sc, SelectionKey selectionKey,
                                        SSLContext sslContext,
-                                       boolean clientMode) throws IOException {
-        this(sc, selectionKey, sslContext, clientMode, null, 0);
+                                       boolean clientMode,
+                                       boolean disablePlainRead) throws IOException {
+        this(sc, selectionKey, sslContext, clientMode, disablePlainRead, null, 0);
     }
 
     public SslReadWriteSelectorHandler(SocketChannel sc, SelectionKey selectionKey,
                                        SSLContext sslContext,
                                        boolean clientMode,
+                                       boolean disablePlainRead,
                                        String host, int port) throws IOException {
         super(sc, -1);
-
+        this.disablePlainRead = disablePlainRead;
         sslEngine = clientMode ? sslContext.createSSLEngine(host, port) : sslContext.createSSLEngine();
         sslEngine.setUseClientMode(clientMode);
 
@@ -333,7 +340,11 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
      */
     @Override
     public ByteBuffer handleRead() throws IOException {
+        if (plain) {
+            return super.handleRead();
+        }
         readLock.lock();
+        int readLength = 0;
         try {
             doHandshake();
             if (!initialHSComplete) {
@@ -343,7 +354,8 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             SSLEngineResult result;
 
 
-            if (sc.read(inNetBB) == -1) {
+            readLength = sc.read(inNetBB);
+            if (readLength == -1) {
                 // probably throws exception
                 sslEngine.closeInbound();
                 throw new EOFException();
@@ -393,7 +405,11 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             return output;
         }//not close stream, handle connect state by caller
         catch (SSLException e) {
-            throw e;
+            if (disablePlainRead) {
+                throw e;
+            }
+            this.plain = true;
+            return ByteBuffer.wrap(BytesUtil.subBytes(inNetBB.array(), 0, readLength));
         } catch (IOException e) {
             close();
             throw e;
@@ -496,6 +512,10 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
     @Override
     public void handleWrite(ByteBuffer byteBuffer) throws IOException {
+        if (plain) {
+            super.handleWrite(byteBuffer);
+            return;
+        }
         writeLock.lock();
         try {
             doHandshake();
@@ -518,6 +538,9 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
     public void close() {
         if (closed.compareAndSet(false, true)) {
             try {
+                if (plain) {
+                    return;
+                }
                 while (!dataFlush()) {
 
                 }
