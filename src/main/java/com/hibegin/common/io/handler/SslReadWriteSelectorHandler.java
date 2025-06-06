@@ -410,7 +410,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             ByteBuffer output = ByteBuffer.allocate(requestBB.remaining());
             output.put(requestBB);
             output.flip();
-            reallocateRequestBB(output.array().length);
+            reallocateRequestBB(requestBB.remaining());
             return output;
         }//not close stream, handle connect state by caller
         catch (SSLException e) {
