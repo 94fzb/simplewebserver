@@ -176,7 +176,7 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
     }
 
     @Override
-    public int getParaToInt(String key) {
+    public Integer getParaToInt(String key) {
         if (paramMap.get(key) != null) {
             return Integer.parseInt(paramMap.get(key)[0]);
         }
@@ -184,7 +184,7 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
     }
 
     @Override
-    public boolean getParaToBool(String key) {
+    public Boolean getParaToBool(String key) {
         return paramMap.get(key) != null && ("on".equals(paramMap.get(key)[0]) || "true".equals(paramMap.get(key)[0]));
     }
 
