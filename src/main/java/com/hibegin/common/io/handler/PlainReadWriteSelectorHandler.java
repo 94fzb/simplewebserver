@@ -28,6 +28,11 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
     }
 
     @Override
+    public boolean isPlain() {
+        return true;
+    }
+
+    @Override
     public void handleWrite(ByteBuffer byteBuffer) throws IOException {
         writeLock.lock();
         try {

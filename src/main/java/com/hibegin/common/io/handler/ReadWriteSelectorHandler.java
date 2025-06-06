@@ -14,4 +14,6 @@ public interface ReadWriteSelectorHandler {
     SocketChannel getChannel();
 
     void flushRequestBB();
+
+    boolean isPlain();
 }

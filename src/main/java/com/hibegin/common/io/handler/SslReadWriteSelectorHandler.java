@@ -509,6 +509,11 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
     }
 
     @Override
+    public boolean isPlain() {
+        return plain;
+    }
+
+    @Override
     public void handleWrite(ByteBuffer byteBuffer) throws IOException {
         if (plain) {
             super.handleWrite(byteBuffer);
