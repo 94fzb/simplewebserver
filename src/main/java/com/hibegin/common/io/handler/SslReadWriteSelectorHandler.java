@@ -35,7 +35,6 @@ package com.hibegin.common.io.handler;
  * nuclear facility.
  */
 
-import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.LoggerUtil;
 
 import javax.net.ssl.SSLContext;
@@ -392,6 +391,9 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             output.flip();
             requestBB.clear();
             return output;
+        }//not close stream, handle connect state by caller
+        catch (SSLException e) {
+            throw e;
         } catch (IOException e) {
             close();
             throw e;
@@ -430,7 +432,8 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
         if (result.getStatus() != SSLEngineResult.Status.OK) {
             throw new IOException("sslEngine error during data write: " +
-                    result.getStatus());        }
+                    result.getStatus());
+        }
 
         tryFlush(outNetBB);
         return consumed;
