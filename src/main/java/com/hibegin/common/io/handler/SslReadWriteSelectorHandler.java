@@ -38,18 +38,17 @@ package com.hibegin.common.io.handler;
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.LoggerUtil;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.*;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
-import javax.net.ssl.SSLException;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -172,7 +171,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                                        int maxRequestBufferSize,
                                        boolean clientMode,
                                        boolean disablePlainRead) throws IOException {
-        this(sc, selectionKey, sslContext, maxRequestBufferSize, clientMode, disablePlainRead, null, 0);
+        this(sc, selectionKey, sslContext, maxRequestBufferSize, clientMode, disablePlainRead, null, 0, false);
     }
 
     public SslReadWriteSelectorHandler(SocketChannel sc, SelectionKey selectionKey,
@@ -180,11 +179,19 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                                        int maxRequestBufferSize,
                                        boolean clientMode,
                                        boolean disablePlainRead,
-                                       String host, int port) throws IOException {
+                                       String host, int port,
+                                       boolean sendSNI) throws IOException {
         super(sc, maxRequestBufferSize);
         this.disablePlainRead = disablePlainRead;
         sslEngine = clientMode ? sslContext.createSSLEngine(host, port) : sslContext.createSSLEngine();
         sslEngine.setUseClientMode(clientMode);
+        if (clientMode && sendSNI) {
+            SSLParameters sslParams = sslEngine.getSSLParameters();
+            SNIHostName serverName = new SNIHostName(host);
+            List<SNIServerName> serverNames = Collections.singletonList(serverName);
+            sslParams.setServerNames(serverNames);
+            sslEngine.setSSLParameters(sslParams);
+        }
 
         initialHSStatus = HandshakeStatus.NEED_UNWRAP;
         initialHSComplete = false;

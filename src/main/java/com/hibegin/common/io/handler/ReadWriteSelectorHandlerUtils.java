@@ -25,10 +25,12 @@ public class ReadWriteSelectorHandlerUtils {
     public static ReadWriteSelectorHandler buildClientReadWriteSelectorHandler(SocketChannel socketChannel, int maxRequestBufferSize,
                                                                                SelectionKey selectionKey,
                                                                                SSLContext sslContext,
-                                                                               String host, int port) throws IOException {
+                                                                               String host,
+                                                                               int port,
+                                                                               boolean sendSNI) throws IOException {
         if (Objects.isNull(sslContext)) {
             return buildReadWriteSelectorHandler(socketChannel, maxRequestBufferSize);
         }
-        return new SslReadWriteSelectorHandler(socketChannel, selectionKey, sslContext, maxRequestBufferSize, true, false, host, port);
+        return new SslReadWriteSelectorHandler(socketChannel, selectionKey, sslContext, maxRequestBufferSize, true, false, host, port, sendSNI);
     }
 }
