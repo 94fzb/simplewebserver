@@ -344,7 +344,6 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             return super.handleRead();
         }
         readLock.lock();
-        int readLength = 0;
         try {
             doHandshake();
             if (!initialHSComplete) {
@@ -354,8 +353,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             SSLEngineResult result;
 
 
-            readLength = sc.read(inNetBB);
-            if (readLength == -1) {
+            if ( sc.read(inNetBB) == -1) {
                 // probably throws exception
                 sslEngine.closeInbound();
                 throw new EOFException();
@@ -409,7 +407,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                 throw e;
             }
             this.plain = true;
-            return ByteBuffer.wrap(BytesUtil.subBytes(inNetBB.array(), 0, readLength));
+            return ByteBuffer.wrap(BytesUtil.subBytes(inNetBB.array(), 0, inNetBB.remaining()));
         } catch (IOException e) {
             close();
             throw e;
