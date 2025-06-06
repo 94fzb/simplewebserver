@@ -360,7 +360,6 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             if (!initialHSComplete) {
                 return ByteBuffer.allocate(0);
             }
-            checkRequestBB();
             SSLEngineResult result;
 
 
