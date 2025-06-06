@@ -225,7 +225,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
         requestBB.flip();
         int required = requestBB.remaining() + minRemaining;
-        int newCapacity = Math.min(Math.max(required, requestBB.capacity() * 2), DEFAULT_MAX_REQUEST_BB_SIZE);
+        int newCapacity = Math.min(required, requestBB.capacity() * 2);
 
         ByteBuffer newBuffer = ByteBuffer.allocate(newCapacity);
         newBuffer.put(requestBB);
@@ -410,6 +410,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             ByteBuffer output = ByteBuffer.allocate(requestBB.remaining());
             output.put(requestBB);
             output.flip();
+            requestBB.clear();
             return output;
         }//not close stream, handle connect state by caller
         catch (SSLException e) {
