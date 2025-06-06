@@ -1,6 +1,7 @@
 package com.hibegin.http.server.impl;
 
 import com.hibegin.common.BaseLockObject;
+import com.hibegin.common.io.handler.ReadWriteSelectorHandler;
 import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
@@ -11,7 +12,6 @@ import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ServerConfig;
-import com.hibegin.common.io.handler.ReadWriteSelectorHandler;
 import com.hibegin.http.server.util.FileCacheKit;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.web.cookie.Cookie;
@@ -220,7 +220,7 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
         if (Objects.nonNull(proto)) {
             return proto;
         }
-        return requestConfig.isSsl() ? "https" : "http";
+        return requestConfig.isSsl() ? "https" : handler.isPlain() ? "http" : "https";
     }
 
     @Override
