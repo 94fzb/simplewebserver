@@ -220,7 +220,13 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
         if (Objects.nonNull(proto)) {
             return proto;
         }
-        return requestConfig.isSsl() ? "https" : handler.isPlain() ? "http" : "https";
+        if (requestConfig.isSsl()) {
+            return "https";
+        }
+        if (Objects.isNull(handler)) {
+            return "http";
+        }
+        return handler.isPlain() ? "http" : "https";
     }
 
     @Override
