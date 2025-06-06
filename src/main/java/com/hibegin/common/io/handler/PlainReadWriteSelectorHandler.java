@@ -53,7 +53,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     }
 
-    private void reallocateRequestBB(int readLength) {
+    protected void reallocateRequestBB(int readLength) {
         if (requestBB.remaining() < readLength) {
             int bbSize = requestBB.capacity() * 2;
             //Expand buffer for large request
@@ -62,6 +62,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
             requestBB = ByteBuffer.allocate(requestBB.capacity());
         }
     }
+
 
     @Override
     public ByteBuffer handleRead() throws IOException {
@@ -86,12 +87,6 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
 
     void checkRequestBB() {
         if (requestBB.capacity() == 0) {
-            requestBB = ByteBuffer.allocate(INIT_REQUEST_BB_SIZE);
-        }
-        // 当缓冲区闲置时，缩回初始大小
-        else if (requestBB.capacity() > INIT_REQUEST_BB_SIZE &&
-                requestBB.position() == 0 &&
-                requestBB.limit() == 0) {
             requestBB = ByteBuffer.allocate(INIT_REQUEST_BB_SIZE);
         }
     }
