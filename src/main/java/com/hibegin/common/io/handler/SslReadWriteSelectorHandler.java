@@ -205,7 +205,13 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         int appBBSize = sslEngine.getSession().getApplicationBufferSize();
         requestBB = ByteBuffer.allocate(appBBSize);
         this.selectionKey = selectionKey;
-        doHandshake();
+        try {
+            doHandshake();
+        } catch (SSLException e) {
+            if (disablePlainRead) {
+                throw e;
+            }
+        }
     }
 
     /**
