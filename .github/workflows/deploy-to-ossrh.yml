@@ -12,17 +12,12 @@ jobs:
     steps:
     - name: Checkout source code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # 拉取完整历史
-        fetch-tags: true
 
     - name: Set up JDK
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '11'
-        gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-        gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
         server-id: ossrh
         settings-path: ${{ github.workspace }}
 
@@ -41,8 +36,13 @@ jobs:
           </servers>
         </settings>
         EOF
+    - name: Import GPG key
+      run: |
+        echo "$GPG_PRIVATE_KEY" | gpg --batch --yes --import
+      env:
+        GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
     - name: Build and Deploy to OSSRH
-      run: mvn clean deploy -s $GITHUB_WORKSPACE/settings.xml
+      run: mvn clean deploy -s $GITHUB_WORKSPACE/settings.xml -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
       env:
         GPG_TTY: $(tty)
