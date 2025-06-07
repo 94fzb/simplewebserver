@@ -12,6 +12,9 @@ jobs:
     steps:
     - name: Checkout source code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 拉取完整历史
+        fetch-tags: true
 
     - name: Set up JDK
       uses: actions/setup-java@v4

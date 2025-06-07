@@ -214,7 +214,7 @@
                         <abbrev>7</abbrev>
                         <dirty>-dirty</dirty>
                         <match>*</match>
-                        <tags>false</tags>
+                        <tags>true</tags>
                         <forceLongFormat>false</forceLongFormat>
                     </gitDescribe>
                     <validationShouldFailIfNoMatch>true</validationShouldFailIfNoMatch>
