@@ -40,6 +40,6 @@ jobs:
         EOF
 
     - name: Build and Deploy to OSSRH
-      run: mvn clean deploy -P release -s $GITHUB_WORKSPACE/settings.xml
+      run: mvn clean deploy -s $GITHUB_WORKSPACE/settings.xml
       env:
         GPG_TTY: $(tty)
