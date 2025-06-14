@@ -3,13 +3,12 @@
     <parent>
         <groupId>com.hibegin</groupId>
         <artifactId>simplewebserver-parent</artifactId>
-        <version>4.0.31-SNAPSHOT</version>
+        <version>4.0.31</version>
     </parent>
 
     <artifactId>simplewebserver</artifactId>
     <modelVersion>4.0.0</modelVersion>
     <packaging>jar</packaging>
-    <version>4.0.30-SNAPSHOT</version>
 
     <properties>
         <freemarker.version>2.3.34</freemarker.version>
