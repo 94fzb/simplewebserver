@@ -14,14 +14,14 @@ import jakarta.servlet.http.HttpServletResponse;
 public abstract class SwsServletFilter extends HttpFilter {
 
     private ApplicationContext applicationContext;
-    private AbstractServerConfig serverConfig;
+    protected AbstractServerConfig serverConfig;
 
     protected abstract AbstractServerConfig getServerConfig();
 
     @Override
     public void init() {
-        this.serverConfig = getServerConfig();
         System.getProperties().put("sws.conf.path", getServletContext().getRealPath("/WEB-INF/"));
+        this.serverConfig = getServerConfig();
         applicationContext = new ApplicationContext(serverConfig.getServerConfig());
         applicationContext.init();
     }
