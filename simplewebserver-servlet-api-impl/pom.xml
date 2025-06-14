@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.hibegin</groupId>
+        <artifactId>simplewebserver-parent</artifactId>
+        <version>4.0.31-SNAPSHOT</version>
+    </parent>
+    <artifactId>simplewebserver-servlet-api-impl</artifactId>
+    <modelVersion>4.0.0</modelVersion>
+
+    <url>https://github.com/94fzb/simplewebserver</url>
+    <name>SimpleWebServer</name>
+    <description>Simple, flexible, less dependent, more extended. Less memory footprint, can quickly build Web project.
+        Can quickly run embedded, Android devices
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>6.1.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.hibegin</groupId>
+            <artifactId>simplewebserver</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>
