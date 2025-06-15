@@ -10,6 +10,8 @@ import jakarta.servlet.http.HttpFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.io.File;
+
 
 public abstract class SwsServletFilter extends HttpFilter {
 
@@ -20,7 +22,11 @@ public abstract class SwsServletFilter extends HttpFilter {
 
     @Override
     public void init() {
+        String servletRootFile = new File(getServletContext().getRealPath("/")).getParent();
         System.getProperties().put("sws.conf.path", getServletContext().getRealPath("/WEB-INF/"));
+        System.getProperties().put("sws.root.path", getServletContext().getRealPath("/"));
+        System.getProperties().put("sws.log.path",  servletRootFile + "/logs");
+        System.getProperties().put("sws.temp.path",  servletRootFile + "/temp");
         this.serverConfig = getServerConfig();
         applicationContext = new ApplicationContext(serverConfig.getServerConfig());
         applicationContext.init();
