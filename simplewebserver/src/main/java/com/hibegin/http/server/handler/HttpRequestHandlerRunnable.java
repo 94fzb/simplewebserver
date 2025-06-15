@@ -36,7 +36,7 @@ public class HttpRequestHandlerRunnable implements Runnable {
     public void run() {
         try {
             for (HttpRequestListener httpRequestListener : request.getServerConfig().getHttpRequestListenerList()) {
-                httpRequestListener.create(request, response);
+                httpRequestListener.onCreate(request, response);
             }
             for (Interceptor interceptor : request.getApplicationContext().getInterceptors()) {
                 if (interceptor instanceof HandleAbleInterceptor) {
@@ -60,6 +60,9 @@ public class HttpRequestHandlerRunnable implements Runnable {
             }
             defaultErrorResponse(e);
         } finally {
+            request.getServerConfig().getHttpRequestListenerList().forEach(httpRequestListener -> {
+                httpRequestListener.onHandled(request, response);
+            });
             if (request.getMethod() == HttpMethod.CONNECT) {
                 //ignore
             } else {
@@ -106,7 +109,7 @@ public class HttpRequestHandlerRunnable implements Runnable {
             ((SimpleHttpRequest) request).deleteTempUploadFiles();
         }
         for (HttpRequestListener requestListener : request.getApplicationContext().getServerConfig().getHttpRequestListenerList()) {
-            requestListener.destroy(getRequest(), getResponse());
+            requestListener.onDestroy(getRequest(), getResponse());
         }
     }
 }
