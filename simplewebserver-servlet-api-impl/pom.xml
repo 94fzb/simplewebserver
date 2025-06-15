@@ -9,7 +9,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <url>https://github.com/94fzb/simplewebserver</url>
-    <name>SimpleWebServer</name>
+    <name>SimpleWebServer servlet api implement</name>
     <description>Simple, flexible, less dependent, more extended. Less memory footprint, can quickly build Web project.
         Can quickly run embedded, Android devices
     </description>
