@@ -406,7 +406,7 @@ public class SimpleHttpResponse implements HttpResponse {
 
     @Override
     public void write(ByteArrayOutputStream outputStream, int code) {
-        write(new ByteArrayInputStream(outputStream.toByteArray()), code);
+        write(new LengthByteArrayInputStream(outputStream.toByteArray()), code);
     }
 
     @Override
