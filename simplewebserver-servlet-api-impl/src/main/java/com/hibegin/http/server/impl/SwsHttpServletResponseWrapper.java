@@ -29,6 +29,9 @@ public class SwsHttpServletResponseWrapper extends SimpleHttpResponse {
         if (Objects.equals(key, "Server")) {
             return;
         }
+        if (Objects.equals(key, "connection")) {
+            return;
+        }
         rawServletResponse.addHeader(key, value);
     }
 
