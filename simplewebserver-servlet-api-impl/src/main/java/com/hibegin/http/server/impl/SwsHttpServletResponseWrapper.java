@@ -53,11 +53,12 @@ public class SwsHttpServletResponseWrapper extends SimpleHttpResponse {
     @Override
     public Map<String, String> getHeader() {
         Collection<String> headerNames = rawServletResponse.getHeaderNames();
-        Map<String, String> headerMap = new LinkedHashMap<>();
+        Map<String, String> rawHeaderMap = new LinkedHashMap<>();
         for (String headerName : headerNames) {
-            headerMap.put(headerName, rawServletResponse.getHeader(headerName));
+            rawHeaderMap.put(headerName, rawServletResponse.getHeader(headerName));
         }
-        return headerMap;
+        rawHeaderMap.putAll(header);
+        return rawHeaderMap;
     }
 
     @Override
