@@ -6,6 +6,7 @@ import com.hibegin.http.server.config.ResponseConfig;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -32,8 +33,8 @@ public class SwsHttpServletResponseWrapper extends SimpleHttpResponse {
     }
 
     @Override
-    protected byte[] toChunked(byte[] inputBytes) {
-        return inputBytes;
+    protected boolean needChunked(InputStream inputStream, long bodyLength) {
+        return false;
     }
 
     @Override

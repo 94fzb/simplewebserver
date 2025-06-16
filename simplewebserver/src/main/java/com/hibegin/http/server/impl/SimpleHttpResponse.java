@@ -372,7 +372,9 @@ public class SimpleHttpResponse implements HttpResponse {
                     inputStream = new GzipCompressingInputStream(inputStream);
                 }
             } else {
-                putHeader("Content-Length", Math.max(bodyLength, 0) + "");
+                if (bodyLength >= 0) {
+                    putHeader("Content-Length", bodyLength + "");
+                }
             }
             send(wrapperBaseResponseHeader(code), false, false);
             if (inputStream == null) {
