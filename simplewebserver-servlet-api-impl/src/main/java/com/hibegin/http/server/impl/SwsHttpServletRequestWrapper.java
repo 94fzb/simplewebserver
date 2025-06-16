@@ -23,6 +23,14 @@ public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
                                         ApplicationContext applicationContext) {
         super(null, applicationContext, requestConfig);
         this.rawServletRequest = rawServletRequest;
+        String[] serverInfo = rawServletRequest.getServletContext().getServerInfo().split("/");
+        //Update runtime info
+        ServerConfig serverConfig = super.getServerConfig();
+        serverConfig.setApplicationName(serverInfo[0]);
+        if (serverInfo.length > 1) {
+            serverConfig.setApplicationVersion(serverInfo[1]);
+        }
+        serverConfig.setPort(rawServletRequest.getLocalPort());
     }
 
     @Override
@@ -117,17 +125,6 @@ public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @Override
-    public ServerConfig getServerConfig() {
-        ServerConfig serverConfig = super.getServerConfig();
-        String[] serverInfo = rawServletRequest.getServletContext().getServerInfo().split("/");
-        serverConfig.setApplicationName(serverInfo[0]);
-        if (serverInfo.length > 1) {
-            serverConfig.setApplicationVersion(serverInfo[1]);
-        }
-        return serverConfig;
     }
 
     @Override
