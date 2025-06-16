@@ -7,6 +7,7 @@ import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.http.HttpVersion;
 import com.hibegin.http.io.ChunkedOutputStream;
 import com.hibegin.http.io.GzipCompressingInputStream;
+import com.hibegin.http.io.KnownLengthStream;
 import com.hibegin.http.io.LengthByteArrayInputStream;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpResponse;
@@ -309,12 +310,16 @@ public class SimpleHttpResponse implements HttpResponse {
         write(inputStream, code, -1);
     }
 
-    private boolean needChunked(InputStream inputStream, long bodyLength) {
+    protected boolean needChunked(InputStream inputStream, long bodyLength) {
         if (inputStream == null) {
             return false;
         }
         if (bodyLength < 0) {
-            return true;
+            String contentLength = getHeader("Content-Length");
+            if (Objects.isNull(contentLength)) {
+                return true;
+            }
+            return Integer.parseInt(contentLength) < 0;
         }
         if (bodyLength == 0) {
             return false;
@@ -353,9 +358,9 @@ public class SimpleHttpResponse implements HttpResponse {
             if (Objects.nonNull(inputStream) && inputStream instanceof FileInputStream) {
                 FileInputStream fin = (FileInputStream) inputStream;
                 bodyLength = fin.getChannel().size();
-            } else if (Objects.nonNull(inputStream) && inputStream instanceof LengthByteArrayInputStream) {
-                LengthByteArrayInputStream lengthByteArrayInputStream = (LengthByteArrayInputStream) inputStream;
-                bodyLength = lengthByteArrayInputStream.getLength();
+            } else if (Objects.nonNull(inputStream) && inputStream instanceof KnownLengthStream) {
+                KnownLengthStream stream = (KnownLengthStream) inputStream;
+                bodyLength = stream.getLength();
             }
             boolean chunked = needChunked(inputStream, bodyLength);
             if (chunked) {
@@ -384,10 +389,7 @@ public class SimpleHttpResponse implements HttpResponse {
                 }
             }
             if (chunked) {
-                ByteArrayOutputStream tmpOut = new ByteArrayOutputStream();
-                ChunkedOutputStream chunkedOutputStream = new ChunkedOutputStream(tmpOut);
-                chunkedOutputStream.close();
-                send(tmpOut.toByteArray());
+                send(toChunked(new byte[0]));
             } else {
                 send(new byte[0]);
             }

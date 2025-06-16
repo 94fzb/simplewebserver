@@ -2,7 +2,7 @@ package com.hibegin.http.io;
 
 import java.io.ByteArrayInputStream;
 
-public class LengthByteArrayInputStream extends ByteArrayInputStream {
+public class LengthByteArrayInputStream extends ByteArrayInputStream implements KnownLengthStream {
     private final long length;
 
     public LengthByteArrayInputStream(byte[] buf) {
@@ -10,6 +10,7 @@ public class LengthByteArrayInputStream extends ByteArrayInputStream {
         this.length = buf.length;
     }
 
+    @Override
     public long getLength() {
         return length;
     }
