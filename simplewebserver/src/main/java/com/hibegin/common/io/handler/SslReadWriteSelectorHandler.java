@@ -335,6 +335,55 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         return sslEngine.getHandshakeStatus();
     }
 
+    private void doSslReadHandle() throws IOException {
+        int overflowAttempts = 0;          // 用于统计是否陷入死循环
+        while (inNetBB.hasRemaining()) {
+            if (!sc.isOpen()) {
+                throw new EOFException();
+            }
+            SSLEngineResult result = sslEngine.unwrap(inNetBB, requestBB);
+
+            switch (result.getStatus()) {
+                case OK:
+                    break;
+
+                case BUFFER_UNDERFLOW:
+                    inNetBB.compact();  // 留数据给下次 read
+                    return;
+
+                case BUFFER_OVERFLOW:
+                    int currentCap = requestBB.capacity();
+
+                    // 防止 memory leak.
+                    if (currentCap >= 4 * 1024 * 1024) {
+                        throw new IOException("unwrap BUFFER_OVERFLOW but no progress; giving up to avoid memory leak. currentCap to limited " + currentCap);
+                    }
+                    if (overflowAttempts > 10) {
+                        throw new IOException("unwrap BUFFER_OVERFLOW but no progress; giving up to avoid memory leak. overflowAttempts: " + overflowAttempts);
+                    }
+                    overflowAttempts++;
+                    // requestBB 太小，扩容！
+                    resizeRequestBB(sslEngine.getSession().getApplicationBufferSize());
+                    break;
+
+                case CLOSED:
+                    try {
+                        sslEngine.closeInbound();
+                    } catch (SSLException e) {
+                        LOGGER.warning("SSL closed without close_notify: " + e.getMessage());
+                    }
+                    return;
+
+                default:
+                    throw new IOException("sslEngine error during unwrap: " + result.getStatus());
+            }
+
+            if (result.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
+                doTasks();
+            }
+        }
+    }
+
     /**
      * Read the channel for more information, then unwrap the
      * (hopefully application) data we get.
@@ -350,90 +399,24 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             return super.handleRead();
         }
         readLock.lock();
-        int readLength = 0;
+        int readLength;
         try {
             initRequestBB();
             doHandshake();
             if (!initialHSComplete) {
                 return ByteBuffer.allocate(0);
             }
-            SSLEngineResult result;
-
             readLength = sc.read(inNetBB);
             if (readLength == -1) {
                 // probably throws exception
                 sslEngine.closeInbound();
                 throw new EOFException();
             }
-
             inNetBB.flip();
-            int overflowAttempts = 0;          // 用于统计是否陷入死循环
-
-
-            while (inNetBB.hasRemaining()) {
-                if (!sc.isOpen()) {
-                    throw new EOFException();
-                }
-                result = sslEngine.unwrap(inNetBB, requestBB);
-
-                switch (result.getStatus()) {
-                    case OK:
-                        break;
-
-                    case BUFFER_UNDERFLOW:
-                        inNetBB.compact();  // 留数据给下次 read
-                        if (requestBB.position() > 0) {
-                            requestBB.flip();
-                            ByteBuffer output = ByteBuffer.allocate(requestBB.remaining());
-                            output.put(requestBB);
-                            output.flip();
-                            flushRequestBB(readLength);
-                            return output;
-                        }
-                        // 真没数据才返回空 buffer
-                        return ByteBuffer.allocate(0);
-
-                    case BUFFER_OVERFLOW:
-                        int currentCap = requestBB.capacity();
-
-                        // 防止 memory leak.
-                        if (currentCap >= 4 * 1024 * 1024) {
-                            throw new IOException("unwrap BUFFER_OVERFLOW but no progress; giving up to avoid memory leak. currentCap to limited " + currentCap);
-                        }
-                        if (overflowAttempts > 10) {
-                            throw new IOException("unwrap BUFFER_OVERFLOW but no progress; giving up to avoid memory leak. overflowAttempts: " + overflowAttempts);
-                        }
-                        overflowAttempts++;
-                        // requestBB 太小，扩容！
-                        resizeRequestBB(sslEngine.getSession().getApplicationBufferSize());
-                        break;
-
-                    case CLOSED:
-                        try {
-                            sslEngine.closeInbound();
-                        } catch (SSLException e) {
-                            LOGGER.warning("SSL closed without close_notify: " + e.getMessage());
-                        }
-                        return ByteBuffer.allocate(0);
-
-                    default:
-                        throw new IOException("sslEngine error during unwrap: " + result.getStatus());
-                }
-
-                if (result.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
-                    doTasks();
-                }
-            }
-
+            doSslReadHandle();
             inNetBB.compact();
-            requestBB.flip();
-            ByteBuffer output = ByteBuffer.allocate(requestBB.remaining());
-            output.put(requestBB);
-            output.flip();
-            //清除缓存
-            flushRequestBB(readLength);
-            return output;
-        }//not close stream, handle connect state by caller
+        }
+        //not close stream, handle connect state by caller
         catch (SSLException e) {
             if (disablePlainRead) {
                 throw e;
@@ -446,6 +429,16 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         } finally {
             readLock.unlock();
         }
+        if (requestBB.position() > 0) {
+            requestBB.flip();
+            ByteBuffer output = ByteBuffer.allocate(requestBB.remaining());
+            output.put(requestBB);
+            output.flip();
+            //清除缓存
+            flushRequestBB(readLength);
+            return output;
+        }
+        return ByteBuffer.allocate(0);
     }
 
     /**
