@@ -347,16 +347,20 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                     return ByteBuffer.allocate(0);
 
                 case BUFFER_OVERFLOW:
-                    //已经有数据了，可以不扩容，返回调用，去消费
-                    if (requestBB.position() > 0) {
-                        break;
-                    }
                     int currentCap = requestBB.capacity();
                     // 防止 memory leak.
                     if (currentCap >= requestBbAllocator.getMaxSize()) {
+                        //已经有数据了，可以不扩容，返回调用，去消费
+                        if (requestBB.position() > 0) {
+                            break;
+                        }
                         throw new IOException("unwrap BUFFER_OVERFLOW but no progress; giving up to avoid memory leak. currentCap to limited " + currentCap);
                     }
                     if (overflowAttempts > 32) {
+                        //已经有数据了，可以不扩容，返回调用，去消费
+                        if (requestBB.position() > 0) {
+                            break;
+                        }
                         throw new IOException("unwrap BUFFER_OVERFLOW but no progress; giving up to avoid memory leak. overflowAttempts: " + overflowAttempts);
                     }
                     overflowAttempts++;

@@ -29,7 +29,7 @@ import java.util.logging.Logger;
 
 public class SimpleHttpResponse implements HttpResponse {
 
-    protected static final int RESPONSE_BYTES_BLANK_SIZE = 4096;
+    protected static final int RESPONSE_BYTES_BLANK_SIZE = 4096 * 256;
     private static final String CRLF = "\r\n";
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleHttpResponse.class);
     private static final List<String> textContentTypes = Arrays.asList(
