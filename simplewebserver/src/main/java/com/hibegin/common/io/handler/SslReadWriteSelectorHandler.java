@@ -382,6 +382,15 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
                     case BUFFER_UNDERFLOW:
                         inNetBB.compact();  // 留数据给下次 read
+                        if (requestBB.position() > 0) {
+                            requestBB.flip();
+                            ByteBuffer output = ByteBuffer.allocate(requestBB.remaining());
+                            output.put(requestBB);
+                            output.flip();
+                            flushRequestBB(readLength);
+                            return output;
+                        }
+                        // 真没数据才返回空 buffer
                         return ByteBuffer.allocate(0);
 
                     case BUFFER_OVERFLOW:
@@ -421,6 +430,8 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             ByteBuffer output = ByteBuffer.allocate(requestBB.remaining());
             output.put(requestBB);
             output.flip();
+            //清除缓存
+            flushRequestBB(readLength);
             return output;
         }//not close stream, handle connect state by caller
         catch (SSLException e) {
@@ -434,8 +445,6 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             throw e;
         } finally {
             readLock.unlock();
-            //清除缓存
-            flushRequestBB(readLength);
         }
     }
 
