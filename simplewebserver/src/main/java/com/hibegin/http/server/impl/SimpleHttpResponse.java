@@ -343,12 +343,17 @@ public class SimpleHttpResponse implements HttpResponse {
         return responseConfig.getGzipMimeTypes().stream().anyMatch(contentType::contains);
     }
 
-    protected byte[] toChunked(byte[] inputBytes) throws IOException {
+    protected byte[] toChunkedBytes(byte[] inputBytes) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ChunkedOutputStream chunkedOutputStream = new ChunkedOutputStream(out);
-        if (inputBytes.length > 0) {
-            chunkedOutputStream.write(inputBytes);
-        }
+        chunkedOutputStream.write(inputBytes);
+        return out.toByteArray();
+    }
+
+    protected byte[] toCloseChunkedBytes() throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ChunkedOutputStream chunkedOutputStream = new ChunkedOutputStream(out);
+        chunkedOutputStream.close();
         return out.toByteArray();
     }
 
@@ -385,13 +390,13 @@ public class SimpleHttpResponse implements HttpResponse {
             int length;
             while ((length = inputStream.read(bytes)) != -1) {
                 if (chunked) {
-                    send(toChunked(BytesUtil.subBytes(bytes, 0, length)), true, false);
+                    send(toChunkedBytes(BytesUtil.subBytes(bytes, 0, length)), true, false);
                 } else {
                     send(BytesUtil.subBytes(bytes, 0, length), true, false);
                 }
             }
             if (chunked) {
-                send(toChunked(new byte[0]));
+                send(toCloseChunkedBytes());
             } else {
                 send(new byte[0]);
             }
