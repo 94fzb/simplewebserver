@@ -332,7 +332,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
     private ByteBuffer doSslReadHandle() throws IOException {
         // 用于统计是否陷入死循环
         int overflowAttempts = 0;
-        while (inNetBB.hasRemaining() && requestBB.position() <= 0) {
+        while (inNetBB.hasRemaining()) {
             if (!sc.isOpen()) {
                 throw new EOFException();
             }
