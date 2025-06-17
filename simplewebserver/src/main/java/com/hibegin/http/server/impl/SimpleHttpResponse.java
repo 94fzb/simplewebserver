@@ -29,9 +29,17 @@ import java.util.logging.Logger;
 
 public class SimpleHttpResponse implements HttpResponse {
 
-    private static final String CRLF = "\r\n";
     protected static final int RESPONSE_BYTES_BLANK_SIZE = 4096;
+    private static final String CRLF = "\r\n";
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleHttpResponse.class);
+    private static final List<String> textContentTypes = Arrays.asList(
+            "application/json",
+            "application/xml",
+            "application/javascript",
+            "application/x-www-form-urlencoded",
+            "application/vnd.api+json",
+            "application/x-yaml"
+    );
     protected final Map<String, String> header = new TreeMap<>();
     protected final HttpRequest request;
     protected final List<Cookie> cookieList = new ArrayList<>();
@@ -41,16 +49,6 @@ public class SimpleHttpResponse implements HttpResponse {
         this.request = request;
         this.responseConfig = responseConfig;
     }
-
-    private static final List<String> textContentTypes = Arrays.asList(
-            "application/json",
-            "application/xml",
-            "application/javascript",
-            "application/x-www-form-urlencoded",
-            "application/vnd.api+json",
-            "application/x-yaml"
-    );
-
 
     private boolean isTextContent(String contentType) {
         return contentType.startsWith("text/") || textContentTypes.contains(contentType);
@@ -346,10 +344,12 @@ public class SimpleHttpResponse implements HttpResponse {
     }
 
     protected byte[] toChunked(byte[] inputBytes) throws IOException {
-        ByteArrayOutputStream tmpOut = new ByteArrayOutputStream();
-        ChunkedOutputStream chunkedOutputStream = new ChunkedOutputStream(tmpOut);
-        chunkedOutputStream.write(inputBytes);
-        return tmpOut.toByteArray();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ChunkedOutputStream chunkedOutputStream = new ChunkedOutputStream(out);
+        if (inputBytes.length > 0) {
+            chunkedOutputStream.write(inputBytes);
+        }
+        return out.toByteArray();
     }
 
     private void write(InputStream inputStream, int code, long bodyLength) {
