@@ -120,6 +120,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
      * operations.
      */
     private static final ByteBuffer hsBB = ByteBuffer.allocate(0);
+    private static final int MAX_REQUEST_BB_SIZE = 32 * 1024 * 1024;
     private final SSLEngine sslEngine;
     /**
      * All I/O goes through these buffers.
@@ -172,7 +173,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                                        boolean disablePlainRead,
                                        String host, int port,
                                        boolean sendSNI) throws IOException {
-        super(sc, maxRequestBufferSize);
+        super(sc, Math.max(MAX_REQUEST_BB_SIZE, maxRequestBufferSize));
         this.disablePlainRead = disablePlainRead;
         sslEngine = clientMode ? sslContext.createSSLEngine(host, port) : sslContext.createSSLEngine();
         sslEngine.setUseClientMode(clientMode);

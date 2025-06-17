@@ -6,35 +6,33 @@ import java.util.Arrays;
 public class AdaptiveBufferAllocator {
 
     private static final int[] SIZE_TABLE;
-    public static final int MAX_REQUEST_BB_SIZE = 512 * 1024;
     private static final int increaseThreshold = 3;
     private static final int decreaseThreshold = 3;
 
     static {
         SIZE_TABLE = new int[32];
-        for (int i = 0, size = 16; size <= MAX_REQUEST_BB_SIZE && i < SIZE_TABLE.length; size *= 2, i++) {
-            SIZE_TABLE[i] = size;
+        for (int i = 0, size = 16; i < SIZE_TABLE.length; size *= 2, i++) {
+            if (size > 0) {
+                SIZE_TABLE[i] = size;
+            }
         }
-    }
-
-    public static void main(String[] args) {
-        System.out.println("SIZE_TABLE = " + Arrays.toString(SIZE_TABLE));
     }
 
     private final int minIndex;
     private final int maxIndex;
-
+    private final int maxSize;
     private int index;
     private int decreaseNow = 0;
     private int increaseNow = 0;
-    private final int maxSize;
-
-
     public AdaptiveBufferAllocator(int minSize, int initialSize, int maxSize) {
         this.minIndex = getSizeTableIndex(minSize);
         this.index = getSizeTableIndex(initialSize);
         this.maxIndex = getSizeTableIndex(maxSize);
         this.maxSize = maxSize;
+    }
+
+    public static void main(String[] args) {
+        System.out.println("SIZE_TABLE = " + Arrays.toString(SIZE_TABLE));
     }
 
     public int getMaxSize() {
