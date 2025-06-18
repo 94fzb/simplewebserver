@@ -25,8 +25,8 @@ public abstract class SwsServletFilter extends HttpFilter {
         System.getProperties().put("sws.conf.path", getServletContext().getRealPath("/WEB-INF/"));
         System.getProperties().put("sws.root.path", getServletContext().getRealPath("/"));
         String servletRootFile = new File(getServletContext().getRealPath("/")).getParentFile().getParent();
-        System.getProperties().put("sws.log.path",  servletRootFile + "/logs");
-        System.getProperties().put("sws.temp.path",  servletRootFile + "/temp");
+        System.getProperties().put("sws.log.path", servletRootFile + "/logs");
+        System.getProperties().put("sws.temp.path", servletRootFile + "/temp");
         this.serverConfig = getServerConfig();
         applicationContext = new ApplicationContext(serverConfig.getServerConfig());
         applicationContext.init();

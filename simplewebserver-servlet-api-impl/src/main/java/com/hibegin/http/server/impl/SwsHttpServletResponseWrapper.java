@@ -7,18 +7,27 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Objects;
 
 public class SwsHttpServletResponseWrapper extends SimpleHttpResponse {
 
     private final HttpServletResponse rawServletResponse;
+    private final OutputStream outputStream;
 
     public SwsHttpServletResponseWrapper(HttpRequest request, ResponseConfig responseConfig, HttpServletResponse rawServletResponse) {
         super(request, responseConfig);
         this.rawServletResponse = rawServletResponse;
+        Collection<String> headerNames = rawServletResponse.getHeaderNames();
+        for (String headerName : headerNames) {
+            header.put(headerName, rawServletResponse.getHeader(headerName));
+        }
+        try {
+            this.outputStream = rawServletResponse.getOutputStream();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -32,6 +41,7 @@ public class SwsHttpServletResponseWrapper extends SimpleHttpResponse {
         if (Objects.equals(key, "Connection")) {
             return;
         }
+        super.putHeader(key, value);
         rawServletResponse.addHeader(key, value);
     }
 
@@ -45,6 +55,7 @@ public class SwsHttpServletResponseWrapper extends SimpleHttpResponse {
         if (Objects.equals(key, "Content-Length")) {
             rawServletResponse.setHeader("Content-Length", null);
         }
+        super.removeHeader(key);
     }
 
     @Override
@@ -53,16 +64,6 @@ public class SwsHttpServletResponseWrapper extends SimpleHttpResponse {
         return super.wrapperBaseResponseHeader(statusCode);
     }
 
-    @Override
-    public Map<String, String> getHeader() {
-        Collection<String> headerNames = rawServletResponse.getHeaderNames();
-        Map<String, String> rawHeaderMap = new LinkedHashMap<>();
-        for (String headerName : headerNames) {
-            rawHeaderMap.put(headerName, rawServletResponse.getHeader(headerName));
-        }
-        rawHeaderMap.putAll(header);
-        return rawHeaderMap;
-    }
 
     @Override
     public void redirect(String url) {
@@ -77,9 +78,9 @@ public class SwsHttpServletResponseWrapper extends SimpleHttpResponse {
     protected void send(byte[] bytes, boolean body, boolean close) {
         if (body) {
             try {
-                rawServletResponse.getOutputStream().write(bytes);
+                outputStream.write(bytes);
                 if (close) {
-                    rawServletResponse.getOutputStream().close();
+                    outputStream.close();
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);

@@ -45,7 +45,7 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
     private Cookie[] cookies;
     private HttpSession session;
     private Map<String, Object> attr;
-    private InputStream inputStream;
+    protected InputStream inputStream;
 
     protected SimpleHttpRequest(ReadWriteSelectorHandler handler, ApplicationContext applicationContext, RequestConfig requestConfig) {
         this.requestConfig = requestConfig;
@@ -89,7 +89,7 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
 
     @Override
     public String getUrl() {
-        return getScheme() + "://" + getHeader("Host") + uri;
+        return getScheme() + "://" + getHeader("Host") + getUri();
     }
 
     @Override

@@ -138,10 +138,17 @@ public class ServerConfig {
     }
 
     public String getServerInfo() {
-        if (Objects.isNull(serverInfo) || serverInfo.trim().isEmpty()) {
-            return ServerInfo.getName() + "/" + ServerInfo.getVersion();
+        StringJoiner sj = new StringJoiner("/");
+        if (Objects.nonNull(applicationName)) {
+            sj.add(applicationName);
+            if (Objects.nonNull(applicationVersion)) {
+                sj.add(applicationVersion);
+            }
+        } else {
+            sj.add(ServerInfo.getName());
+            sj.add(ServerInfo.getVersion());
         }
-        return serverInfo;
+        return sj.toString();
     }
 
     public Class<?> getBasicTemplateClass() {
