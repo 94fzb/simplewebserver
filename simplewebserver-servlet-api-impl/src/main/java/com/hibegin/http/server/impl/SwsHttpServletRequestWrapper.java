@@ -12,6 +12,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
@@ -39,7 +42,38 @@ public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
         if (Objects.isNull(parameterMap)) {
             return Collections.emptyMap();
         }
-        return parameterMap;
+        Map<String, String[]> decodedParameterMap = new HashMap<>();
+        for (Map.Entry<String, String[]> entry : parameterMap.entrySet()) {
+            String[] values = new String[entry.getValue().length];
+            for (int i = 0; i < values.length; i++) {
+                values[i] = convertRequestParam(entry.getValue()[i]);
+            }
+            decodedParameterMap.put(entry.getKey(), values);
+        }
+        return decodedParameterMap;
+    }
+
+
+    private static boolean containsHanScript(String s) {
+        return s.codePoints().anyMatch(codepoint -> Character.UnicodeScript.of(codepoint) == Character.UnicodeScript.HAN);
+    }
+
+    /**
+     * 用于转化 GET 的中文乱码
+     */
+    public static String convertRequestParam(String param) {
+        if (param == null) {
+            return "";
+        }
+        //如果可以正常读取到中文的情况，直接跳过转换
+        if (containsHanScript(param)) {
+            return param;
+        }
+        try {
+            return URLDecoder.decode(new String(param.getBytes(StandardCharsets.ISO_8859_1)), "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
