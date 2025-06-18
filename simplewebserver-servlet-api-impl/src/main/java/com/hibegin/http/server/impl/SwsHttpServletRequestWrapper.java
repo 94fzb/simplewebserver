@@ -54,11 +54,11 @@ public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
         if (Objects.isNull(parameterMap)) {
             return Collections.emptyMap();
         }
-        Map<String, String[]> decodedParameterMap = new HashMap<>();
+        Map<String, String[]> decodedParameterMap = new LinkedHashMap<>();
         for (Map.Entry<String, String[]> entry : parameterMap.entrySet()) {
             String[] values = new String[entry.getValue().length];
             for (int i = 0; i < values.length; i++) {
-                values[i] = convertRequestParam(entry.getValue()[i]);
+                values[i] = convertToStrandStr(entry.getValue()[i]);
             }
             decodedParameterMap.put(entry.getKey(), values);
         }
@@ -70,16 +70,16 @@ public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
     }
 
     /**
-     * 用于转化 GET 的中文乱码
+     * 用于转化HTTP的中文乱码
      */
-    public static String convertRequestParam(String param) {
+    private static String convertToStrandStr(String param) {
         if (param == null) {
             return "";
         }
-        //如果可以正常读取到中文的情况，直接跳过转换
+        /*//如果可以正常读取到中文的情况，直接跳过转换
         if (containsHanScript(param)) {
             return param;
-        }
+        }*/
         try {
             return URLDecoder.decode(new String(param.getBytes(StandardCharsets.ISO_8859_1)), "UTF-8");
         } catch (UnsupportedEncodingException e) {
@@ -88,7 +88,7 @@ public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
     }
 
     private String _getUri(HttpServletRequest rawServletRequest) {
-        return rawServletRequest.getRequestURI().substring(rawServletRequest.getContextPath().length());
+        return convertToStrandStr(rawServletRequest.getRequestURI().substring(rawServletRequest.getContextPath().length()));
     }
 
     @Override
@@ -115,7 +115,7 @@ public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
 
     private Map<String, String> _getHeaderMap(HttpServletRequest rawServletRequest) {
         Enumeration<String> iterator = rawServletRequest.getHeaderNames();
-        Map<String, String> headerMap = new TreeMap<>();
+        Map<String, String> headerMap = new LinkedHashMap<>();
         while (iterator.hasMoreElements()) {
             String key = iterator.nextElement();
             headerMap.put(key, rawServletRequest.getHeader(key));

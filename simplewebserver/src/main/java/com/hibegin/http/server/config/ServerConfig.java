@@ -138,6 +138,9 @@ public class ServerConfig {
     }
 
     public String getServerInfo() {
+        if (Objects.nonNull(serverInfo)) {
+            return serverInfo;
+        }
         StringJoiner sj = new StringJoiner("/");
         if (Objects.nonNull(applicationName)) {
             sj.add(applicationName);

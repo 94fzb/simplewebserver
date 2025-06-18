@@ -34,7 +34,7 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
     private final ApplicationContext applicationContext;
     private final ReadWriteSelectorHandler handler;
     private final long createTime;
-    protected Map<String, String> header = new HashMap<>();
+    protected Map<String, String> header = new LinkedHashMap<>();
     protected Map<String, String[]> paramMap;
     protected String uri;
     protected String queryStr;

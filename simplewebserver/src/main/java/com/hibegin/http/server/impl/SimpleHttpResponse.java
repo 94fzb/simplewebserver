@@ -40,7 +40,7 @@ public class SimpleHttpResponse implements HttpResponse {
             "application/vnd.api+json",
             "application/x-yaml"
     );
-    protected final Map<String, String> header = new TreeMap<>();
+    protected final Map<String, String> header = new LinkedHashMap<>();
     protected final HttpRequest request;
     protected final List<Cookie> cookieList = new ArrayList<>();
     protected final ResponseConfig responseConfig;
