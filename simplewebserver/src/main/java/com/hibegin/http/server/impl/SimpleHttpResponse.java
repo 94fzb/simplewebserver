@@ -1,9 +1,6 @@
 package com.hibegin.http.server.impl;
 
-import com.hibegin.common.util.BytesUtil;
-import com.hibegin.common.util.EnvKit;
-import com.hibegin.common.util.LoggerUtil;
-import com.hibegin.common.util.ObjectUtil;
+import com.hibegin.common.util.*;
 import com.hibegin.http.HttpVersion;
 import com.hibegin.http.io.ChunkedOutputStream;
 import com.hibegin.http.io.GzipCompressingInputStream;
@@ -259,7 +256,7 @@ public class SimpleHttpResponse implements HttpResponse {
 
     @Override
     public void redirect(String url) {
-        putHeader("Location", url);
+        putHeader("Location", UrlEncodeUtils.encodeUrl(url));
         renderByMimeType("", null, 302);
     }
 
