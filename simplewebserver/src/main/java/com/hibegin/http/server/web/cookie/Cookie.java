@@ -17,6 +17,7 @@ public class Cookie {
     private boolean create;
     private boolean httpOnly;
     private String sameSite;
+    private boolean secure;
 
     public Cookie(boolean create) {
         this.setCreate(create);
@@ -83,6 +84,14 @@ public class Cookie {
         this.path = path;
     }
 
+    public boolean isSecure() {
+        return secure;
+    }
+
+    public void setSecure(boolean secure) {
+        this.secure = secure;
+    }
+
     @Override
     public String toString() {
         String cookieStr;
@@ -93,6 +102,9 @@ public class Cookie {
         }
         if (domain != null && !domain.trim().isEmpty()) {
             cookieStr += ";" + "Domain=" + domain;
+        }
+        if (secure) {
+            cookieStr += ";Secure";
         }
         if (sameSite != null && !sameSite.trim().isEmpty()) {
             cookieStr += ";" + "SameSite=" + sameSite;
@@ -133,5 +145,16 @@ public class Cookie {
 
     public void setSameSite(String sameSite) {
         this.sameSite = sameSite;
+    }
+
+    public static void main(String[] args) {
+        Cookie cookie = new Cookie();
+        cookie.setSameSite("None");
+        cookie.setSecure(true);
+        cookie.setName("test");
+        cookie.setValue("test");
+        cookie.setHttpOnly(true);
+        cookie.setExpireDate(new Date());
+        System.out.println("cookie = " + cookie);
     }
 }
