@@ -38,7 +38,7 @@ public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
         this.contextPath = rawServletRequest.getContextPath();
         this.paramMap = _getParamMap(rawServletRequest);
         this.header = _getHeaderMap(rawServletRequest);
-        this.uri = _getUri(rawServletRequest);
+        this.uri = rawServletRequest.getRequestURI();
         this.realPath = rawServletRequest.getServletContext().getRealPath("/");
         this.queryStr = rawServletRequest.getQueryString();
         this.scheme = rawServletRequest.getScheme();
@@ -85,10 +85,6 @@ public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private String _getUri(HttpServletRequest rawServletRequest) {
-        return convertToStrandStr(rawServletRequest.getRequestURI().substring(rawServletRequest.getContextPath().length()));
     }
 
     @Override
