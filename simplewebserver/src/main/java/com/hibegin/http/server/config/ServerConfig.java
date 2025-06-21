@@ -32,7 +32,7 @@ public class ServerConfig {
     private boolean ssl;
     private String host = "0.0.0.0";
     private Integer port;
-    private String contextPath;
+    private String contextPath = "";
 
     private boolean disableSession;
     private int timeout;
