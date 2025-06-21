@@ -37,7 +37,7 @@ public class SimpleHttpResponse implements HttpResponse {
             "application/vnd.api+json",
             "application/x-yaml"
     );
-    protected final Map<String, String> header = new LinkedHashMap<>();
+    protected final Map<String, String> header;
     protected final HttpRequest request;
     protected final List<Cookie> cookieList = new ArrayList<>();
     protected final ResponseConfig responseConfig;
@@ -45,6 +45,7 @@ public class SimpleHttpResponse implements HttpResponse {
     public SimpleHttpResponse(HttpRequest request, ResponseConfig responseConfig) {
         this.request = request;
         this.responseConfig = responseConfig;
+        this.header = ObjectUtil.requireNonNullElse(responseConfig.getDefaultHeaders(), new LinkedHashMap<>());
     }
 
     private boolean isTextContent(String contentType) {

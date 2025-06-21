@@ -1,7 +1,6 @@
 package com.hibegin.http.server.config;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class ResponseConfig {
 
@@ -9,6 +8,7 @@ public class ResponseConfig {
     private boolean disableCookie;
     private String charSet = "UTF-8";
     private List<String> gzipMimeTypes = new ArrayList<>();
+    private Map<String,String> defaultHeaders = new LinkedHashMap<>();
 
     public boolean isEnableGzip() {
         return enableGzip;
@@ -40,5 +40,13 @@ public class ResponseConfig {
 
     public void setCharSet(String charSet) {
         this.charSet = charSet;
+    }
+
+    public Map<String, String> getDefaultHeaders() {
+        return defaultHeaders;
+    }
+
+    public void setDefaultHeaders(Map<String, String> defaultHeaders) {
+        this.defaultHeaders = defaultHeaders;
     }
 }
