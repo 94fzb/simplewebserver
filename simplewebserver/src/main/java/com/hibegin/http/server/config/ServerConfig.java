@@ -35,21 +35,6 @@ public class ServerConfig {
     private String contextPath;
 
     private boolean disableSession;
-
-    public boolean isDisableSession() {
-        return disableSession;
-    }
-
-    public ServerConfig setDisableSession(boolean disableSession) {
-        this.disableSession = disableSession;
-        return this;
-    }
-
-
-    public Map<String, Object> getAttr() {
-        return attr;
-    }
-
     private int timeout;
     private boolean supportHttp2;
     private String welcomeFile = "index.html";
@@ -70,6 +55,19 @@ public class ServerConfig {
     private HybridStorage hybridStorage;
     private String pidFilePathEnvKey;
     private String serverPortFilePathEnvKey;
+
+    public boolean isDisableSession() {
+        return disableSession;
+    }
+
+    public ServerConfig setDisableSession(boolean disableSession) {
+        this.disableSession = disableSession;
+        return this;
+    }
+
+    public Map<String, Object> getAttr() {
+        return attr;
+    }
 
     public String getPidFilePathEnvKey() {
         return pidFilePathEnvKey;
@@ -98,16 +96,6 @@ public class ServerConfig {
         return this;
     }
 
-    public ServerConfig setApplicationVersion(String applicationVersion) {
-        this.applicationVersion = applicationVersion;
-        return this;
-    }
-
-    public ServerConfig setHybridStorage(HybridStorage hybridStorage) {
-        this.hybridStorage = hybridStorage;
-        return this;
-    }
-
     public HybridStorage getHybridStorage() {
         if (Objects.isNull(hybridStorage)) {
             this.hybridStorage = new HybridStorage(Long.MAX_VALUE, PathUtil.getTempPath());
@@ -115,8 +103,18 @@ public class ServerConfig {
         return hybridStorage;
     }
 
+    public ServerConfig setHybridStorage(HybridStorage hybridStorage) {
+        this.hybridStorage = hybridStorage;
+        return this;
+    }
+
     public String getApplicationVersion() {
         return applicationVersion;
+    }
+
+    public ServerConfig setApplicationVersion(String applicationVersion) {
+        this.applicationVersion = applicationVersion;
+        return this;
     }
 
     public String getApplicationName() {
@@ -154,8 +152,18 @@ public class ServerConfig {
         return sj.toString();
     }
 
+    public ServerConfig setServerInfo(String serverInfo) {
+        this.serverInfo = serverInfo;
+        return this;
+    }
+
     public Class<?> getBasicTemplateClass() {
         return basicTemplateClass;
+    }
+
+    public ServerConfig setBasicTemplateClass(Class<?> basicTemplateClass) {
+        this.basicTemplateClass = basicTemplateClass;
+        return this;
     }
 
     public boolean isNativeImageAgent() {
@@ -164,16 +172,6 @@ public class ServerConfig {
 
     public ServerConfig setNativeImageAgent(boolean nativeImageAgent) {
         this.nativeImageAgent = nativeImageAgent;
-        return this;
-    }
-
-    public ServerConfig setBasicTemplateClass(Class<?> basicTemplateClass) {
-        this.basicTemplateClass = basicTemplateClass;
-        return this;
-    }
-
-    public ServerConfig setServerInfo(String serverInfo) {
-        this.serverInfo = serverInfo;
         return this;
     }
 
@@ -217,11 +215,6 @@ public class ServerConfig {
         return this;
     }
 
-    public ServerConfig setRequestCheckerExecutor(ScheduledExecutorService requestCheckerExecutor) {
-        this.requestCheckerExecutor = requestCheckerExecutor;
-        return this;
-    }
-
     public ScheduledExecutorService getRequestCheckerExecutor() {
         if (requestCheckerExecutor == null) {
             requestCheckerExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -231,6 +224,11 @@ public class ServerConfig {
             });
         }
         return requestCheckerExecutor;
+    }
+
+    public ServerConfig setRequestCheckerExecutor(ScheduledExecutorService requestCheckerExecutor) {
+        this.requestCheckerExecutor = requestCheckerExecutor;
+        return this;
     }
 
     public HttpJsonMessageConverter getHttpJsonMessageConverter() {
@@ -419,7 +417,7 @@ public class ServerConfig {
     }
 
     public String getContextPath() {
-        return contextPath;
+        return ObjectUtil.requireNonNullElse(contextPath, "");
     }
 
     public void setContextPath(String contextPath) {
