@@ -45,7 +45,7 @@ public class SimpleHttpResponse implements HttpResponse {
     public SimpleHttpResponse(HttpRequest request, ResponseConfig responseConfig) {
         this.request = request;
         this.responseConfig = responseConfig;
-        this.header = ObjectUtil.requireNonNullElse(responseConfig.getDefaultHeaders(), new LinkedHashMap<>());
+        this.header = new LinkedHashMap<>(ObjectUtil.requireNonNullElse(responseConfig.getDefaultHeaders(), new LinkedHashMap<>()));
     }
 
     private boolean isTextContent(String contentType) {
