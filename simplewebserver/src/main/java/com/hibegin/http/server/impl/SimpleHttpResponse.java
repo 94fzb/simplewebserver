@@ -76,7 +76,7 @@ public class SimpleHttpResponse implements HttpResponse {
     protected void send(byte[] bytes, boolean body, boolean close) {
         if (Objects.isNull(request.getHandler())) {
             if (!request.getServerConfig().isNativeImageAgent()) {
-                if (EnvKit.isDevMode()) {
+                if (EnvKit.isDebugMode()) {
                     LOGGER.warning("Request missing channel handler");
                 }
             }

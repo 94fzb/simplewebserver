@@ -89,6 +89,6 @@ public interface HttpRequest {
     HttpVersion getHttpVersion();
 
     default String getContextPath() {
-        return "";
+        return getServerConfig().getContextPath();
     }
 }

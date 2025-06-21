@@ -42,10 +42,10 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
     protected Map<String, File> files;
     protected File tmpRequestBodyFile;
     protected String requestHeaderStr;
+    protected InputStream inputStream;
     private Cookie[] cookies;
     private HttpSession session;
     private Map<String, Object> attr;
-    protected InputStream inputStream;
 
     protected SimpleHttpRequest(ReadWriteSelectorHandler handler, ApplicationContext applicationContext, RequestConfig requestConfig) {
         this.requestConfig = requestConfig;
@@ -193,6 +193,14 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
 
     @Override
     public String getUri() {
+        String contextPath = getContextPath();
+        if (!contextPath.isEmpty()) {
+            String newUri = uri.substring(contextPath.length());
+            if (newUri.isEmpty()) {
+                return "/";
+            }
+            return newUri;
+        }
         return uri;
     }
 
