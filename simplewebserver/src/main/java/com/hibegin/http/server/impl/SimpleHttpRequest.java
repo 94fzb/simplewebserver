@@ -179,8 +179,10 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
 
     @Override
     public Integer getParaToInt(String key) {
-        if (getHeaderMap().get(key) != null) {
-            return Integer.parseInt(getParamMap().get(key)[0]);
+        Map<String, String[]> param = getParamMap();
+        String[] values = param.get(key);
+        if (Objects.nonNull(values) && values.length > 0) {
+            return Integer.parseInt(values[0]);
         }
         return 0;
     }
