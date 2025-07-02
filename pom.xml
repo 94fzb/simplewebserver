@@ -3,7 +3,7 @@
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver-parent</artifactId>
     <modelVersion>4.0.0</modelVersion>
-    <version>4.0.65-SNAPSHOT</version>
+    <version>4.0.65</version>
     <packaging>pom</packaging>
     <modules>
         <module>simplewebserver-servlet-api-impl</module>
@@ -149,8 +149,8 @@
                 <version>1.6.13</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <serverId>ossrh</serverId>
-                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <serverId>central</serverId>
+                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
                     <autoDropAfterRelease>true</autoDropAfterRelease>
                     <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
@@ -177,19 +177,19 @@
             <dependency>
                 <groupId>com.hibegin</groupId>
                 <artifactId>simplewebserver</artifactId>
-                <version>4.0.65-SNAPSHOT</version>
+                <version>4.0.65</version>
             </dependency>
             <dependency>
                 <groupId>com.hibegin</groupId>
                 <artifactId>simplewebserver-servlet-api-impl</artifactId>
-                <version>4.0.65-SNAPSHOT</version>
+                <version>4.0.65</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
 
     <repositories>
         <repository>
-            <id>ossrh</id>
+            <id>central</id>
             <url>https://oss.sonatype.org/content/groups/staging</url>
         </repository>
     </repositories>
