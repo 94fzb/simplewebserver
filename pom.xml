@@ -3,7 +3,7 @@
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver-parent</artifactId>
     <modelVersion>4.0.0</modelVersion>
-    <version>4.0.69-SNAPSHOT</version>
+    <version>4.0.69</version>
     <packaging>pom</packaging>
     <modules>
         <module>simplewebserver-servlet-api-impl</module>
@@ -176,22 +176,22 @@
             <dependency>
                 <groupId>com.hibegin</groupId>
                 <artifactId>simplewebserver</artifactId>
-                <version>4.0.69-SNAPSHOT</version>
+                <version>4.0.69</version>
             </dependency>
             <dependency>
                 <groupId>com.hibegin</groupId>
                 <artifactId>simplewebserver-servlet-api-impl</artifactId>
-                <version>4.0.69-SNAPSHOT</version>
+                <version>4.0.69</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
 
-    <repositories>
+    <!--<repositories>
         <repository>
             <id>central</id>
             <url>https://s01.oss.sonatype.org/content/groups/staging</url>
         </repository>
-    </repositories>
+    </repositories>-->
 
     <distributionManagement>
         <repository>
