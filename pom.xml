@@ -175,7 +175,7 @@
     <repositories>
         <repository>
             <id>central</id>
-            <url>https://oss.sonatype.org/content/groups/staging</url>
+            <url>https://s01.oss.sonatype.org/content/groups/staging</url>
         </repository>
     </repositories>
 
