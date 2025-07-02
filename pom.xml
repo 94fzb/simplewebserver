@@ -3,7 +3,7 @@
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver-parent</artifactId>
     <modelVersion>4.0.0</modelVersion>
-    <version>4.0.68-SNAPSHOT</version>
+    <version>4.0.68</version>
     <packaging>pom</packaging>
     <modules>
         <module>simplewebserver-servlet-api-impl</module>
@@ -154,6 +154,20 @@
                     <waitUntil>published</waitUntil>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>3.1.1</version>
+                <executions>
+                    <execution>
+                        <id>default-deploy</id>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>deploy</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -162,12 +176,12 @@
             <dependency>
                 <groupId>com.hibegin</groupId>
                 <artifactId>simplewebserver</artifactId>
-                <version>4.0.68-SNAPSHOT</version>
+                <version>4.0.68</version>
             </dependency>
             <dependency>
                 <groupId>com.hibegin</groupId>
                 <artifactId>simplewebserver-servlet-api-impl</artifactId>
-                <version>4.0.68-SNAPSHOT</version>
+                <version>4.0.68</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
