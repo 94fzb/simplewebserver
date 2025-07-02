@@ -36,6 +36,7 @@ package com.hibegin.common.io.handler;
  */
 
 import com.hibegin.common.util.BytesUtil;
+import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
 
 import javax.net.ssl.*;
@@ -48,7 +49,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -574,7 +574,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                 }
                 shutdown();
             } catch (IOException e) {
-                if (!Objects.equals(e.getMessage(), "Broken pipe")) {
+                if (EnvKit.isDevMode()) {
                     LOGGER.log(Level.SEVERE, "", e);
                 }
             } finally {
