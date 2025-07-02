@@ -3,7 +3,7 @@
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver-parent</artifactId>
     <modelVersion>4.0.0</modelVersion>
-    <version>4.0.69</version>
+    <version>4.0.70-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
         <module>simplewebserver-servlet-api-impl</module>
@@ -176,12 +176,12 @@
             <dependency>
                 <groupId>com.hibegin</groupId>
                 <artifactId>simplewebserver</artifactId>
-                <version>4.0.69</version>
+                <version>4.0.70-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>com.hibegin</groupId>
                 <artifactId>simplewebserver-servlet-api-impl</artifactId>
-                <version>4.0.69</version>
+                <version>4.0.70-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
