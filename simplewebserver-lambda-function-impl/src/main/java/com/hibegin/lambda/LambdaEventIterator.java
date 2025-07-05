@@ -84,15 +84,14 @@ public class LambdaEventIterator implements Iterator<Map.Entry<String, LambdaApi
         if (EnvKit.isDevMode()) {
             LOGGER.info("lambda response " + requestId + " : " + output);
         }
-        if (EnvKit.isDevMode()) {
-            hasNext = false;
-            return;
-        }
-        HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(getBaseUrl() + "/" + requestId + "/response"));
-        builder.POST(HttpRequest.BodyPublishers.ofString(output));
-        HttpResponse<String> send = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
-        if (EnvKit.isDevMode()) {
-            LOGGER.info("lambda main server response = " + send.statusCode() + ":" + send.body());
+        hasNext = EnvKit.isLambda();
+        if (EnvKit.isLambda()) {
+            HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(getBaseUrl() + "/" + requestId + "/response"));
+            builder.POST(HttpRequest.BodyPublishers.ofString(output));
+            HttpResponse<String> send = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+            if (EnvKit.isDevMode()) {
+                LOGGER.info("lambda main server response = " + send.statusCode() + ":" + send.body());
+            }
         }
     }
 }
