@@ -28,6 +28,8 @@ public class LambdaEventIterator implements Iterator<Map.Entry<String, LambdaApi
 
     public static final String VERSION = "2018-06-01";
 
+    private Gson gson = new Gson();
+
     private String getBaseUrl() {
         return "http://" + System.getenv("AWS_LAMBDA_RUNTIME_API") + "/" + VERSION + "/runtime/invocation";
     }
@@ -54,7 +56,7 @@ public class LambdaEventIterator implements Iterator<Map.Entry<String, LambdaApi
         try {
             Map.Entry<String, LambdaApiGatewayRequest> requestInfo = getRequestInfo();
             if (EnvKit.isDevMode()) {
-                LOGGER.info("lambda request  " + requestInfo.getKey() + " : " + new Gson().toJson(requestInfo.getValue()));
+                LOGGER.info("lambda request  " + requestInfo.getKey() + " : " + gson.toJson(requestInfo.getValue()));
             }
             return requestInfo;
         } catch (IOException | InterruptedException e) {
@@ -69,16 +71,16 @@ public class LambdaEventIterator implements Iterator<Map.Entry<String, LambdaApi
      */
     private Map.Entry<String, LambdaApiGatewayRequest> getRequestInfo() throws IOException, InterruptedException {
         if (EnvKit.isDevMode()) {
-            LambdaApiGatewayRequest apiGatewayRequest = new Gson().fromJson(getDevInput(), LambdaApiGatewayRequest.class);
+            LambdaApiGatewayRequest apiGatewayRequest = gson.fromJson(getDevInput(), LambdaApiGatewayRequest.class);
             return new AbstractMap.SimpleEntry<>(apiGatewayRequest.getRequestContext().getRequestId(), apiGatewayRequest);
         }
         HttpResponse<String> send = httpClient.send(HttpRequest.newBuilder(URI.create(getBaseUrl() + "/next")).build(), HttpResponse.BodyHandlers.ofString());
-        LambdaApiGatewayRequest apiGatewayRequest = new Gson().fromJson(send.body(), LambdaApiGatewayRequest.class);
+        LambdaApiGatewayRequest apiGatewayRequest = gson.fromJson(send.body(), LambdaApiGatewayRequest.class);
         return new AbstractMap.SimpleEntry<>(send.headers().firstValue("Lambda-Runtime-Aws-Request-Id").orElse(""), apiGatewayRequest);
     }
 
     public void report(LambdaApiGatewayResponse response, String requestId) throws IOException, InterruptedException {
-        String output = new Gson().toJson(response);
+        String output = gson.toJson(response);
         if (EnvKit.isDevMode()) {
             LOGGER.info("lambda response " + requestId + " : " + output);
         }
