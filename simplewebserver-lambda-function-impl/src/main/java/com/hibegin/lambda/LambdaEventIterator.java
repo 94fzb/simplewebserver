@@ -70,13 +70,13 @@ public class LambdaEventIterator implements Iterator<Map.Entry<String, LambdaApi
      * @throws IOException
      */
     private Map.Entry<String, LambdaApiGatewayRequest> getRequestInfo() throws IOException, InterruptedException {
-        if (EnvKit.isDevMode()) {
-            LambdaApiGatewayRequest apiGatewayRequest = gson.fromJson(getDevInput(), LambdaApiGatewayRequest.class);
-            return new AbstractMap.SimpleEntry<>(apiGatewayRequest.getRequestContext().getRequestId(), apiGatewayRequest);
+        if (EnvKit.isLambda()) {
+            HttpResponse<String> send = httpClient.send(HttpRequest.newBuilder(URI.create(getBaseUrl() + "/next")).build(), HttpResponse.BodyHandlers.ofString());
+            LambdaApiGatewayRequest apiGatewayRequest = gson.fromJson(send.body(), LambdaApiGatewayRequest.class);
+            return new AbstractMap.SimpleEntry<>(send.headers().firstValue("Lambda-Runtime-Aws-Request-Id").orElse(""), apiGatewayRequest);
         }
-        HttpResponse<String> send = httpClient.send(HttpRequest.newBuilder(URI.create(getBaseUrl() + "/next")).build(), HttpResponse.BodyHandlers.ofString());
-        LambdaApiGatewayRequest apiGatewayRequest = gson.fromJson(send.body(), LambdaApiGatewayRequest.class);
-        return new AbstractMap.SimpleEntry<>(send.headers().firstValue("Lambda-Runtime-Aws-Request-Id").orElse(""), apiGatewayRequest);
+        LambdaApiGatewayRequest apiGatewayRequest = gson.fromJson(getDevInput(), LambdaApiGatewayRequest.class);
+        return new AbstractMap.SimpleEntry<>(apiGatewayRequest.getRequestContext().getRequestId(), apiGatewayRequest);
     }
 
     public void report(LambdaApiGatewayResponse response, String requestId) throws IOException, InterruptedException {
