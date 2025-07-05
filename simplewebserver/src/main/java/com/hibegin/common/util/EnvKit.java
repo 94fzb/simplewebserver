@@ -36,11 +36,22 @@ public class EnvKit {
         return ANDROID;
     }
 
+    public static boolean isLambda() {
+        String value = System.getenv("AWS_LAMBDA_FUNCTION_NAME");
+        return Objects.nonNull(value);
+    }
+
     public static boolean isDevMode() {
+        if (Objects.equals(System.getenv("DEV_MODE"), "true")) {
+            return true;
+        }
         return Objects.equals(System.getProperty("sws.run.mode"), "dev");
     }
 
     public static boolean isDebugMode() {
+        if (Objects.equals(System.getenv("DEBUG_MODE"), "true")) {
+            return true;
+        }
         return Objects.equals(System.getProperty("sws.run.mode"), "debug");
     }
 
