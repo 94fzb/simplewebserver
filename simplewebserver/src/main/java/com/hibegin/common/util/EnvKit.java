@@ -42,6 +42,9 @@ public class EnvKit {
     }
 
     public static boolean isDevMode() {
+        if (isDebugMode()) {
+            return true;
+        }
         if (Objects.equals(System.getenv("DEV_MODE"), "true")) {
             return true;
         }
