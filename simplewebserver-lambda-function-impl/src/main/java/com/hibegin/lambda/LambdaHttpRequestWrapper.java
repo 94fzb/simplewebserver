@@ -26,7 +26,7 @@ public class LambdaHttpRequestWrapper extends SimpleHttpRequest {
         this.header = lambdaApiGatewayRequest.getHeaders();
         this.paramMap = HttpQueryStringUtils.parseUrlEncodedStrToMap(this.queryStr);
         this.getHeaderMap().put("Host", lambdaApiGatewayRequest.getRequestContext().getDomainName());
-        this.uri = lambdaApiGatewayRequest.getRequestContext().getHttp().getPath();
+        this.uri = lambdaApiGatewayRequest.getRawPath();
         if (Objects.nonNull(lambdaApiGatewayRequest.getBody()) && !lambdaApiGatewayRequest.getBody().isEmpty()) {
             if (getLambdaApiGatewayRequest().isBase64Encoded()) {
                 this.inputStream = new ByteArrayInputStream(Base64.getDecoder().decode(lambdaApiGatewayRequest.getBody()));
