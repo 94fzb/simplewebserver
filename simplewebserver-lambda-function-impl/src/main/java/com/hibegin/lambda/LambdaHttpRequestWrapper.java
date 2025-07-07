@@ -1,15 +1,19 @@
 package com.hibegin.lambda;
 
+import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ServerConfig;
+import com.hibegin.http.server.impl.HttpRequestDecoderImpl;
 import com.hibegin.http.server.impl.SimpleHttpRequest;
 import com.hibegin.http.server.util.HttpQueryStringUtils;
 import com.hibegin.lambda.rest.LambdaApiGatewayRequest;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
 import java.util.Base64;
 import java.util.Objects;
 
@@ -38,6 +42,18 @@ public class LambdaHttpRequestWrapper extends SimpleHttpRequest {
         ServerConfig serverConfig = super.getServerConfig();
         serverConfig.setApplicationName("Lambda Function");
         serverConfig.setApplicationVersion(LambdaEventIterator.VERSION);
+    }
+
+    @Override
+    public File getFile(String key) {
+        if (Objects.isNull(files) || files.isEmpty()) {
+            try {
+                files = HttpRequestDecoderImpl.getFiles(getServerConfig(), IOUtil.getByteByInputStream(inputStream));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return super.getFile(key);
     }
 
     public LambdaApiGatewayRequest getLambdaApiGatewayRequest() {
