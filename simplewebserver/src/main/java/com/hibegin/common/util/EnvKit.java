@@ -41,6 +41,15 @@ public class EnvKit {
         return Objects.nonNull(value);
     }
 
+    public static boolean isNativeImage() {
+        try {
+            Class<?> imageInfo = Class.forName("org.graalvm.nativeimage.ImageInfo");
+            return (boolean) imageInfo.getMethod("inImageRuntimeCode").invoke(null);
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
     public static boolean isDevMode() {
         if (isDebugMode()) {
             return true;
