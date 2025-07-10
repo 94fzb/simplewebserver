@@ -15,6 +15,7 @@ import com.hibegin.http.server.web.MethodInterceptor;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -55,6 +56,13 @@ public class NativeImageUtils {
                     HttpResponse httpResponse = new SimpleHttpResponse(httpRequest, responseConfig);
                     try {
                         new MethodInterceptor().doInterceptor(httpRequest, httpResponse);
+                    } catch (InvocationTargetException e) {
+                        HttpErrorHandle errorHandle = applicationContext.getServerConfig().getErrorHandle(500);
+                        if (Objects.nonNull(errorHandle)) {
+                            errorHandle.doHandle(httpRequest, httpResponse, e.getTargetException());
+                        } else {
+                            throw e;
+                        }
                     } catch (Throwable e) {
                         HttpErrorHandle errorHandle = applicationContext.getServerConfig().getErrorHandle(500);
                         if (Objects.nonNull(errorHandle)) {
