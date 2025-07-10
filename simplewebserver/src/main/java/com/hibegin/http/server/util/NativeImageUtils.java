@@ -13,7 +13,10 @@ import com.hibegin.http.server.web.MethodInterceptor;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 public class NativeImageUtils {
@@ -42,15 +45,19 @@ public class NativeImageUtils {
     }
 
     public static void routerMethodInvoke(ApplicationContext applicationContext, RequestConfig requestConfig, ResponseConfig responseConfig) {
-        applicationContext.getServerConfig().getRouter().getRouterMap().keySet().forEach((key) -> {
-            try {
-                HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, key, "127.0.0.1", "NativeImageAgent", requestConfig, applicationContext);
-                new MethodInterceptor().doInterceptor(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig));
-                LOGGER.info("Native image agent call request " + key + " success");
-            } catch (Exception e) {
-                LOGGER.warning("Native image agent call request error -> " + LoggerUtil.recordStackTraceMsg(e));
-            }
-        });
+        List<CompletableFuture<Void>> voidCompletableFutures = new ArrayList<>();
+        for (String key : applicationContext.getServerConfig().getRouter().getRouterMap().keySet()) {
+            voidCompletableFutures.add(CompletableFuture.runAsync(() -> {
+                try {
+                    HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, key, "127.0.0.1", "NativeImageAgent", requestConfig, applicationContext);
+                    new MethodInterceptor().doInterceptor(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig));
+                    LOGGER.info("Native image agent call request " + key + " success");
+                } catch (Throwable e) {
+                    LOGGER.warning("Native image agent call request " + key + " error -> " + LoggerUtil.recordStackTraceMsg(e));
+                }
+            }, applicationContext.getServerConfig().getRequestExecutor()));
+        }
+        CompletableFuture.allOf(voidCompletableFutures.toArray(new CompletableFuture[0])).join();
         new LocalFileStaticResourceLoader(true, "/" + System.currentTimeMillis(), PathUtil.getRootPath()).getInputStream(PathUtil.getRootPath());
 
     }
