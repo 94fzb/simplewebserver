@@ -3,7 +3,9 @@ package com.hibegin.http.server.util;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.ApplicationContext;
+import com.hibegin.http.server.api.HttpErrorHandle;
 import com.hibegin.http.server.api.HttpRequest;
+import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.config.LocalFileStaticResourceLoader;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
@@ -50,7 +52,17 @@ public class NativeImageUtils {
             voidCompletableFutures.add(CompletableFuture.runAsync(() -> {
                 try {
                     HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, key, "127.0.0.1", "NativeImageAgent", requestConfig, applicationContext);
-                    new MethodInterceptor().doInterceptor(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig));
+                    HttpResponse httpResponse = new SimpleHttpResponse(httpRequest, responseConfig);
+                    try {
+                        new MethodInterceptor().doInterceptor(httpRequest, httpResponse);
+                    } catch (Throwable e) {
+                        HttpErrorHandle errorHandle = applicationContext.getServerConfig().getErrorHandle(500);
+                        if (Objects.nonNull(errorHandle)) {
+                            errorHandle.doHandle(httpRequest, httpResponse, e);
+                        } else {
+                            throw e;
+                        }
+                    }
                     LOGGER.info("Native image agent call request " + key + " success");
                 } catch (Throwable e) {
                     LOGGER.warning("Native image agent call request " + key + " error -> " + LoggerUtil.recordStackTraceMsg(e));
