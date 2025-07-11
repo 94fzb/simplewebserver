@@ -1,6 +1,7 @@
 package com.hibegin.http.server.impl;
 
 import com.hibegin.common.util.IOUtil;
+import com.hibegin.common.util.UrlDecodeUtils;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.HttpVersion;
 import com.hibegin.http.server.ApplicationContext;
@@ -38,7 +39,7 @@ public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
         this.contextPath = rawServletRequest.getContextPath();
         this.paramMap = _getParamMap(rawServletRequest);
         this.header = _getHeaderMap(rawServletRequest);
-        this.uri = rawServletRequest.getRequestURI();
+        this.uri = UrlDecodeUtils.decodePath(new String(rawServletRequest.getRequestURI().getBytes(StandardCharsets.ISO_8859_1)), requestConfig.getCharSet());
         this.realPath = rawServletRequest.getServletContext().getRealPath("/");
         this.queryStr = rawServletRequest.getQueryString();
         this.scheme = rawServletRequest.getScheme();
@@ -58,22 +59,18 @@ public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
         for (Map.Entry<String, String[]> entry : parameterMap.entrySet()) {
             String[] values = new String[entry.getValue().length];
             for (int i = 0; i < values.length; i++) {
-                values[i] = convertToStrandStr(entry.getValue()[i]);
+                values[i] = decodeRequestParam(entry.getValue()[i]);
             }
             decodedParameterMap.put(entry.getKey(), values);
         }
         return decodedParameterMap;
     }
 
-    private static boolean containsHanScript(String s) {
-        return s.codePoints().anyMatch(codepoint -> Character.UnicodeScript.of(codepoint) == Character.UnicodeScript.HAN);
-    }
-
     /**
      * 用于转化HTTP的中文乱码
      */
-    private static String convertToStrandStr(String param) {
-        if (param == null) {
+    private static String decodeRequestParam(String value) {
+        if (value == null) {
             return "";
         }
         /*//如果可以正常读取到中文的情况，直接跳过转换
@@ -81,7 +78,7 @@ public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
             return param;
         }*/
         try {
-            return URLDecoder.decode(new String(param.getBytes(StandardCharsets.ISO_8859_1)), "UTF-8");
+            return URLDecoder.decode(new String(value.getBytes(StandardCharsets.ISO_8859_1)), "UTF-8");
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }

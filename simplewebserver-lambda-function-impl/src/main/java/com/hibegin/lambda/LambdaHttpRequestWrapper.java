@@ -2,6 +2,7 @@ package com.hibegin.lambda;
 
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.ObjectUtil;
+import com.hibegin.common.util.UrlDecodeUtils;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.config.RequestConfig;
@@ -30,7 +31,7 @@ public class LambdaHttpRequestWrapper extends SimpleHttpRequest {
         this.header = lambdaApiGatewayRequest.getHeaders();
         this.paramMap = HttpQueryStringUtils.parseUrlEncodedStrToMap(this.queryStr);
         this.getHeaderMap().put("Host", lambdaApiGatewayRequest.getRequestContext().getDomainName());
-        this.uri = lambdaApiGatewayRequest.getRawPath();
+        this.uri = UrlDecodeUtils.decodePath(lambdaApiGatewayRequest.getRawPath(), requestConfig.getCharSet());
         if (Objects.nonNull(lambdaApiGatewayRequest.getBody()) && !lambdaApiGatewayRequest.getBody().isEmpty()) {
             if (getLambdaApiGatewayRequest().isBase64Encoded()) {
                 this.inputStream = new ByteArrayInputStream(Base64.getDecoder().decode(lambdaApiGatewayRequest.getBody()));

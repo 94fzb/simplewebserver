@@ -28,7 +28,7 @@ public class LambdaEventIterator implements Iterator<Map.Entry<String, LambdaApi
 
     public static final String VERSION = "2018-06-01";
 
-    private Gson gson = new Gson();
+    private final Gson gson = new Gson();
 
     private String getBaseUrl() {
         return "http://" + System.getenv("AWS_LAMBDA_RUNTIME_API") + "/" + VERSION + "/runtime/invocation";

@@ -1,10 +1,7 @@
 package com.hibegin.http.server.impl;
 
 import com.hibegin.common.io.handler.ReadWriteSelectorHandler;
-import com.hibegin.common.util.BytesUtil;
-import com.hibegin.common.util.IOUtil;
-import com.hibegin.common.util.LoggerUtil;
-import com.hibegin.common.util.ObjectUtil;
+import com.hibegin.common.util.*;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.io.ChunkedStreamUtils;
 import com.hibegin.http.server.ApplicationContext;
@@ -227,7 +224,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             request.queryStr = "";
         }
         if (request.uri.contains("/")) {
-            request.uri = URLDecoder.decode(request.uri.substring(request.uri.indexOf("/")), request.getRequestConfig().getCharSet());
+            request.uri = UrlDecodeUtils.decodePath(request.uri.substring(request.uri.indexOf("/")), request.getRequestConfig().getCharSet());
         } else {
             request.getHeaderMap().put("Host", request.uri);
             request.uri = "/";
