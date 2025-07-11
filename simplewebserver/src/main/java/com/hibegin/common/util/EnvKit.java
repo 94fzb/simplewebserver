@@ -41,6 +41,10 @@ public class EnvKit {
         return Objects.nonNull(value);
     }
 
+    public static boolean isFaaSMode() {
+        return isLambda();
+    }
+
     public static boolean isNativeImage() {
         try {
             Class<?> imageInfo = Class.forName("org.graalvm.nativeimage.ImageInfo");
