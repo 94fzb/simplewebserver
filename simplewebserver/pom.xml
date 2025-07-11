@@ -3,7 +3,7 @@
     <parent>
         <groupId>com.hibegin</groupId>
         <artifactId>simplewebserver-parent</artifactId>
-        <version>4.0.82</version>
+        <version>4.0.83-SNAPSHOT</version>
     </parent>
 
     <artifactId>simplewebserver</artifactId>
