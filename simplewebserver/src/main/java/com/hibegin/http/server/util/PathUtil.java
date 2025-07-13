@@ -22,7 +22,7 @@ public class PathUtil {
     private static String ROOT_PATH = "";
 
     public static String getConfPath() {
-        return ObjectUtil.requireNonNullElse(System.getProperty("sws.conf.path"), getRootPath() + "/conf/");
+        return new File(ObjectUtil.requireNonNullElse(System.getProperty("sws.conf.path"), getRootPath() + "/conf")).toString();
     }
 
     public static String getRootPath() {
@@ -46,7 +46,7 @@ public class PathUtil {
     }
 
     public static void setRootPath(String rootPath) {
-        ROOT_PATH = rootPath;
+        ROOT_PATH = new File(rootPath).toString();
     }
 
     public static File getConfFile(String file) {
@@ -101,15 +101,19 @@ public class PathUtil {
     }
 
     public static String getStaticPath() {
-        return ObjectUtil.requireNonNullElse(System.getProperty("sws.static.path"), getRootPath() + "/static/");
+        return new File(ObjectUtil.requireNonNullElse(System.getProperty("sws.static.path"), getRootPath() + "/static")).toString();
     }
 
     public static String getCachePath() {
-        return ObjectUtil.requireNonNullElse(System.getProperty("sws.cache.path"), getRootPath() + "/cache/");
+        return new File(ObjectUtil.requireNonNullElse(System.getProperty("sws.cache.path"), getRootPath() + "/cache")).toString();
+    }
+
+    public static File getCacheFile(String file) {
+        return safeAppendFilePath(getCachePath(), file);
     }
 
     public static String getLogPath() {
-        return ObjectUtil.requireNonNullElse(System.getProperty("sws.log.path"), getRootPath() + "/log/");
+        return new File(ObjectUtil.requireNonNullElse(System.getProperty("sws.log.path"), getRootPath() + "/log")).toString();
     }
 
     public static File getStaticFile(String filename) {
