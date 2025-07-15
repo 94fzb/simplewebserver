@@ -3,9 +3,7 @@ package com.hibegin.http.server.web.cookie;
 
 import com.hibegin.common.util.DateUtils;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class Cookie {
 
@@ -94,25 +92,29 @@ public class Cookie {
 
     @Override
     public String toString() {
-        String cookieStr;
-        if (expireDate == null) {
-            cookieStr = name + "=" + value + ";" + "Path=" + path;
-        } else {
-            cookieStr = name + "=" + value + ";" + "Path=" + path + ";Expires=" + DateUtils.toGMTString(expireDate);
+        StringJoiner sj = new StringJoiner("; ");
+        sj.add(name + "=" + value);
+        sj.add("Path=" + path);
+        if (Objects.nonNull(expireDate)) {
+            if (expireDate.getTime() < System.currentTimeMillis()) {
+                sj.add("Max-Age=0");
+            } else {
+                sj.add("Expires=" + DateUtils.toGMTString(expireDate));
+            }
         }
         if (domain != null && !domain.trim().isEmpty()) {
-            cookieStr += ";" + "Domain=" + domain;
+            sj.add("Domain=" + domain);
         }
         if (secure) {
-            cookieStr += ";Secure";
+            sj.add("Secure");
         }
         if (sameSite != null && !sameSite.trim().isEmpty()) {
-            cookieStr += ";" + "SameSite=" + sameSite;
+            sj.add("SameSite=" + sameSite);
         }
         if (httpOnly) {
-            cookieStr += ";HttpOnly";
+            sj.add("HttpOnly");
         }
-        return cookieStr;
+        return sj.toString();
     }
 
     public boolean isCreate() {
@@ -154,7 +156,7 @@ public class Cookie {
         cookie.setName("test");
         cookie.setValue("test");
         cookie.setHttpOnly(true);
-        cookie.setExpireDate(new Date());
+        cookie.setExpireDate(new Date(0));
         System.out.println("cookie = " + cookie);
     }
 }

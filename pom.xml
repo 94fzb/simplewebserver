@@ -6,8 +6,8 @@
     <version>4.0.84-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
-        <module>simplewebserver-servlet-api-impl</module>
         <module>simplewebserver</module>
+        <module>simplewebserver-servlet-api-impl</module>
         <module>simplewebserver-lambda-function-impl</module>
     </modules>
 
@@ -35,7 +35,6 @@
         <connection>scm:git:https://github.com/94fzb/simplewebserver</connection>
         <developerConnection>scm:git:https://github.com/94fzb/simplewebserver</developerConnection>
         <url>https://github.com/94fzb/simplewebserver</url>
-        <tag>simplewebserver-0.4.42</tag>
     </scm>
     <issueManagement>
         <system>Github Issue</system>
