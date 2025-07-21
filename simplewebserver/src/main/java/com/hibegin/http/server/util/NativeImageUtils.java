@@ -36,14 +36,24 @@ public class NativeImageUtils {
             } else {
                 String binPath = file.toString().substring(basePath.length());
                 String rFileName = uriStart + binPath.replace("\\", "/");
-                try (InputStream inputStream = NativeImageUtils.class.getResourceAsStream(rFileName)) {
-                    if (Objects.nonNull(inputStream)) {
-                        LOGGER.info("Native image add filename " + rFileName);
-                    }
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                doLoadResource(rFileName);
             }
+        }
+    }
+
+    private static void doLoadResource(String resourceName) {
+        try (InputStream inputStream = NativeImageUtils.class.getResourceAsStream(resourceName)) {
+            if (Objects.nonNull(inputStream)) {
+                LOGGER.info("Native image add resource " + resourceName);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void doResourceLoadByResourceNames(List<String> resourceNames) {
+        for (final String resourceName : resourceNames) {
+            doLoadResource(resourceName);
         }
     }
 
