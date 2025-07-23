@@ -48,10 +48,10 @@ public class ConfigKit {
         return getProp().get(key) != null;
     }
 
-    public static Object get(String key, Object defaultValue) {
+    public static <T> T get(String key, T defaultValue) {
         Object obj = getProp().get(key);
-        if (obj != null) {
-            return obj;
+        if (Objects.nonNull(obj)) {
+            return (T) obj;
         }
         return defaultValue;
     }

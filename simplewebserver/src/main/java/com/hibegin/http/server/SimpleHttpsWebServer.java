@@ -28,8 +28,8 @@ public class SimpleHttpsWebServer extends SimpleWebServer {
 
     public SimpleHttpsWebServer(ServerConfig serverConfig, RequestConfig requestConfig, ResponseConfig responseConfig) {
         super(serverConfig, requestConfig, responseConfig);
-        String password = ConfigKit.get("server.ssl.keystore.password", "").toString();
-        String fileString = ConfigKit.get("server.ssl.keystore", null).toString();
+        String password = ConfigKit.get("server.ssl.keystore.password", "");
+        String fileString = ConfigKit.get("server.ssl.keystore", null);
         File file = null;
         if (fileString.startsWith("classpath:")) {
             try (InputStream inputStream = SimpleHttpsWebServer.class.getResourceAsStream(fileString.substring("classpath:".length()))) {

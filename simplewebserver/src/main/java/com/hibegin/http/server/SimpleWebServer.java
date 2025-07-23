@@ -45,7 +45,7 @@ public class SimpleWebServer implements ISocketServer {
             serverConf = new ServerConfig();
         }
         if (serverConf.getTimeout() == 0 && ConfigKit.contains("server.timeout")) {
-            serverConf.setTimeout(Integer.parseInt(ConfigKit.get("server.timeout", 60).toString()));
+            serverConf.setTimeout(Integer.parseInt(ConfigKit.get("server.timeout", "60")));
         }
 
         this.serverConfig = serverConf;
