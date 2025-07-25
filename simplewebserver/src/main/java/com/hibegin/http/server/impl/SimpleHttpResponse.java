@@ -257,7 +257,11 @@ public class SimpleHttpResponse implements HttpResponse {
 
     @Override
     public void redirect(String url) {
-        putHeader("Location", UrlEncodeUtils.encodeUrl(url));
+        if (url.startsWith("/")) {
+            putHeader("Location", UrlEncodeUtils.encodeUrl(request.getContextPath() + url));
+        } else {
+            putHeader("Location", UrlEncodeUtils.encodeUrl(url));
+        }
         renderByMimeType("", null, 302);
     }
 

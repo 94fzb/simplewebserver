@@ -89,7 +89,7 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
 
     @Override
     public String getUrl() {
-        return getScheme() + "://" + getHeader("Host") + getUri();
+        return getScheme() + "://" + getHeader("Host") + getContextPath() + getUri();
     }
 
     @Override
@@ -195,14 +195,6 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
 
     @Override
     public String getUri() {
-        String contextPath = getContextPath();
-        if (!contextPath.isEmpty()) {
-            String newUri = uri.substring(contextPath.length());
-            if (newUri.isEmpty()) {
-                return "/";
-            }
-            return newUri;
-        }
         return uri;
     }
 

@@ -15,7 +15,6 @@ import com.hibegin.http.server.util.FileCacheKit;
 import com.hibegin.http.server.util.HttpQueryStringUtils;
 
 import java.io.*;
-import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.file.NoSuchFileException;
 import java.util.AbstractMap;
@@ -224,7 +223,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             request.queryStr = "";
         }
         if (request.uri.contains("/")) {
-            request.uri = UrlDecodeUtils.decodePath(request.uri.substring(request.uri.indexOf("/")), request.getRequestConfig().getCharSet());
+            request.uri = UrlDecodeUtils.decodePath(request.uri.substring(request.uri.indexOf("/")).substring(request.getContextPath().length()), request.getRequestConfig().getCharSet());
         } else {
             request.getHeaderMap().put("Host", request.uri);
             request.uri = "/";

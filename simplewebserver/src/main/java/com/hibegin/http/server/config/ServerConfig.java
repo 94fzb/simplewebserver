@@ -417,6 +417,9 @@ public class ServerConfig {
     }
 
     public String getContextPath() {
+        if (Objects.equals(contextPath, "/")) {
+            return "";
+        }
         return ObjectUtil.requireNonNullElse(contextPath, "");
     }
 
