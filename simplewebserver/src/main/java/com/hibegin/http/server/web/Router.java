@@ -1,5 +1,8 @@
 package com.hibegin.http.server.web;
 
+import com.hibegin.http.HttpMethod;
+import com.hibegin.http.annotation.RequestMethod;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
@@ -38,12 +41,22 @@ public class Router {
         }
     }
 
-    public Method getMethod(String url) {
+    public Method getMethod(String url, HttpMethod httpMethod) {
         Method method = getRouterMap().get(url);
         if (method == null && url.contains("-")) {
             method = getRouterMap().get(url.substring(0, url.indexOf("-")));
         }
-        return method;
+        if (Objects.isNull(method)) {
+            return null;
+        }
+        RequestMethod requestMethod = method.getAnnotation(RequestMethod.class);
+        if (Objects.isNull(requestMethod)) {
+            return method;
+        }
+        if (Objects.equals(requestMethod.method(), httpMethod)) {
+            return method;
+        }
+        return null;
     }
 
     public Map<String, Method> getRouterMap() {

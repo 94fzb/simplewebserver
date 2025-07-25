@@ -16,7 +16,6 @@ import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.StatusCodeUtil;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -108,7 +107,7 @@ public class MethodInterceptor implements Interceptor {
     @Override
     public boolean doInterceptor(HttpRequest request, HttpResponse response) throws Exception {
         Router router = request.getRequestConfig().getRouter();
-        Method method = router.getMethod(request.getUri());
+        Method method = router.getMethod(request.getUri(),request.getMethod());
         if (method == null) {
             handleByStaticResource(request, response);
             return false;

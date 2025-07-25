@@ -30,9 +30,9 @@ public class Controller {
     }
 
     public static Controller buildController(Method method, HttpRequest request, HttpResponse response) throws InvocationTargetException, InstantiationException, IllegalAccessException, NoSuchMethodException {
-        Constructor[] constructors = method.getDeclaringClass().getConstructors();
+        Constructor<?>[] constructors = method.getDeclaringClass().getConstructors();
         boolean haveDefaultConstructor = false;
-        for (Constructor constructor : constructors) {
+        for (Constructor<?> constructor : constructors) {
             if (constructor.getParameterTypes().length == 2) {
                 if (constructor.getParameterTypes()[0].getName().equals(HttpRequest.class.getName()) && constructor.getParameterTypes()[1].getName().equals(HttpResponse.class.getName())) {
                     return (Controller) constructor.newInstance(request, response);

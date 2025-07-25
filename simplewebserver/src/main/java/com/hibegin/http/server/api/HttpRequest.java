@@ -25,6 +25,11 @@ public interface HttpRequest {
 
     String getRemoteHost();
 
+    /**
+     * 设置了 contextPath 的情况下 返回不包含 contextPath，及和 servlet path 类似
+     * 没有设置情况，就是标准的 pathname
+     * @return mapping uri
+     */
     String getUri();
 
     String getUrl();

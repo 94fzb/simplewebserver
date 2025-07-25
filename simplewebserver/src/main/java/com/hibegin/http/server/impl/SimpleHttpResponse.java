@@ -267,7 +267,7 @@ public class SimpleHttpResponse implements HttpResponse {
 
     @Override
     public void forward(String uri) {
-        redirect(request.getScheme() + "://" + request.getHeader("Host") + "/" + uri);
+        redirect(request.getScheme() + "://" + request.getHeader("Host") + request.getContextPath() + uri);
     }
 
     @Override

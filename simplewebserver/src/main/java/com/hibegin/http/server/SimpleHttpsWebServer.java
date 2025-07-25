@@ -29,7 +29,7 @@ public class SimpleHttpsWebServer extends SimpleWebServer {
     public SimpleHttpsWebServer(ServerConfig serverConfig, RequestConfig requestConfig, ResponseConfig responseConfig) {
         super(serverConfig, requestConfig, responseConfig);
         String password = ConfigKit.get("server.ssl.keystore.password", "");
-        String fileString = ConfigKit.get("server.ssl.keystore", null);
+        String fileString = ConfigKit.get("server.ssl.keystore", "");
         File file = null;
         if (fileString.startsWith("classpath:")) {
             try (InputStream inputStream = SimpleHttpsWebServer.class.getResourceAsStream(fileString.substring("classpath:".length()))) {
@@ -46,12 +46,11 @@ public class SimpleHttpsWebServer extends SimpleWebServer {
         }
         if (file == null || !file.exists()) {
             throw new RuntimeException("keystore can't null or not exists");
-        } else {
-            try {
-                sslContext = SslChannelFactory.getSSLContext(file, password);
-            } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "", e);
-            }
+        }
+        try {
+            sslContext = SslChannelFactory.getSSLContext(file, password);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "", e);
         }
     }
 
