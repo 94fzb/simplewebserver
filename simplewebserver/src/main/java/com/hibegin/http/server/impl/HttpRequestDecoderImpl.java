@@ -99,8 +99,8 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             //parse http method
             request.method = HttpMethod.parseHttpMethodByRequestLine(headerArr[0]);
             // parse HttpHeader
-            parseProtocolHeader(headerArr);
             request.requestHeaderStr = httpHeader;
+            parseProtocolHeader(headerArr);
             // parse body
             int headerByteLength = SPLIT.getBytes().length + idx;
             byte[] requestBody = BytesUtil.subBytes(inputBytes, headerByteLength, inputBytes.length - headerByteLength);
@@ -223,23 +223,31 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             request.uri = tUrl;
             request.queryStr = "";
         }
-        if (request.uri.contains("/")) {
-            if (!request.getContextPath().isEmpty() && !request.uri.startsWith(request.getContextPath())) {
-                throw new NotFindResourceException("The request URI does not start with a context path");
-            }
-            request.uri = UrlDecodeUtils.decodePath(request.uri.substring(request.uri.indexOf("/")).substring(request.getContextPath().length()), request.getRequestConfig().getCharSet());
-        } else {
-            request.getHeaderMap().put("Host", request.uri);
-            request.uri = "/";
-        }
+        request.paramMap = HttpQueryStringUtils.parseUrlEncodedStrToMap(request.queryStr);
         // 先得到请求头信息
         for (int i = 1; i < headerArr.length; i++) {
             Map<String, String> stringStringMap = dealRequestHeaderString(headerArr[i]);
             request.header.putAll(stringStringMap);
         }
-        request.paramMap = HttpQueryStringUtils.parseUrlEncodedStrToMap(request.queryStr);
+        request.uri = handleRequestUri(request.uri);
         if (getContentLength() > getRequest().getRequestConfig().getMaxRequestBodySize()) {
             throw new RequestBodyTooLargeException("The Content-Length outside the max upload size " + ConfigKit.getMaxRequestBodySize());
+        }
+    }
+
+    private String handleRequestUri(String requestUri) {
+        if (requestUri.contains("/")) {
+            if (!request.getContextPath().isEmpty() && !requestUri.startsWith(request.getContextPath())) {
+                throw new NotFindResourceException("The request URI does not start with a context path");
+            }
+            if (requestUri.equals(request.getContextPath())) {
+                return "/";
+            } else {
+                return UrlDecodeUtils.decodePath(request.uri.substring(request.uri.indexOf("/")).substring(request.getContextPath().length()), request.getRequestConfig().getCharSet());
+            }
+        } else {
+            request.getHeaderMap().put("Host", request.uri);
+            return "/";
         }
     }
 

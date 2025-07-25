@@ -11,6 +11,7 @@ import com.hibegin.http.server.api.HttpResponse;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
+import com.hibegin.http.server.execption.NotFindResourceException;
 import com.hibegin.http.server.execption.RequestBodyTooLargeException;
 import com.hibegin.http.server.execption.UnSupportMethodException;
 import com.hibegin.http.server.impl.HttpRequestDecoderImpl;
@@ -163,6 +164,8 @@ public class HttpDecodeRunnable implements Runnable {
             handleException(key, requestDeCoder, null, 499, e);
         } catch (UnSupportMethodException e) {
             handleException(key, requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 400, e);
+        } catch (NotFindResourceException e) {
+            handleException(key, requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 404, e);
         } catch (RequestBodyTooLargeException e) {
             handleException(key, requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 413, e);
         } catch (Exception e) {
