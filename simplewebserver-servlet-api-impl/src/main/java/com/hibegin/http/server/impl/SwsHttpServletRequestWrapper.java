@@ -39,7 +39,14 @@ public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
         this.contextPath = rawServletRequest.getContextPath();
         this.paramMap = _getParamMap(rawServletRequest);
         this.header = _getHeaderMap(rawServletRequest);
-        this.uri = UrlDecodeUtils.decodePath(new String(rawServletRequest.getRequestURI().getBytes(StandardCharsets.ISO_8859_1)), requestConfig.getCharSet());
+        String uri = UrlDecodeUtils.decodePath(new String(rawServletRequest.getRequestURI().getBytes(StandardCharsets.ISO_8859_1)), requestConfig.getCharSet());
+        if (contextPath.length() <= 1) {
+            this.uri = uri;
+        } else if (Objects.equals(contextPath, uri)) {
+            this.uri = "/";
+        } else {
+            this.uri = uri.substring(contextPath.length());
+        }
         this.realPath = rawServletRequest.getServletContext().getRealPath("/");
         this.queryStr = rawServletRequest.getQueryString();
         this.scheme = rawServletRequest.getScheme();
