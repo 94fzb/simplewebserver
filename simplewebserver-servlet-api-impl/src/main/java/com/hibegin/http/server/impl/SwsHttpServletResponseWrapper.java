@@ -64,16 +64,6 @@ public class SwsHttpServletResponseWrapper extends SimpleHttpResponse {
         return super.wrapperBaseResponseHeader(statusCode);
     }
 
-
-    @Override
-    public void redirect(String url) {
-        if (url.startsWith("/")) {
-            super.redirect(request.getContextPath() + url);
-        } else {
-            super.redirect(url);
-        }
-    }
-
     @Override
     protected void send(byte[] bytes, boolean body, boolean close) {
         if (body) {
