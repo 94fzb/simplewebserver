@@ -5,6 +5,7 @@ public class ApiGatewayRequestContext {
     private ApiGatewayHttp http;
     private String domainName;
     private String requestId;
+    private Long timeEpoch;
 
     public ApiGatewayHttp getHttp() {
         return http;
@@ -28,5 +29,13 @@ public class ApiGatewayRequestContext {
 
     public void setRequestId(String requestId) {
         this.requestId = requestId;
+    }
+
+    public Long getTimeEpoch() {
+        return timeEpoch;
+    }
+
+    public void setTimeEpoch(Long timeEpoch) {
+        this.timeEpoch = timeEpoch;
     }
 }

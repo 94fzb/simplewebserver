@@ -25,6 +25,10 @@ public class LambdaHttpRequestWrapper extends SimpleHttpRequest {
 
     protected LambdaHttpRequestWrapper(ApplicationContext applicationContext, RequestConfig requestConfig, LambdaApiGatewayRequest lambdaApiGatewayRequest) {
         super(null, applicationContext, requestConfig);
+        Long requestTimeEpoch = lambdaApiGatewayRequest.getRequestContext().getTimeEpoch();
+        if (Objects.nonNull(requestTimeEpoch)) {
+            this.createTime = requestTimeEpoch;
+        }
         this.lambdaApiGatewayRequest = lambdaApiGatewayRequest;
         this.queryStr = ObjectUtil.requireNonNullElse(lambdaApiGatewayRequest.getRawQueryString(), "");
         this.method = HttpMethod.valueOf(lambdaApiGatewayRequest.getRequestContext().getHttp().getMethod());
