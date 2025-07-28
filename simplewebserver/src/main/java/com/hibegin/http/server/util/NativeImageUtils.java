@@ -1,8 +1,8 @@
 package com.hibegin.http.server.util;
 
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.http.HttpMethod;
-import com.hibegin.http.annotation.RequestMethod;
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpErrorHandle;
 import com.hibegin.http.server.api.HttpRequest;
@@ -12,6 +12,7 @@ import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.impl.SimpleHttpResponse;
 import com.hibegin.http.server.web.MethodInterceptor;
+import com.hibegin.http.server.web.Router;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,19 +61,14 @@ public class NativeImageUtils {
         }
     }
 
+
     public static void routerMethodInvoke(ApplicationContext applicationContext, RequestConfig requestConfig, ResponseConfig responseConfig) {
         List<CompletableFuture<Void>> voidCompletableFutures = new ArrayList<>();
         for (Map.Entry<String, Method> methodInfo : applicationContext.getServerConfig().getRouter().getRouterMap().entrySet()) {
+            HttpMethod httpMethod = ObjectUtil.requireNonNullElse(Router.getHttpMethod(Objects.requireNonNull(methodInfo.getValue())), HttpMethod.GET);
+            String key = "[" + methodInfo.getKey() + "][" + httpMethod + "]";
             voidCompletableFutures.add(CompletableFuture.runAsync(() -> {
                 try {
-                    HttpMethod httpMethod = null;
-                    RequestMethod requestMethod = methodInfo.getValue().getAnnotation(RequestMethod.class);
-                    if (Objects.nonNull(requestMethod)) {
-                        httpMethod = requestMethod.method();
-                    }
-                    if (Objects.isNull(httpMethod)) {
-                        httpMethod = HttpMethod.GET;
-                    }
                     HttpRequest httpRequest = HttpRequestBuilder.buildRequest(httpMethod, methodInfo.getKey(), "127.0.0.1", "NativeImageAgent", requestConfig, applicationContext);
                     HttpResponse httpResponse = new SimpleHttpResponse(httpRequest, responseConfig);
                     try {
@@ -92,9 +88,9 @@ public class NativeImageUtils {
                             throw e;
                         }
                     }
-                    LOGGER.info("Native image agent call request " + methodInfo + " success");
+                    LOGGER.info("Native image agent call request " + key + " success");
                 } catch (Throwable e) {
-                    LOGGER.warning("Native image agent call request " + methodInfo + " error -> " + LoggerUtil.recordStackTraceMsg(e));
+                    LOGGER.warning("Native image agent call request " + key + " error -> " + LoggerUtil.recordStackTraceMsg(e));
                 }
             }, applicationContext.getServerConfig().getRequestExecutor()));
         }

@@ -49,12 +49,21 @@ public class Router {
         if (Objects.isNull(method)) {
             return null;
         }
-        RequestMethod requestMethod = method.getAnnotation(RequestMethod.class);
-        if (Objects.isNull(requestMethod)) {
+        HttpMethod configHttpMethod = getHttpMethod(method);
+        if (Objects.isNull(configHttpMethod)) {
             return method;
         }
-        if (Objects.equals(requestMethod.method(), httpMethod)) {
+        if (Objects.equals(configHttpMethod, httpMethod)) {
             return method;
+        }
+        return null;
+    }
+
+
+    public static HttpMethod getHttpMethod(Method method) {
+        RequestMethod requestMethod = method.getAnnotation(RequestMethod.class);
+        if (Objects.nonNull(requestMethod)) {
+            return requestMethod.method();
         }
         return null;
     }
