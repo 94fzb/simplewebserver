@@ -385,6 +385,11 @@ public class ServerConfig {
         return this;
     }
 
+    public ServerConfig addFirstRequestListener(HttpRequestListener httpRequestListener) {
+        httpRequestListenerList.addFirst(httpRequestListener);
+        return this;
+    }
+
     public List<HttpRequestListener> getHttpRequestListenerList() {
         return httpRequestListenerList;
     }
