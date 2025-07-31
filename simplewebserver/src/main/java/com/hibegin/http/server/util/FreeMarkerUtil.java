@@ -27,18 +27,23 @@ public class FreeMarkerUtil {
     }
 
     public static String renderToFM(String name, HttpRequest httpRequest) throws Exception {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Writer writer = new OutputStreamWriter(out);
-        Object template = cfg.getClass().getMethod("getTemplate", String.class).invoke(cfg, name + ".ftl");
         HttpSession httpSession = httpRequest.getSession();
         if (httpSession != null) {
             httpRequest.getAttr().put("session", httpSession);
         }
         httpRequest.getAttr().put("request", httpRequest);
-        template.getClass().getMethod("process", Object.class, Writer.class).invoke(template, httpRequest.getAttr(), writer);
-        writer.flush();
-        return new String(out.toByteArray());
+        return renderToFMByModel(name, httpRequest.getAttr());
     }
+
+    public static String renderToFMByModel(String name, Object model) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Writer writer = new OutputStreamWriter(out);
+        Object template = cfg.getClass().getMethod("getTemplate", String.class).invoke(cfg, name + ".ftl");
+        template.getClass().getMethod("process", Object.class, Writer.class).invoke(template, model, writer);
+        writer.flush();
+        return out.toString();
+    }
+
 
     public static void init(String basePath) throws Exception {
         cfg.getClass().getMethod("setDirectoryForTemplateLoading", File.class).invoke(cfg, new File(basePath));
