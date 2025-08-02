@@ -61,6 +61,26 @@ public class NativeImageUtils {
         }
     }
 
+    /**
+     * 快捷注册一个类的所有公开 get 方法，
+     * 比如 freemarker 这类工具，在进行模板渲染的时候使用的是 get 方法。
+     *
+     * @param clazz 待注册的类名
+     */
+    public static void regGetMethodByClassName(Class<?> clazz) {
+        Method[] declaredMethods = clazz.getDeclaredMethods();
+        for (Method method : declaredMethods) {
+            method.setAccessible(true);
+            if (method.getName().startsWith("get")) {
+                try {
+                    method.invoke(clazz.newInstance());
+                } catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
+
 
     public static void routerMethodInvoke(ApplicationContext applicationContext, RequestConfig requestConfig, ResponseConfig responseConfig) {
         List<CompletableFuture<Void>> voidCompletableFutures = new ArrayList<>();
