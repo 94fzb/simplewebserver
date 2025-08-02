@@ -7,6 +7,7 @@ import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpErrorHandle;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpResponse;
+import com.hibegin.http.server.config.GsonHttpJsonMessageConverter;
 import com.hibegin.http.server.config.LocalFileStaticResourceLoader;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
@@ -117,5 +118,18 @@ public class NativeImageUtils {
         CompletableFuture.allOf(voidCompletableFutures.toArray(new CompletableFuture[0])).join();
         new LocalFileStaticResourceLoader(true, "/" + System.currentTimeMillis(), PathUtil.getRootPath()).getInputStream(PathUtil.getRootPath());
 
+    }
+
+    public static void gsonNativeAgent(List<String> cls) {
+        GsonHttpJsonMessageConverter gsonHttpJsonMessageConverter = new GsonHttpJsonMessageConverter();
+        for (String cl : cls) {
+            try {
+                Class<?> clazz = Class.forName(cl);
+                Object o = gsonHttpJsonMessageConverter.fromJson("{}", clazz);
+                gsonHttpJsonMessageConverter.toJson(o);
+            } catch (Exception e) {
+                System.err.println("Agent error " + cl + " : " + e.getMessage());
+            }
+        }
     }
 }

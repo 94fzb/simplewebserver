@@ -1,9 +1,13 @@
 package com.hibegin.http.server.config;
 
+import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
 
+import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -44,6 +48,11 @@ public class GsonHttpJsonMessageConverter implements HttpJsonMessageConverter {
 
     @Override
     public Object fromJson(String jsonStr) throws Exception {
-        return formJson.invoke(gson, jsonStr, Object.class);
+        return fromJson(jsonStr, Object.class);
+    }
+
+    @Override
+    public <T> T fromJson(String jsonStr, Class<T> clz) throws Exception {
+        return (T) formJson.invoke(gson, jsonStr, clz);
     }
 }
