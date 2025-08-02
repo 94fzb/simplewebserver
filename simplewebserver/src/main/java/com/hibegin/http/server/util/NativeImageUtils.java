@@ -68,10 +68,10 @@ public class NativeImageUtils {
      * @param clazz 待注册的类名
      */
     public static void regGetMethodByClassName(Class<?> clazz) {
-        Method[] declaredMethods = clazz.getDeclaredMethods();
+        Method[] declaredMethods = clazz.getMethods();
         for (Method method : declaredMethods) {
             method.setAccessible(true);
-            if (method.getName().startsWith("get")) {
+            if (method.getName().startsWith("get") && method.getParameterTypes().length == 0) {
                 try {
                     method.invoke(clazz.newInstance());
                 } catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
