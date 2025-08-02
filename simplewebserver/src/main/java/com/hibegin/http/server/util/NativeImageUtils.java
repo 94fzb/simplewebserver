@@ -121,10 +121,22 @@ public class NativeImageUtils {
     }
 
     public static void gsonNativeAgent(List<String> cls) {
-        GsonHttpJsonMessageConverter gsonHttpJsonMessageConverter = new GsonHttpJsonMessageConverter();
+        List<Class<?>> clzs = new ArrayList<>();
         for (String cl : cls) {
             try {
-                Class<?> clazz = Class.forName(cl);
+                clzs.add(Class.forName(cl));
+            } catch (ClassNotFoundException e) {
+                System.err.println("Agent error " + cl + " : " + e.getMessage());
+            }
+        }
+        gsonNativeAgentByClazz(clzs);
+    }
+
+    public static void gsonNativeAgentByClazz(List<Class<?>> cls) {
+        GsonHttpJsonMessageConverter gsonHttpJsonMessageConverter = new GsonHttpJsonMessageConverter();
+        for (Class<?> cl : cls) {
+            try {
+                Class<?> clazz = Class.forName(cl.getName());
                 Object o = gsonHttpJsonMessageConverter.fromJson("{}", clazz);
                 gsonHttpJsonMessageConverter.toJson(o);
             } catch (Exception e) {
