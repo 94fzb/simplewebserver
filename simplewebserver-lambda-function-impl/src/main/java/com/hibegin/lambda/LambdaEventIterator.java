@@ -2,6 +2,7 @@ package com.hibegin.lambda;
 
 import com.google.gson.Gson;
 import com.hibegin.common.util.EnvKit;
+import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.lambda.rest.LambdaApiGatewayRequest;
 import com.hibegin.lambda.rest.LambdaApiGatewayResponse;
 
@@ -22,7 +23,7 @@ import java.util.logging.Logger;
  */
 public class LambdaEventIterator implements Iterator<Map.Entry<String, LambdaApiGatewayRequest>> {
 
-    private static final Logger LOGGER = Logger.getLogger(LambdaEventIterator.class.getName());
+    private static final Logger LOGGER = LoggerUtil.getLogger(LambdaEventIterator.class);
 
     private boolean hasNext = true;
 
@@ -56,7 +57,7 @@ public class LambdaEventIterator implements Iterator<Map.Entry<String, LambdaApi
         try {
             Map.Entry<String, LambdaApiGatewayRequest> requestInfo = getRequestInfo();
             if (EnvKit.isDevMode()) {
-                LOGGER.info("lambda request  " + requestInfo.getKey() + " : " + gson.toJson(requestInfo.getValue()));
+                LOGGER.info("lambda request  " + requestInfo.getKey() + " : " + gson.toJson(requestInfo.getValue().getRawPath()));
             }
             return requestInfo;
         } catch (IOException | InterruptedException e) {
@@ -66,6 +67,7 @@ public class LambdaEventIterator implements Iterator<Map.Entry<String, LambdaApi
 
     /**
      * http://${AWS_LAMBDA_RUNTIME_API}/2018-06-01/runtime/invocation/next
+     *
      * @return
      * @throws IOException
      */
@@ -82,7 +84,7 @@ public class LambdaEventIterator implements Iterator<Map.Entry<String, LambdaApi
     public void report(LambdaApiGatewayResponse response, String requestId) throws IOException, InterruptedException {
         String output = gson.toJson(response);
         if (EnvKit.isDevMode()) {
-            LOGGER.info("lambda response " + requestId + " : " + output);
+            LOGGER.info("lambda response " + requestId + " : statusCode " + response.getStatusCode());
         }
         hasNext = EnvKit.isLambda();
         if (EnvKit.isLambda()) {
