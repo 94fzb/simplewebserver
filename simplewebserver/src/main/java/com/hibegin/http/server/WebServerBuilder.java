@@ -7,10 +7,7 @@ import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.web.MethodInterceptor;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -26,22 +23,6 @@ public class WebServerBuilder {
     private ServerConfig serverConfig;
 
     private SimpleWebServer webServer;
-
-    private final List<Callable<Void>> onCreateErrorHandles = new ArrayList<>();
-    private final List<Callable<Void>> onCreateSuccessHandles = new ArrayList<>();
-    private final List<Callable<Void>> onStartedSuccessHandles = new ArrayList<>();
-
-    public void addCreateErrorHandle(Callable<Void> callable) {
-        onCreateErrorHandles.add(callable);
-    }
-
-    public void addStartedSuccessHandle(Callable<Void> callable) {
-        onStartedSuccessHandles.add(callable);
-    }
-
-    public void addCreateSuccessHandle(Callable<Void> callable) {
-        onCreateSuccessHandles.add(callable);
-    }
 
     private WebServerBuilder(Builder builder) {
         this.serverConfig = builder.serverConfig;
@@ -89,7 +70,7 @@ public class WebServerBuilder {
             createSuccess = server.create();
         }
         if (!createSuccess) {
-            onCreateErrorHandles.forEach(e -> {
+            serverConfig.getOnCreateErrorHandles().forEach(e -> {
                 try {
                     e.call();
                 } catch (Exception ex) {
@@ -111,7 +92,7 @@ public class WebServerBuilder {
     }
 
     private void startListen() {
-        onCreateSuccessHandles.forEach(e -> {
+        serverConfig.getOnCreateSuccessHandles().forEach(e -> {
             try {
                 e.call();
             } catch (Exception ex) {
@@ -119,13 +100,6 @@ public class WebServerBuilder {
             }
         });
         this.webServer.listen();
-        onStartedSuccessHandles.forEach(e -> {
-            try {
-                e.call();
-            } catch (Exception ex) {
-                throw new RuntimeException(ex);
-            }
-        });
     }
 
     public boolean startWithThread(ThreadFactory threadFactory) {

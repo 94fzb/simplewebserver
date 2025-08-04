@@ -56,6 +56,28 @@ public class ServerConfig {
     private String pidFilePathEnvKey;
     private String serverPortFilePathEnvKey;
 
+    private final List<Callable<Void>> onCreateErrorHandles = new ArrayList<>();
+    private final List<Callable<Void>> onCreateSuccessHandles = new ArrayList<>();
+
+    public ServerConfig addCreateErrorHandle(Callable<Void> callable) {
+        onCreateErrorHandles.add(callable);
+        return this;
+    }
+
+
+    public ServerConfig addCreateSuccessHandle(Callable<Void> callable) {
+        onCreateSuccessHandles.add(callable);
+        return this;
+    }
+
+    public List<Callable<Void>> getOnCreateErrorHandles() {
+        return onCreateErrorHandles;
+    }
+
+    public List<Callable<Void>> getOnCreateSuccessHandles() {
+        return onCreateSuccessHandles;
+    }
+
     public boolean isDisableSession() {
         return disableSession;
     }
