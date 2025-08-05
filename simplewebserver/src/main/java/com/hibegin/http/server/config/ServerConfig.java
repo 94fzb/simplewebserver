@@ -56,8 +56,8 @@ public class ServerConfig {
     private String pidFilePathEnvKey;
     private String serverPortFilePathEnvKey;
 
-    private final List<Callable<Void>> onCreateErrorHandles = new ArrayList<>();
-    private final List<Callable<Void>> onCreateSuccessHandles = new ArrayList<>();
+    private final List<Callable<Void>> onCreateErrorHandles = new CopyOnWriteArrayList<>();
+    private final List<Callable<Void>> onCreateSuccessHandles = new CopyOnWriteArrayList<>();
 
     public ServerConfig addCreateErrorHandle(Callable<Void> callable) {
         onCreateErrorHandles.add(callable);
