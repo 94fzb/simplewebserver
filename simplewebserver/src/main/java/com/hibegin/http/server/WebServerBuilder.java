@@ -69,18 +69,25 @@ public class WebServerBuilder {
         } else {
             createSuccess = server.create();
         }
-        if (!createSuccess) {
-            serverConfig.getOnCreateErrorHandles().forEach(e -> {
+        if (createSuccess) {
+            serverConfig.getOnCreateSuccessHandles().forEach(e -> {
                 try {
                     e.call();
                 } catch (Exception ex) {
                     throw new RuntimeException(ex);
                 }
             });
-            return false;
+            this.webServer = server;
+            return true;
         }
-        this.webServer = server;
-        return true;
+        serverConfig.getOnCreateErrorHandles().forEach(e -> {
+            try {
+                e.call();
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        });
+        return false;
     }
 
     public boolean startWithThread() {
@@ -92,13 +99,6 @@ public class WebServerBuilder {
     }
 
     private void startListen() {
-        serverConfig.getOnCreateSuccessHandles().forEach(e -> {
-            try {
-                e.call();
-            } catch (Exception ex) {
-                throw new RuntimeException(ex);
-            }
-        });
         this.webServer.listen();
     }
 
