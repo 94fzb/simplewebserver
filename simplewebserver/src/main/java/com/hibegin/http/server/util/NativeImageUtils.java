@@ -126,7 +126,7 @@ public class NativeImageUtils {
             try {
                 clzs.add(Class.forName(cl));
             } catch (ClassNotFoundException e) {
-                System.err.println("Agent error " + cl + " : " + e.getMessage());
+                LOGGER.warning("Agent error " + cl + " - > " + LoggerUtil.recordStackTraceMsg(e));
             }
         }
         gsonNativeAgentByClazz(clzs);
@@ -140,7 +140,7 @@ public class NativeImageUtils {
                 Object o = gsonHttpJsonMessageConverter.fromJson("{}", clazz);
                 gsonHttpJsonMessageConverter.toJson(o);
             } catch (Exception e) {
-                System.err.println("Agent error " + cl + " : " + e.getMessage());
+                LOGGER.warning("Agent error " + cl + " - > " + LoggerUtil.recordStackTraceMsg(e));
             }
         }
     }
