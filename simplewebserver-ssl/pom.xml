@@ -6,10 +6,14 @@
     <parent>
         <groupId>com.hibegin</groupId>
         <artifactId>simplewebserver-parent</artifactId>
-        <version>4.0.105-SNAPSHOT</version>
+        <version>4.0.105</version>
     </parent>
 
     <artifactId>simplewebserver-ssl</artifactId>
+
+    <url>https://github.com/94fzb/simplewebserver</url>
+    <name>SimpleWebServer SSL</name>
+    <description>Support Https WebServer</description>
 
     <dependencies>
         <dependency>
