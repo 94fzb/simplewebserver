@@ -1,4 +1,4 @@
-package com.hibegin.common.io.handler;
+package com.hibegin.common.io.handler.ssl;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;

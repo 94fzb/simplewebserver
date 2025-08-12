@@ -1,10 +1,11 @@
-package com.hibegin.http.server;
+package com.hibegin.http.server.ssl;
 
 import com.hibegin.common.io.handler.ReadWriteSelectorHandler;
-import com.hibegin.common.io.handler.ReadWriteSelectorHandlerUtils;
-import com.hibegin.common.io.handler.SslChannelFactory;
+import com.hibegin.common.io.handler.ssl.ReadWriteSelectorHandlerUtils;
+import com.hibegin.common.io.handler.ssl.SslChannelFactory;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.server.SimpleWebServer;
 import com.hibegin.http.server.config.ConfigKit;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
@@ -14,7 +15,6 @@ import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Objects;
 import java.util.logging.Level;

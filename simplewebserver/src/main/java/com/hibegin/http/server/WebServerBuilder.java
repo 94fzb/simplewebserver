@@ -7,6 +7,8 @@ import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.web.MethodInterceptor;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
 import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
@@ -59,7 +61,14 @@ public class WebServerBuilder {
         }
         SimpleWebServer server;
         if (serverConfig.isSsl()) {
-            server = new SimpleHttpsWebServer(serverConfig, requestConfig, responseConfig);
+            try {
+                Class<? extends SimpleWebServer> httpsWebServerClazz = (Class<? extends SimpleWebServer>) Class.forName("com.hibegin.http.server.ssl.SimpleHttpsWebServer");
+                Constructor<? extends SimpleWebServer> constructor = httpsWebServerClazz.getConstructor(ServerConfig.class, RequestConfig.class, ResponseConfig.class);
+                server = constructor.newInstance(serverConfig, requestConfig, responseConfig);
+            } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException |
+                     InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
         } else {
             server = new SimpleWebServer(serverConfig, requestConfig, responseConfig);
         }

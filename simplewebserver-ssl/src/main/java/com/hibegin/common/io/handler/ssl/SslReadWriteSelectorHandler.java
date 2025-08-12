@@ -1,4 +1,4 @@
-package com.hibegin.common.io.handler;
+package com.hibegin.common.io.handler.ssl;
 /*
  * @(#)ChannelIOSecure.java	1.2 04/07/26
  *
@@ -35,9 +35,11 @@ package com.hibegin.common.io.handler;
  * nuclear facility.
  */
 
+import com.hibegin.common.io.handler.PlainReadWriteSelectorHandler;
 import com.hibegin.common.util.BytesUtil;
 import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.server.execption.PlainRequestToSslPortException;
 
 import javax.net.ssl.*;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
@@ -428,7 +430,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         //not close stream, handle connect state by caller
         catch (SSLException e) {
             if (disablePlainRead) {
-                throw e;
+                throw new PlainRequestToSslPortException();
             }
             this.plain = true;
             return ByteBuffer.wrap(BytesUtil.subBytes(inNetBB.array(), 0, inNetBB.remaining()));

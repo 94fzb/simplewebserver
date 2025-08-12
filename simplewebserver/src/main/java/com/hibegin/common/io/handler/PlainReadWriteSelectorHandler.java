@@ -18,8 +18,8 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
     private static final int MIN_REQUEST_BB_SIZE = 2 * 1024;
     private static final int MAX_REQUEST_BB_SIZE = 512 * 1024;
     protected final AdaptiveBufferAllocator requestBbAllocator;
-    final ReentrantLock writeLock = new ReentrantLock();
-    final ReentrantLock readLock = new ReentrantLock();
+    protected final ReentrantLock writeLock = new ReentrantLock();
+    protected final ReentrantLock readLock = new ReentrantLock();
     protected ByteBuffer requestBB;
     protected SocketChannel sc;
 
@@ -77,7 +77,7 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
         }
     }
 
-    void initRequestBB() {
+    protected void initRequestBB() {
         if (requestBB.capacity() > 0) {
             return;
         }
@@ -105,11 +105,11 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
         return sc;
     }
 
-    void cleanRequestBB() {
+    protected void cleanRequestBB() {
         requestBB = ByteBuffer.allocate(0);
     }
 
-    void flushRequestBB(int lastReadLength) {
+    protected void flushRequestBB(int lastReadLength) {
         readLock.lock();
         cleanRequestBB();
         requestBbAllocator.record(lastReadLength);

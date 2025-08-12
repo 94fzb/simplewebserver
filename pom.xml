@@ -9,6 +9,7 @@
         <module>simplewebserver</module>
         <module>simplewebserver-servlet-api-impl</module>
         <module>simplewebserver-lambda-function-impl</module>
+        <module>simplewebserver-ssl</module>
     </modules>
 
     <name>SimpleWebServer Parent</name>

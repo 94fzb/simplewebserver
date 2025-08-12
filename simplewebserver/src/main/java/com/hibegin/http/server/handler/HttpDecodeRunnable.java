@@ -12,6 +12,7 @@ import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ResponseConfig;
 import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.execption.NotFindResourceException;
+import com.hibegin.http.server.execption.PlainRequestToSslPortException;
 import com.hibegin.http.server.execption.RequestBodyTooLargeException;
 import com.hibegin.http.server.execption.UnSupportMethodException;
 import com.hibegin.http.server.impl.HttpRequestDecoderImpl;
@@ -21,7 +22,6 @@ import com.hibegin.http.server.util.FrameUtil;
 import com.hibegin.http.server.util.HttpRequestBuilder;
 import com.hibegin.http.server.util.StatusCodeUtil;
 
-import javax.net.ssl.SSLException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -219,7 +219,7 @@ public class HttpDecodeRunnable implements Runnable {
                     return;
                 }
                 addBytesToQueue(key, channel.socket(), data, false);
-            } catch (SSLException e) {
+            } catch (PlainRequestToSslPortException e) {
                 HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, "/", "127.0.0.1", "", requestConfig, applicationContext);
                 handleException(key, codecEntry, new HttpRequestHandlerRunnable(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig)), 400, e);
             }
