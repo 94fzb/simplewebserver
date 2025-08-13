@@ -87,7 +87,7 @@ public class NativeImageUtils {
         List<CompletableFuture<Void>> voidCompletableFutures = new ArrayList<>();
         for (Map.Entry<String, Method> methodInfo : applicationContext.getServerConfig().getRouter().getRouterMap().entrySet()) {
             HttpMethod httpMethod = ObjectUtil.requireNonNullElse(Router.getHttpMethod(Objects.requireNonNull(methodInfo.getValue())), HttpMethod.GET);
-            String key = "[" + methodInfo.getKey() + "][" + httpMethod + "]";
+            String key = "[" + httpMethod + "][" + methodInfo.getKey() + "]";
             voidCompletableFutures.add(CompletableFuture.runAsync(() -> {
                 try {
                     HttpRequest httpRequest = HttpRequestBuilder.buildRequest(httpMethod, methodInfo.getKey(), "127.0.0.1", "NativeImageAgent", requestConfig, applicationContext);
