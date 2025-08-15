@@ -57,7 +57,7 @@ public class LambdaEventIterator implements Iterator<Map.Entry<String, LambdaApi
         try {
             Map.Entry<String, LambdaApiGatewayRequest> requestInfo = getRequestInfo();
             if (EnvKit.isDevMode()) {
-                String json = gson.toJson(requestInfo);
+                String json = gson.toJson(requestInfo.getValue());
                 String printJson = json.substring(0, Math.min(json.length(), 4096));
                 LOGGER.info("lambda request  " + requestInfo.getKey() + " : " + printJson);
             }
