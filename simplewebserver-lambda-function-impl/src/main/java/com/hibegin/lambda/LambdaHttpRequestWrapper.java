@@ -39,8 +39,9 @@ public class LambdaHttpRequestWrapper extends SimpleHttpRequest {
             } else {
                 this.inputStream = new ByteArrayInputStream(lambdaApiGatewayRequest.getBody().getBytes());
             }
+            String contentType = getHeader("Content-Type").split("\\?")[0];
             //handle urlencoded
-            if ("application/x-www-form-urlencoded".equals(header.get("Content-Type"))) {
+            if ("application/x-www-form-urlencoded".equals(contentType)) {
                 paramMap.putAll(HttpQueryStringUtils.parseUrlEncodedStrToMap(IOUtil.getStringInputStream(this.inputStream)));
             }
         }
