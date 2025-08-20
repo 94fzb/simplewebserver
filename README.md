@@ -32,7 +32,7 @@
 
 Java21 loom + GraalVM Native 让应用有更小的内存占用和更快捷的运行体验
 
-在使用 Native 后，单个可执行文件大概 25mb 左右，通过 zip 后程序在 10m 左右，足够小（对比完整 JDK）
+在使用 Native 后，单个可执行文件大概 15mb 左右，通过 zip 后程序在 5m 左右，足够小（对比完整 JDK）
 
 ### SimpleWebServer-Cli
 
@@ -54,7 +54,7 @@ Java21 loom + GraalVM Native 让应用有更小的内存占用和更快捷的运
 <dependency>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>0.3.175</version>
+    <version>4.0.107</version>
 </dependency>
 ```
 
