@@ -3,7 +3,10 @@ package com.hibegin.http.server.config;
 import com.hibegin.http.io.LengthByteArrayInputStream;
 import com.hibegin.template.BasicTemplateRender;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -12,6 +15,7 @@ public class LocalFileStaticResourceLoader implements StaticResourceLoader {
     private final boolean enableAutoIndex;
     private final String aliasPath;
     private final String location;
+    private final String contextPath;
 
 
     private String buildHtmlStr(File file, String basePath) {
@@ -41,7 +45,7 @@ public class LocalFileStaticResourceLoader implements StaticResourceLoader {
                     append(formatDateTime(f.lastModified()))
                     .append("                   -\n");
         } else {
-            sb.append("<a href=\"").append(basePath).append(f.getName()).append("?preview=true\">")
+            sb.append("<a href=\"").append(contextPath).append(basePath).append(f.getName()).append("?preview=true\">")
                     .append(arr[0]).append("</a>").append(arr[1]).
                     append(formatDateTime(f.lastModified()))
                     .append("                   ").append(f.length()).append("\n");
@@ -93,16 +97,15 @@ public class LocalFileStaticResourceLoader implements StaticResourceLoader {
         return file.replace("\\", "/");
     }
 
-    public LocalFileStaticResourceLoader(String location, String aliasPath) {
-        this.enableAutoIndex = false;
-        this.aliasPath = aliasPath;
-        this.location = location;
+    public LocalFileStaticResourceLoader(String location, String aliasPath, String contextPath) {
+        this(false, location, aliasPath, contextPath);
     }
 
-    public LocalFileStaticResourceLoader(boolean enableAutoIndex, String location, String aliasPath) {
+    public LocalFileStaticResourceLoader(boolean enableAutoIndex, String location, String aliasPath, String contextPath) {
         this.enableAutoIndex = enableAutoIndex;
         this.aliasPath = new File(changeFileSplitUriPath(aliasPath)).toString();
         this.location = location;
+        this.contextPath = contextPath;
     }
 
     public boolean isDirectory(String path) {

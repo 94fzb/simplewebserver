@@ -116,7 +116,7 @@ public class NativeImageUtils {
             }, applicationContext.getServerConfig().getRequestExecutor()));
         }
         CompletableFuture.allOf(voidCompletableFutures.toArray(new CompletableFuture[0])).join();
-        new LocalFileStaticResourceLoader(true, "/" + System.currentTimeMillis(), PathUtil.getRootPath()).getInputStream(PathUtil.getRootPath());
+        new LocalFileStaticResourceLoader(true, "/" + System.currentTimeMillis(), PathUtil.getRootPath(), applicationContext.getServerConfig().getContextPath()).getInputStream(PathUtil.getRootPath());
 
     }
 

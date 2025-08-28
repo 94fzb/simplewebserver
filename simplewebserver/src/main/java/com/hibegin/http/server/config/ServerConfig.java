@@ -368,7 +368,7 @@ public class ServerConfig {
     }
 
     public ServerConfig addLocalFileStaticResourceMapper(String uriPath, String filePath, boolean autoIndex) {
-        addStaticResourceMapper(uriPath, filePath, new LocalFileStaticResourceLoader(autoIndex, uriPath, filePath));
+        addStaticResourceMapper(uriPath, filePath, new LocalFileStaticResourceLoader(autoIndex, uriPath, filePath, getContextPath()));
         return this;
     }
 
