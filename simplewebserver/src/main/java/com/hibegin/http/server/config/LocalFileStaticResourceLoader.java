@@ -40,7 +40,7 @@ public class LocalFileStaticResourceLoader implements StaticResourceLoader {
     private void appendFileInfo(StringBuilder sb, File f, String basePath, int maxLength) {
         String[] arr = fullBlankChar(f.getName(), maxLength);
         if (f.isDirectory()) {
-            sb.append("<a href=\"").append(basePath).append(f.getName()).append("/\">").
+            sb.append("<a href=\"").append(contextPath).append(basePath).append(f.getName()).append("/\">").
                     append(arr[0]).append("/</a>").append(arr[1].subSequence(0, arr[1].length() - 1)).
                     append(formatDateTime(f.lastModified()))
                     .append("                   -\n");
