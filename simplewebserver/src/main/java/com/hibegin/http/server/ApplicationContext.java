@@ -9,6 +9,7 @@ import com.hibegin.http.server.util.FileCacheKit;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +20,7 @@ import java.util.logging.Logger;
 public class ApplicationContext {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(ApplicationContext.class);
-    private final Map<Socket, HttpRequestDeCoder> httpDeCoderMap = new ConcurrentHashMap<>();
+    private final Map<SocketChannel, HttpRequestDeCoder> httpDeCoderMap = new ConcurrentHashMap<>();
     private final Map<String, Object> attrs = new ConcurrentHashMap<>();
     private boolean init;
     private List<Interceptor> interceptors;
@@ -33,7 +34,7 @@ public class ApplicationContext {
         this.serverConfig = serverConfig;
     }
 
-    public Map<Socket, HttpRequestDeCoder> getHttpDeCoderMap() {
+    public Map<SocketChannel, HttpRequestDeCoder> getHttpDeCoderMap() {
         return httpDeCoderMap;
     }
 

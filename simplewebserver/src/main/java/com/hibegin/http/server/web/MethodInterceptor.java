@@ -106,8 +106,11 @@ public class MethodInterceptor implements Interceptor {
 
     @Override
     public boolean doInterceptor(HttpRequest request, HttpResponse response) throws Exception {
+        if (!request.getContextPath().isEmpty() && !Objects.equals(request.getServerConfig().getContextPath(), request.getContextPath())) {
+            throw new NotFindResourceException("The request context path not match");
+        }
         Router router = request.getRequestConfig().getRouter();
-        Method method = router.getMethod(request.getUri(),request.getMethod());
+        Method method = router.getMethod(request.getUri(), request.getMethod());
         if (method == null) {
             handleByStaticResource(request, response);
             return false;

@@ -24,7 +24,6 @@ import com.hibegin.http.server.util.StatusCodeUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
@@ -43,12 +42,12 @@ public class HttpDecodeRunnable implements Runnable {
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpDecodeRunnable.class);
 
     private final ApplicationContext applicationContext;
-    private final Map<Socket, Queue<String>> socketRequestEventMap = new ConcurrentHashMap<>();
+    private final Map<SocketChannel, Queue<String>> socketRequestEventMap = new ConcurrentHashMap<>();
     private final SimpleWebServer simpleWebServer;
     private final RequestConfig requestConfig;
     private final ResponseConfig responseConfig;
     private final ServerConfig serverConfig;
-    private final Set<Socket> workingChannel = new CopyOnWriteArraySet<>();
+    private final Set<SocketChannel> workingChannel = new CopyOnWriteArraySet<>();
     private final ReentrantLock lock = new ReentrantLock();
     private final CheckRequestRunnable checkRequestRunnable;
     private static final AtomicLong FILE_ID = new AtomicLong();
@@ -66,14 +65,14 @@ public class HttpDecodeRunnable implements Runnable {
     public void run() {
         lock.lock();
         try {
-            List<Socket> needRemoveChannel = new CopyOnWriteArrayList<>();
-            for (final Map.Entry<Socket, Queue<String>> entry : socketRequestEventMap.entrySet()) {
-                final Socket socket = entry.getKey();
-                if (entry.getKey().isClosed()) {
-                    needRemoveChannel.add(socket);
+            List<SocketChannel> needRemoveChannel = new CopyOnWriteArrayList<>();
+            for (final Map.Entry<SocketChannel, Queue<String>> entry : socketRequestEventMap.entrySet()) {
+                final SocketChannel socketChannel = entry.getKey();
+                if (!socketChannel.isOpen()) {
+                    needRemoveChannel.add(socketChannel);
                     continue;
                 }
-                if (workingChannel.contains(socket)) {
+                if (workingChannel.contains(socketChannel)) {
                     continue;
                 }
                 final Queue<String> blockingQueue = entry.getValue();
@@ -85,19 +84,19 @@ public class HttpDecodeRunnable implements Runnable {
                 if (requestEvent == null) {
                     continue;
                 }
-                workingChannel.add(socket);
+                workingChannel.add(socketChannel);
                 serverConfig.getDecodeExecutor().execute(() -> {
                     try {
-                        doParseHttpMessage(requestEvent, socket);
+                        doParseHttpMessage(requestEvent, socketChannel);
                     } finally {
                         serverConfig.getHybridStorage().remove(key);
-                        workingChannel.remove(socket);
+                        workingChannel.remove(socketChannel);
                         HttpDecodeRunnable.this.run();
                     }
                 });
             }
 
-            for (Socket socket : needRemoveChannel) {
+            for (SocketChannel socket : needRemoveChannel) {
                 Queue<String> entry = socketRequestEventMap.get(socket);
                 if (entry == null) {
                     continue;
@@ -137,7 +136,7 @@ public class HttpDecodeRunnable implements Runnable {
         serverConfig.getRequestExecutor().execute(httpRequestHandlerRunnable);
     }
 
-    private void doParseHttpMessage(RequestEvent requestEvent, Socket socket) {
+    private void doParseHttpMessage(RequestEvent requestEvent, SocketChannel socket) {
         SelectionKey key = requestEvent.getSelectionKey();
         HttpRequestDeCoder requestDeCoder = applicationContext.getHttpDeCoderMap().get(socket);
         try {
@@ -161,16 +160,16 @@ public class HttpDecodeRunnable implements Runnable {
                 }
             }
         } catch (IOException e) {
-            handleException(key, requestDeCoder, null, 499, e);
+            handleException(requestDeCoder, null, 499, e);
         } catch (UnSupportMethodException e) {
-            handleException(key, requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 400, e);
+            handleException(requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 400, e);
         } catch (NotFindResourceException e) {
-            handleException(key, requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 404, e);
+            handleException(requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 404, e);
         } catch (RequestBodyTooLargeException e) {
-            handleException(key, requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 413, e);
+            handleException(requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 413, e);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "", e);
-            handleException(key, requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 500, e);
+            handleException(requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 500, e);
         }
     }
 
@@ -185,7 +184,7 @@ public class HttpDecodeRunnable implements Runnable {
         return FileCacheKit.SERVER_WEB_SERVER_TEMP_FILE_PREFIX + "req-event-" + System.currentTimeMillis() + "-" + FILE_ID.incrementAndGet() + FileCacheKit.suffix(port + "");
     }
 
-    private void addBytesToQueue(SelectionKey key, Socket socket, byte[] bytes, boolean toFirst) throws Exception {
+    private void addBytesToQueue(SelectionKey key, SocketChannel socket, byte[] bytes, boolean toFirst) throws Exception {
         if (Objects.isNull(bytes) || bytes.length == 0) {
             return;
         }
@@ -208,20 +207,20 @@ public class HttpDecodeRunnable implements Runnable {
             return;
         }
         try {
-            HttpRequestDeCoder codecEntry = applicationContext.getHttpDeCoderMap().get(channel.socket());
+            HttpRequestDeCoder codecEntry = applicationContext.getHttpDeCoderMap().get(channel);
             if (Objects.isNull(codecEntry)) {
                 codecEntry = new HttpRequestDecoderImpl(requestConfig, applicationContext, simpleWebServer.getReadWriteSelectorHandlerInstance(channel));
-                applicationContext.getHttpDeCoderMap().put(channel.socket(), codecEntry);
+                applicationContext.getHttpDeCoderMap().put(channel, codecEntry);
             }
             try {
                 byte[] data = codecEntry.getHandler().handleRead().array();
                 if (data.length == 0) {
                     return;
                 }
-                addBytesToQueue(key, channel.socket(), data, false);
+                addBytesToQueue(key, channel, data, false);
             } catch (PlainRequestToSslPortException e) {
                 HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, "/", "127.0.0.1", "", requestConfig, applicationContext);
-                handleException(key, codecEntry, new HttpRequestHandlerRunnable(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig)), 400, e);
+                handleException(codecEntry, new HttpRequestHandlerRunnable(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig)), 400, e);
             }
         } finally {
             this.run();
@@ -244,10 +243,10 @@ public class HttpDecodeRunnable implements Runnable {
         httpResponse.send(bout, true);
     }
 
-    private void handleException(SelectionKey key, HttpRequestDeCoder codec, HttpRequestHandlerRunnable httpRequestHandlerRunnable, int errorCode, Throwable throwable) {
+    private void handleException(HttpRequestDeCoder codec, HttpRequestHandlerRunnable httpRequestHandlerRunnable, int errorCode, Throwable throwable) {
         try {
             if (httpRequestHandlerRunnable != null && codec != null && codec.getRequest() != null) {
-                if (!httpRequestHandlerRunnable.getRequest().getHandler().getChannel().socket().isClosed()) {
+                if (httpRequestHandlerRunnable.getRequest().getHandler().getChannel().isOpen()) {
                     HttpErrorHandle errorHandle = serverConfig.getErrorHandle(errorCode);
                     if (Objects.nonNull(errorHandle)) {
                         errorHandle.doHandle(codec.getRequest(), httpRequestHandlerRunnable.getResponse(), throwable);
@@ -258,17 +257,6 @@ public class HttpDecodeRunnable implements Runnable {
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "error", e);
-        } finally {
-            try {
-                key.cancel();
-            } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "error", e);
-            }
-            try {
-                key.channel().close();
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "error", e);
-            }
         }
     }
 }

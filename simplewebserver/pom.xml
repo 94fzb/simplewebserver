@@ -8,7 +8,6 @@
 
     <artifactId>simplewebserver</artifactId>
     <modelVersion>4.0.0</modelVersion>
-    <packaging>jar</packaging>
 
     <properties>
         <freemarker.version>2.3.34</freemarker.version>
@@ -16,7 +15,7 @@
     </properties>
 
     <url>https://github.com/94fzb/simplewebserver</url>
-    <name>SimpleWebServer</name>
+    <name>SimpleWebServer Core</name>
     <description>Simple, flexible, less dependent, more extended. Less memory footprint, can quickly build Web project.
         Can quickly run embedded, Android devices
     </description>

@@ -10,7 +10,6 @@ import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.config.ConfigKit;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ServerConfig;
-import com.hibegin.http.server.execption.NotFindResourceException;
 import com.hibegin.http.server.execption.RequestBodyTooLargeException;
 import com.hibegin.http.server.util.FileCacheKit;
 import com.hibegin.http.server.util.HttpQueryStringUtils;
@@ -238,7 +237,8 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     private String handleRequestUri(String requestUri) {
         if (requestUri.contains("/")) {
             if (!request.getContextPath().isEmpty() && !requestUri.startsWith(request.getContextPath())) {
-                throw new NotFindResourceException("The request URI does not start with a context path");
+                request.contextPath = "";
+                return UrlDecodeUtils.decodePath(request.uri.substring(request.uri.indexOf("/")), request.getRequestConfig().getCharSet());
             }
             if (requestUri.equals(request.getContextPath())) {
                 return "/";

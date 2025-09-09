@@ -46,12 +46,15 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
     private Cookie[] cookies;
     private HttpSession session;
     private Map<String, Object> attr;
+    protected String contextPath;
+
 
     protected SimpleHttpRequest(ReadWriteSelectorHandler handler, ApplicationContext applicationContext, RequestConfig requestConfig) {
         this.requestConfig = requestConfig;
         this.createTime = System.currentTimeMillis();
         this.handler = handler;
         this.applicationContext = applicationContext;
+        this.contextPath = applicationContext.getServerConfig().getContextPath();
     }
 
     @Override
@@ -352,6 +355,11 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
         } finally {
             lock.unlock();
         }
+    }
+
+    @Override
+    public String getContextPath() {
+        return ObjectUtil.requireNonNullElse(contextPath, "");
     }
 
     @Override

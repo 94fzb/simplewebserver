@@ -6,6 +6,8 @@ import com.hibegin.common.util.LoggerUtil;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -22,15 +24,17 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
     protected final ReentrantLock readLock = new ReentrantLock();
     protected ByteBuffer requestBB;
     protected SocketChannel sc;
+    protected final Selector selector;
 
-    public PlainReadWriteSelectorHandler(SocketChannel sc) {
-        this(sc, MAX_REQUEST_BB_SIZE);
+    public PlainReadWriteSelectorHandler(Selector selector, SocketChannel sc) {
+        this(selector, sc, MAX_REQUEST_BB_SIZE);
     }
 
-    public PlainReadWriteSelectorHandler(SocketChannel sc, int maxRequestBbSize) {
+    public PlainReadWriteSelectorHandler(Selector selector, SocketChannel sc, int maxRequestBbSize) {
         this.sc = sc;
         this.requestBbAllocator = new AdaptiveBufferAllocator(MIN_REQUEST_BB_SIZE, INIT_REQUEST_BB_SIZE, Math.max(maxRequestBbSize, MAX_REQUEST_BB_SIZE));
         this.requestBB = requestBbAllocator.allocateByteBuffer();
+        this.selector = selector;
     }
 
     @Override
@@ -61,6 +65,9 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
         try {
             initRequestBB();
             int length = sc.read(requestBB);
+            if (length == 0) {
+                return ByteBuffer.allocate(0);
+            }
             if (length != -1) {
                 ByteBuffer byteBuffer = ByteBuffer.allocate(length);
                 byteBuffer.put(BytesUtil.subBytes(requestBB.array(), 0, length));
@@ -92,7 +99,12 @@ public class PlainReadWriteSelectorHandler implements ReadWriteSelectorHandler {
             if (!sc.isOpen()) {
                 return;
             }
+            SelectionKey sk = sc.keyFor(selector);
+            if (sk != null) {
+                sk.cancel();
+            }
             sc.close();
+            selector.wakeup();
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "close SocketChannel", e);
         } finally {

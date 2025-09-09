@@ -18,7 +18,6 @@ import java.util.*;
 
 public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
 
-    private final String contextPath;
     private final String realPath;
     private final String scheme;
 
@@ -123,10 +122,7 @@ public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
         return headerMap;
     }
 
-    @Override
-    public String getContextPath() {
-        return contextPath;
-    }
+
 
     @Override
     public HttpVersion getHttpVersion() {

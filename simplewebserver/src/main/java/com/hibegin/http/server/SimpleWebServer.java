@@ -32,7 +32,7 @@ public class SimpleWebServer implements ISocketServer {
     protected final RequestConfig requestConfig;
     protected final ResponseConfig responseConfig;
     protected final ApplicationContext applicationContext;
-    private Selector selector;
+    protected Selector selector;
     private HttpDecodeRunnable httpDecodeRunnable;
     private ServerSocketChannel serverChannel;
 
@@ -102,7 +102,7 @@ public class SimpleWebServer implements ISocketServer {
     }
 
     public ReadWriteSelectorHandler getReadWriteSelectorHandlerInstance(SocketChannel channel) throws IOException {
-        return new PlainReadWriteSelectorHandler(channel, requestConfig.getRequestMaxBufferSize());
+        return new PlainReadWriteSelectorHandler(selector, channel, requestConfig.getRequestMaxBufferSize());
     }
 
     @Override
