@@ -159,17 +159,15 @@ public class HttpDecodeRunnable implements Runnable {
                     requestDeCoder.doNext();
                 }
             }
-        } catch (IOException e) {
-            handleException(requestDeCoder, null, 499, e);
         } catch (UnSupportMethodException e) {
-            handleException(requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 400, e);
+            handleException(new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 400, e);
         } catch (NotFindResourceException e) {
-            handleException(requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 404, e);
+            handleException(new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 404, e);
         } catch (RequestBodyTooLargeException e) {
-            handleException(requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 413, e);
+            handleException(new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 413, e);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "", e);
-            handleException(requestDeCoder, new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 500, e);
+            handleException(new HttpRequestHandlerRunnable(requestDeCoder.getRequest(), new SimpleHttpResponse(requestDeCoder.getRequest(), responseConfig)), 500, e);
         }
     }
 
@@ -212,16 +210,14 @@ public class HttpDecodeRunnable implements Runnable {
                 codecEntry = new HttpRequestDecoderImpl(requestConfig, applicationContext, simpleWebServer.getReadWriteSelectorHandlerInstance(channel));
                 applicationContext.getHttpDeCoderMap().put(channel, codecEntry);
             }
-            try {
-                byte[] data = codecEntry.getHandler().handleRead().array();
-                if (data.length == 0) {
-                    return;
-                }
-                addBytesToQueue(key, channel, data, false);
-            } catch (PlainRequestToSslPortException e) {
-                HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, "/", "127.0.0.1", "", requestConfig, applicationContext);
-                handleException(codecEntry, new HttpRequestHandlerRunnable(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig)), 400, e);
+            byte[] data = codecEntry.getHandler().handleRead().array();
+            if (data.length == 0) {
+                return;
             }
+            addBytesToQueue(key, channel, data, false);
+        } catch (PlainRequestToSslPortException e) {
+            HttpRequest httpRequest = HttpRequestBuilder.buildRequest(HttpMethod.GET, "/", "127.0.0.1", "", requestConfig, applicationContext);
+            handleException(new HttpRequestHandlerRunnable(httpRequest, new SimpleHttpResponse(httpRequest, responseConfig)), 400, e);
         } finally {
             this.run();
         }
@@ -243,16 +239,17 @@ public class HttpDecodeRunnable implements Runnable {
         httpResponse.send(bout, true);
     }
 
-    private void handleException(HttpRequestDeCoder codec, HttpRequestHandlerRunnable httpRequestHandlerRunnable, int errorCode, Throwable throwable) {
+    private void handleException(HttpRequestHandlerRunnable httpRequestHandlerRunnable, int errorCode, Throwable throwable) {
         try {
-            if (httpRequestHandlerRunnable != null && codec != null && codec.getRequest() != null) {
-                if (httpRequestHandlerRunnable.getRequest().getHandler().getChannel().isOpen()) {
-                    HttpErrorHandle errorHandle = serverConfig.getErrorHandle(errorCode);
-                    if (Objects.nonNull(errorHandle)) {
-                        errorHandle.doHandle(codec.getRequest(), httpRequestHandlerRunnable.getResponse(), throwable);
-                    } else {
-                        httpRequestHandlerRunnable.getResponse().renderCode(errorCode);
-                    }
+            if (Objects.isNull(httpRequestHandlerRunnable)) {
+                return;
+            }
+            if (httpRequestHandlerRunnable.getRequest().getHandler().getChannel().isOpen()) {
+                HttpErrorHandle errorHandle = serverConfig.getErrorHandle(errorCode);
+                if (Objects.nonNull(errorHandle)) {
+                    errorHandle.doHandle(httpRequestHandlerRunnable.getRequest(), httpRequestHandlerRunnable.getResponse(), throwable);
+                } else {
+                    httpRequestHandlerRunnable.getResponse().renderCode(errorCode);
                 }
             }
         } catch (Exception e) {

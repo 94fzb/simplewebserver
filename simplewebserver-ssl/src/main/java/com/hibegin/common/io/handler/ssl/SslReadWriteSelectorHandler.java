@@ -205,8 +205,9 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             doHandshake();
         } catch (SSLException e) {
             if (disablePlainRead) {
-                throw e;
+                throw new PlainRequestToSslPortException(e);
             }
+            this.plain = true;
         } catch (IOException e) {
             close();
             throw e;
@@ -402,6 +403,17 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         return output;
     }
 
+    private ByteBuffer plainRead() throws IOException {
+        ByteBuffer buffer = super.handleRead();
+        if (inNetBB.array().length > 0) {
+            byte[] rawBytes = inNetBB.array();
+            inNetBB.clear();
+            inNetBB.limit(0);
+            return ByteBuffer.wrap(BytesUtil.mergeBytes(rawBytes, buffer.array()));
+        }
+        return buffer;
+    }
+
     /**
      * Read the channel for more information, then unwrap the
      * (hopefully application) data we get.
@@ -413,18 +425,17 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
      */
     @Override
     public ByteBuffer handleRead() throws IOException {
-        if (plain) {
-            return super.handleRead();
-        }
         readLock.lock();
-        int readLength;
         try {
+            if (plain) {
+                return plainRead();
+            }
             initRequestBB();
             doHandshake();
             if (!initialHSComplete) {
                 return ByteBuffer.allocate(0);
             }
-            readLength = sc.read(inNetBB);
+            int readLength = sc.read(inNetBB);
             if (readLength == -1) {
                 // probably throws exception
                 sslEngine.closeInbound();
@@ -436,7 +447,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         //not close stream, handle connect state by caller
         catch (SSLException e) {
             if (disablePlainRead) {
-                throw new PlainRequestToSslPortException();
+                throw new PlainRequestToSslPortException(e);
             }
             this.plain = true;
             return ByteBuffer.wrap(BytesUtil.subBytes(inNetBB.array(), 0, inNetBB.remaining()));
