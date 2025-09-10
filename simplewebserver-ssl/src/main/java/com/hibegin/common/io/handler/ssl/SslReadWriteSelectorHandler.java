@@ -207,7 +207,6 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             if (disablePlainRead) {
                 throw e;
             }
-            this.plain = true;
         } catch (IOException e) {
             close();
             throw e;
