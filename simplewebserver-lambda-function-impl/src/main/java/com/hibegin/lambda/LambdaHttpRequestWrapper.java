@@ -34,16 +34,18 @@ public class LambdaHttpRequestWrapper extends SimpleHttpRequest {
         this.getHeaderMap().put("Host", lambdaApiGatewayRequest.getRequestContext().getDomainName());
         this.uri = UrlDecodeUtils.decodePath(lambdaApiGatewayRequest.getRawPath().substring(getContextPath().length()), requestConfig.getCharSet());
         if (Objects.nonNull(lambdaApiGatewayRequest.getBody()) && !lambdaApiGatewayRequest.getBody().isEmpty()) {
-            if (getLambdaApiGatewayRequest().isBase64Encoded()) {
-                this.inputStream = new ByteArrayInputStream(Base64.getDecoder().decode(lambdaApiGatewayRequest.getBody()));
+            byte[] bytes;
+            if (lambdaApiGatewayRequest.isBase64Encoded()) {
+                bytes = Base64.getDecoder().decode(lambdaApiGatewayRequest.getBody());
             } else {
-                this.inputStream = new ByteArrayInputStream(lambdaApiGatewayRequest.getBody().getBytes());
+                bytes = lambdaApiGatewayRequest.getBody().getBytes();
             }
             String contentType = getHeader("Content-Type").split("\\?")[0];
             //handle urlencoded
             if ("application/x-www-form-urlencoded".equals(contentType)) {
-                paramMap.putAll(HttpQueryStringUtils.parseUrlEncodedStrToMap(IOUtil.getStringInputStream(this.inputStream)));
+                paramMap.putAll(HttpQueryStringUtils.parseUrlEncodedStrToMap(new String(bytes)));
             }
+            this.inputStream = new ByteArrayInputStream(bytes);
         }
         //
         ServerConfig serverConfig = super.getServerConfig();
