@@ -203,11 +203,6 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         requestBB = ByteBuffer.allocate(appBBSize);
         try {
             doHandshake();
-        } catch (SSLException e) {
-            if (disablePlainRead) {
-                throw new PlainRequestToSslPortException(e);
-            }
-            this.plain = true;
         } catch (IOException e) {
             close();
             throw e;
@@ -256,70 +251,87 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
      * false while handshake is in progress
      */
     void doHandshake() throws IOException {
-        while (!initialHSComplete) {
-            SSLEngineResult result;
-            switch (initialHSStatus) {
-                case NEED_UNWRAP:
-                    if (sc.read(inNetBB) == -1) {
-                        sslEngine.closeInbound();
-                        throw new EOFException("Connection closed during handshake");
-                    }
+        try {
+            while (!initialHSComplete) {
+                SSLEngineResult result;
+                switch (initialHSStatus) {
+                    case NEED_UNWRAP:
+                        int length = sc.read(inNetBB);
+                        if (length == -1) {
+                            sslEngine.closeInbound();
+                            throw new EOFException("Connection closed during handshake");
+                        }
 
-                    inNetBB.flip();
-                    result = sslEngine.unwrap(inNetBB, requestBB);
-                    inNetBB.compact();
+                        inNetBB.flip();
+                        try {
+                            result = sslEngine.unwrap(inNetBB, requestBB);
+                        } catch (SSLException e) {
+                            inNetBB.limit(length);
+                            //lock state
+                            inNetBB.put(BytesUtil.subBytes(inNetBB.array(), 0, length));
+                            inNetBB.flip();
+                            throw e;
+                        }
+                        inNetBB.compact();
 
-                    initialHSStatus = result.getHandshakeStatus();
+                        initialHSStatus = result.getHandshakeStatus();
 
-                    switch (result.getStatus()) {
-                        case OK:
-                            // fallthrough
-                            break;
-                        case BUFFER_UNDERFLOW:
-                            return;
-                        case CLOSED:
-                            throw new IOException("SSLEngine closed during handshake");
-                        default:
-                            throw new IOException("Unexpected unwrap result: " + result.getStatus());
-                    }
+                        switch (result.getStatus()) {
+                            case OK:
+                                // fallthrough
+                                break;
+                            case BUFFER_UNDERFLOW:
+                                return;
+                            case CLOSED:
+                                throw new IOException("SSLEngine closed during handshake");
+                            default:
+                                throw new IOException("Unexpected unwrap result: " + result.getStatus());
+                        }
 
-                    break;
+                        break;
 
-                case NEED_WRAP:
-                    outNetBB.clear();
-                    result = sslEngine.wrap(hsBB, outNetBB);
-                    outNetBB.flip();
+                    case NEED_WRAP:
+                        outNetBB.clear();
+                        result = sslEngine.wrap(hsBB, outNetBB);
+                        outNetBB.flip();
 
-                    initialHSStatus = result.getHandshakeStatus();
+                        initialHSStatus = result.getHandshakeStatus();
 
-                    switch (result.getStatus()) {
-                        case OK:
-                            super.handleWrite(outNetBB);
-                            break;
-                        case CLOSED:
-                            throw new IOException("SSLEngine closed during wrap");
-                        default:
-                            throw new IOException("Unexpected wrap result: " + result.getStatus());
-                    }
+                        switch (result.getStatus()) {
+                            case OK:
+                                super.handleWrite(outNetBB);
+                                break;
+                            case CLOSED:
+                                throw new IOException("SSLEngine closed during wrap");
+                            default:
+                                throw new IOException("Unexpected wrap result: " + result.getStatus());
+                        }
 
-                    break;
+                        break;
 
-                case NEED_TASK:
-                    initialHSStatus = doTasks();
-                    break;
+                    case NEED_TASK:
+                        initialHSStatus = doTasks();
+                        break;
 
-                case FINISHED:
-                case NOT_HANDSHAKING:
-                    initialHSComplete = true;
+                    case FINISHED:
+                    case NOT_HANDSHAKING:
+                        initialHSComplete = true;
+                        // flush pending write after handshake
+                        byte[] byteArray = writePendingStream.toByteArray();
+                        if (byteArray.length > 0) {
+                            handleWrite(ByteBuffer.wrap(byteArray));
+                            writePendingStream = new ByteArrayOutputStream();
+                        }
+                        return;
                     // flush pending write after handshake
-                    byte[] byteArray = writePendingStream.toByteArray();
-                    if (byteArray.length > 0) {
-                        handleWrite(ByteBuffer.wrap(byteArray));
-                        writePendingStream = new ByteArrayOutputStream();
-                    }
-                    return;
-                // flush pending write after handshake
+                }
             }
+        } catch (SSLException e) {
+            if (disablePlainRead) {
+                throw new PlainRequestToSslPortException(e);
+            }
+            this.plain = true;
+            throw e;
         }
     }
 
@@ -403,8 +415,8 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         return output;
     }
 
-    private ByteBuffer plainRead(boolean readAble) throws IOException {
-        ByteBuffer buffer = readAble ? super.handleRead() : ByteBuffer.allocate(0);
+    private ByteBuffer plainRead() throws IOException {
+        ByteBuffer buffer = super.handleRead();
         if (inNetBB.limit() > 0) {
             byte[] rawBytes = BytesUtil.subBytes(inNetBB.array(), 0, inNetBB.limit());
             inNetBB.clear();
@@ -428,10 +440,15 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         readLock.lock();
         try {
             if (plain) {
-                return plainRead(inNetBB.limit() == 0);
+                return plainRead();
             }
             initRequestBB();
-            doHandshake();
+            try {
+                doHandshake();
+            } catch (SSLException e) {
+                this.plain = true;
+                return plainRead();
+            }
             if (!initialHSComplete) {
                 return ByteBuffer.allocate(0);
             }
@@ -443,14 +460,6 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
             }
             inNetBB.flip();
             return sslUnwrap();
-        }
-        //not close stream, handle connect state by caller
-        catch (SSLException e) {
-            if (disablePlainRead) {
-                throw new PlainRequestToSslPortException(e);
-            }
-            this.plain = true;
-            return plainRead(false);
         } catch (IOException e) {
             close();
             throw e;
