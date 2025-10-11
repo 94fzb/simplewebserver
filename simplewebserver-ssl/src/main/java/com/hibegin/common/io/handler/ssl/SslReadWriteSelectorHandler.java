@@ -428,7 +428,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         readLock.lock();
         try {
             if (plain) {
-                return plainRead(true);
+                return plainRead(inNetBB.limit() == 0);
             }
             initRequestBB();
             doHandshake();
