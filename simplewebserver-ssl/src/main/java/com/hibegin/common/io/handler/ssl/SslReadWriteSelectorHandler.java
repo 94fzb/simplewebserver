@@ -403,8 +403,8 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         return output;
     }
 
-    private ByteBuffer plainRead() throws IOException {
-        ByteBuffer buffer = super.handleRead();
+    private ByteBuffer plainRead(boolean readAble) throws IOException {
+        ByteBuffer buffer = readAble ? super.handleRead() : ByteBuffer.allocate(0);
         if (inNetBB.limit() > 0) {
             byte[] rawBytes = BytesUtil.subBytes(inNetBB.array(), 0, inNetBB.limit());
             inNetBB.clear();
@@ -428,7 +428,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         readLock.lock();
         try {
             if (plain) {
-                return plainRead();
+                return plainRead(true);
             }
             initRequestBB();
             doHandshake();
@@ -450,7 +450,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                 throw new PlainRequestToSslPortException(e);
             }
             this.plain = true;
-            return plainRead();
+            return plainRead(false);
         } catch (IOException e) {
             close();
             throw e;
