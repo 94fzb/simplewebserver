@@ -263,15 +263,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                         }
 
                         inNetBB.flip();
-                        try {
-                            result = sslEngine.unwrap(inNetBB, requestBB);
-                        } catch (SSLException e) {
-                            inNetBB.limit(length);
-                            //lock state
-                            inNetBB.put(BytesUtil.subBytes(inNetBB.array(), 0, length));
-                            inNetBB.flip();
-                            throw e;
-                        }
+                        result = sslEngine.unwrap(inNetBB, requestBB);
                         inNetBB.compact();
 
                         initialHSStatus = result.getHandshakeStatus();
