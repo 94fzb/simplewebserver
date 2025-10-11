@@ -339,7 +339,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
         return sslEngine.getHandshakeStatus();
     }
 
-    private ByteBuffer doSslReadHandle() throws IOException {
+    private ByteBuffer sslUnwrap() throws IOException {
         // 用于统计是否陷入死循环
         int overflowAttempts = 0;
         while (inNetBB.hasRemaining()) {
@@ -405,8 +405,8 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
 
     private ByteBuffer plainRead() throws IOException {
         ByteBuffer buffer = super.handleRead();
-        if (inNetBB.array().length > 0) {
-            byte[] rawBytes = inNetBB.array();
+        if (inNetBB.limit() > 0) {
+            byte[] rawBytes = BytesUtil.subBytes(inNetBB.array(), 0, inNetBB.limit());
             inNetBB.clear();
             inNetBB.limit(0);
             return ByteBuffer.wrap(BytesUtil.mergeBytes(rawBytes, buffer.array()));
@@ -442,7 +442,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                 throw new EOFException();
             }
             inNetBB.flip();
-            return doSslReadHandle();
+            return sslUnwrap();
         }
         //not close stream, handle connect state by caller
         catch (SSLException e) {
@@ -450,7 +450,7 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                 throw new PlainRequestToSslPortException(e);
             }
             this.plain = true;
-            return ByteBuffer.wrap(BytesUtil.subBytes(inNetBB.array(), 0, inNetBB.remaining()));
+            return ByteBuffer.wrap(BytesUtil.subBytes(inNetBB.array(), 0, inNetBB.limit()));
         } catch (IOException e) {
             close();
             throw e;
