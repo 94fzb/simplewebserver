@@ -434,10 +434,8 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                 return plainRead();
             }
             initRequestBB();
-            try {
-                doHandshake();
-            } catch (SSLException e) {
-                this.plain = true;
+            doHandshake();
+            if (plain) {
                 return plainRead();
             }
             if (!initialHSComplete) {
