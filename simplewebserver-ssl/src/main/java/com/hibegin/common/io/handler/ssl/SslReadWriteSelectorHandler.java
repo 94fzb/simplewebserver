@@ -323,7 +323,6 @@ public class SslReadWriteSelectorHandler extends PlainReadWriteSelectorHandler {
                 throw new PlainRequestToSslPortException(e);
             }
             this.plain = true;
-            throw e;
         }
     }
 
