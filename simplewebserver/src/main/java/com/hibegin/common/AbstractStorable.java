@@ -34,6 +34,11 @@ public abstract class AbstractStorable<T> implements Storable<T> {
     }
 
     @Override
+    public String getTempFileName() {
+        return tempFileName;
+    }
+
+    @Override
     public T getData() throws Exception {
         if (data != null) {
             return data;

@@ -14,6 +14,8 @@ public interface Storable<T> {
 
     File getFile();
 
+    String getTempFileName();
+
     /**
      * 读取原始数据。
      *

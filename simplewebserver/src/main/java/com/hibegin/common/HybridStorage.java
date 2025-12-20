@@ -99,6 +99,19 @@ public class HybridStorage extends BaseLockObject {
         }
     }
 
+    public String getTempFileName(String key) {
+        lock.lock();
+        try {
+            Storable<?> value = storage.get(key);
+            if (value == null) {
+                return null;
+            }
+            return value.getTempFileName();
+        } finally {
+            lock.unlock();
+        }
+    }
+
     public InputStream getInputStream(String key) throws Exception {
         lock.lock();
         try {
