@@ -195,6 +195,11 @@ public class SimpleWebServer implements ISocketServer {
     }
 
     @Override
+    public int getPort() {
+        return ObjectUtil.requireNonNullElse(serverConfig.getPort(), 0);
+    }
+
+    @Override
     public boolean create(String hostname, int port) {
         try {
             serverChannel = ServerSocketChannel.open();

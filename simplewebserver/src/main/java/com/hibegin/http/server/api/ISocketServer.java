@@ -15,4 +15,6 @@ public interface ISocketServer {
     boolean create(int port);
 
     boolean create(String hostname, int port);
+
+    int getPort();
 }
