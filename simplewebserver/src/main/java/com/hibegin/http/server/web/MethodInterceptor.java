@@ -25,6 +25,14 @@ import java.util.logging.Logger;
 public class MethodInterceptor implements Interceptor {
 
     private static final Logger LOGGER = LoggerUtil.getLogger(MethodInterceptor.class);
+    private Runnable onMethodInvokeSuccess;
+
+    public MethodInterceptor() {
+    }
+
+    public MethodInterceptor(Runnable onMethodInvokeSuccess) {
+        this.onMethodInvokeSuccess = onMethodInvokeSuccess;
+    }
 
     private boolean isMatch(String requestUri, String location) {
         if (location.endsWith("/")) {
@@ -117,6 +125,9 @@ public class MethodInterceptor implements Interceptor {
         }
 
         Object invoke = method.invoke(Controller.buildController(method, request, response));
+        if (Objects.nonNull(onMethodInvokeSuccess)) {
+            onMethodInvokeSuccess.run();
+        }
         ResponseBody annotation = method.getAnnotation(ResponseBody.class);
         if (Objects.nonNull(annotation)) {
             response.renderJson(invoke);
