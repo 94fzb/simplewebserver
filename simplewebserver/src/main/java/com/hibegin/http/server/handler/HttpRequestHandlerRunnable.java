@@ -48,7 +48,7 @@ public class HttpRequestHandlerRunnable implements Runnable {
                     break;
                 }
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             HttpErrorHandle errorHandle = request.getServerConfig().getErrorHandle(500);
             if (Objects.nonNull(errorHandle)) {
                 if (e instanceof InvocationTargetException) {
@@ -85,7 +85,7 @@ public class HttpRequestHandlerRunnable implements Runnable {
         }
     }
 
-    private void defaultErrorResponse(Exception e) {
+    private void defaultErrorResponse(Throwable e) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         try {
             byteArrayOutputStream.write(LoggerUtil.recordStackTraceMsg(e).getBytes());
