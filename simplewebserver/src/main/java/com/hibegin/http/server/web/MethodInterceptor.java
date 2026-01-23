@@ -53,11 +53,11 @@ public class MethodInterceptor implements Interceptor {
         if (errorHandle == null) {
             response.renderCode(errorCode);
         } else if (Objects.equals(errorCode, 404)) {
-            errorHandle.doHandle(request, response, new NotFindResourceException(StatusCodeUtil.getStatusCodeDesc(404)));
+            throw new NotFindResourceException(StatusCodeUtil.getStatusCodeDesc(404));
         } else if (Objects.equals(errorCode, 403)) {
-            errorHandle.doHandle(request, response, new ForbiddenException(StatusCodeUtil.getStatusCodeDesc(403)));
+            throw new ForbiddenException(StatusCodeUtil.getStatusCodeDesc(403));
         } else if (Objects.equals(errorCode, 500)) {
-            errorHandle.doHandle(request, response, new InternalException(StatusCodeUtil.getStatusCodeDesc(500)));
+            throw new InternalException(StatusCodeUtil.getStatusCodeDesc(500));
         }
     }
 
