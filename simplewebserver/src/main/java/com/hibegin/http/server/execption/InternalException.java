@@ -1,6 +1,6 @@
 package com.hibegin.http.server.execption;
 
-public class InternalException extends RuntimeException {
+public class InternalException extends HttpCodeException {
 
     public InternalException(Throwable cause) {
         super(cause);
@@ -12,5 +12,10 @@ public class InternalException extends RuntimeException {
 
     public InternalException(String message, Throwable cause) {
         super(message, cause);
+    }
+
+    @Override
+    public int getCode() {
+        return 500;
     }
 }
