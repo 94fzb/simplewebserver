@@ -58,10 +58,12 @@ public class LoggerUtil {
                 return logger;
             }
             try {
-                if (Objects.isNull(fileHandler)) {
+                if (Objects.isNull(fileHandler) && Objects.equals(System.getenv().getOrDefault("DISABLE_LOGGING_TO_FILE", "false"), "false")) {
                     fileHandler = buildFileHandle();
                 }
-                logger.addHandler(fileHandler);
+                if (Objects.nonNull(fileHandler)) {
+                    logger.addHandler(fileHandler);
+                }
                 logger.setLevel(Level.ALL);
             } catch (Exception e) {
                 logger.severe("Init logger error " + e.getMessage());

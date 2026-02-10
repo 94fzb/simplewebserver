@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.hibegin</groupId>
         <artifactId>simplewebserver-parent</artifactId>
-        <version>4.0.124-SNAPSHOT</version>
+        <version>4.0.124</version>
     </parent>
 
     <artifactId>simplewebserver-lambda-function-impl</artifactId>
