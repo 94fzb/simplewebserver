@@ -65,8 +65,6 @@ public class SimpleWebServer implements ISocketServer {
             }
         }
         this.applicationContext = new ApplicationContext(serverConfig);
-        Runtime rt = Runtime.getRuntime();
-        rt.addShutdownHook(new Thread(() -> this.destroy("shutdown hook")));
     }
 
     public ApplicationContext getApplicationContext() {
@@ -229,6 +227,8 @@ public class SimpleWebServer implements ISocketServer {
             if (Objects.nonNull(serverConfig.getServerPortFilePathEnvKey())) {
                 EnvKit.saveHttpPortToFile(serverConfig.getServerPortFilePathEnvKey(), serverConfig.getPort());
             }
+            Runtime rt = Runtime.getRuntime();
+            rt.addShutdownHook(new Thread(() -> this.destroy("shutdown hook")));
             return true;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Create " + serverConfig.getApplicationName() + " " + port + " error, " + e.getMessage());
