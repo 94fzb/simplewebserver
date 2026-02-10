@@ -58,7 +58,7 @@ public class LoggerUtil {
                 return logger;
             }
             try {
-                if (Objects.isNull(fileHandler) && Objects.equals(System.getenv().getOrDefault("DISABLE_LOGGING_TO_FILE", "false"), "false")) {
+                if (Objects.isNull(fileHandler) && Objects.equals(System.getenv().getOrDefault("ENABLE_LOGGING_TO_FILE", "false"), "true")) {
                     fileHandler = buildFileHandle();
                 }
                 if (Objects.nonNull(fileHandler)) {
