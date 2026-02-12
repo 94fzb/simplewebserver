@@ -80,14 +80,16 @@ public class HttpDecodeRunnable implements Runnable {
                 if (Objects.isNull(key)) {
                     continue;
                 }
-                final RequestEvent requestEvent = serverConfig.getHybridStorage().get(key);
-                if (requestEvent == null) {
-                    continue;
-                }
                 workingChannel.add(socketChannel);
                 serverConfig.getDecodeExecutor().execute(() -> {
                     try {
+                        final RequestEvent requestEvent = serverConfig.getHybridStorage().get(key);
+                        if (requestEvent == null) {
+                            return;
+                        }
                         doParseHttpMessage(requestEvent, socketChannel);
+                    } catch (Exception e) {
+                        LOGGER.severe("Decode do parse http message error " + e.getMessage());
                     } finally {
                         serverConfig.getHybridStorage().remove(key);
                         workingChannel.remove(socketChannel);
