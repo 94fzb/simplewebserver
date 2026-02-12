@@ -3,6 +3,7 @@ package com.hibegin.http.server.handler;
 import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.api.*;
+import com.hibegin.http.server.execption.HttpCodeException;
 import com.hibegin.http.server.impl.SimpleHttpRequest;
 
 import java.io.ByteArrayOutputStream;
@@ -49,7 +50,8 @@ public class HttpRequestHandlerRunnable implements Runnable {
                 }
             }
         } catch (Throwable e) {
-            HttpErrorHandle errorHandle = request.getServerConfig().getErrorHandle(500);
+            int errorCode = e instanceof HttpCodeException ? ((HttpCodeException) e).getCode() : 500;
+            HttpErrorHandle errorHandle = request.getServerConfig().getErrorHandle(errorCode);
             if (Objects.nonNull(errorHandle)) {
                 if (e instanceof InvocationTargetException) {
                     errorHandle.doHandle(request, response, ((InvocationTargetException) e).getTargetException());

@@ -1,6 +1,6 @@
 package com.hibegin.http.server.execption;
 
-public class ForbiddenException extends RuntimeException {
+public class ForbiddenException extends HttpCodeException {
 
 
     public ForbiddenException(Throwable cause) {
@@ -13,5 +13,10 @@ public class ForbiddenException extends RuntimeException {
 
     public ForbiddenException(String message, Throwable cause) {
         super(message, cause);
+    }
+
+    @Override
+    public int getCode() {
+        return 403;
     }
 }
