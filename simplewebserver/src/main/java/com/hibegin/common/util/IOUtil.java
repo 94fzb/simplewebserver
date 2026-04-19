@@ -1,10 +1,6 @@
 package com.hibegin.common.util;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
+import java.io.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,8 +33,8 @@ public class IOUtil {
     }
 
     public static byte[] getByteByFile(File file) {
-        try {
-            return Files.readAllBytes(file.toPath());
+        try (FileInputStream fis = new FileInputStream(file)) {
+            return getByteByInputStream(fis);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -53,7 +49,9 @@ public class IOUtil {
             if (!file.getParentFile().exists()) {
                 file.getParentFile().mkdirs();
             }
-            Files.write(file.toPath(), bytes);
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                fos.write(bytes);
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

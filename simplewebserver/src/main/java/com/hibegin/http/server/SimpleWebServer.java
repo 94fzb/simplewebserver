@@ -8,7 +8,7 @@ import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.http.server.api.ISocketServer;
 import com.hibegin.http.server.config.*;
 import com.hibegin.http.server.handler.CheckRequestRunnable;
-import com.hibegin.http.server.handler.HttpDecodeRunnable;
+import com.hibegin.http.server.handler.HttpRequestMessageHandler;
 import com.hibegin.http.server.util.NativeImageUtils;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class SimpleWebServer implements ISocketServer {
+public class SimpleWebServer implements ISocketServer, ReadWriteSelectorHandlerBuilder {
 
 
     private static final Logger LOGGER = LoggerUtil.getLogger(SimpleWebServer.class);
@@ -33,7 +33,7 @@ public class SimpleWebServer implements ISocketServer {
     protected final ResponseConfig responseConfig;
     protected final ApplicationContext applicationContext;
     protected Selector selector;
-    private HttpDecodeRunnable httpDecodeRunnable;
+    private HttpRequestMessageHandler httpRequestMessageHandler;
     private ServerSocketChannel serverChannel;
 
     public SimpleWebServer() {
@@ -99,6 +99,7 @@ public class SimpleWebServer implements ISocketServer {
         LOGGER.info(serverConfig.getServerInfo() + " is run version -> " + ServerInfo.getVersion());
     }
 
+    @Override
     public ReadWriteSelectorHandler getReadWriteSelectorHandlerInstance(SocketChannel channel) throws IOException {
         return new PlainReadWriteSelectorHandler(selector, channel, requestConfig.getRequestMaxBufferSize());
     }
@@ -127,7 +128,7 @@ public class SimpleWebServer implements ISocketServer {
                             channel.configureBlocking(false);
                             channel.register(selector, SelectionKey.OP_READ);
                         } else if (key.isValid() && key.isReadable()) {
-                            httpDecodeRunnable.doRead((SocketChannel) key.channel(), key);
+                            httpRequestMessageHandler.doRead((SocketChannel) key.channel(), key);
                         }
                     } catch (CancelledKeyException | IOException e) {
                         //ignore，这里基本都是系统抛出来的异常了，比如连接被异常关闭，SSL握手失败
@@ -156,7 +157,7 @@ public class SimpleWebServer implements ISocketServer {
      * 初始化处理请求的请求
      */
     private void startExecHttpRequestThread() {
-        httpDecodeRunnable = new HttpDecodeRunnable(applicationContext, this, requestConfig, responseConfig, applicationContext.getCheckRequestRunnable());
+        httpRequestMessageHandler = new HttpRequestMessageHandler(applicationContext, this, requestConfig, responseConfig);
         serverConfig.getRequestCheckerExecutor().scheduleAtFixedRate(applicationContext.getCheckRequestRunnable(), 0, 1, TimeUnit.SECONDS);
     }
 
