@@ -47,6 +47,10 @@ public class LambdaEventIterator implements Iterator<Map.Entry<String, LambdaApi
         return inputBuilder.toString().trim();
     }
 
+    public HttpClient getHttpClient() {
+        return httpClient;
+    }
+
     @Override
     public boolean hasNext() {
         return hasNext;

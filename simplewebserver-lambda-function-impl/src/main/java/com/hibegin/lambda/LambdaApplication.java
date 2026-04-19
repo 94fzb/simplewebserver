@@ -6,6 +6,7 @@ import com.hibegin.lambda.rest.LambdaApiGatewayRequest;
 import com.hibegin.lambda.rest.LambdaApiGatewayResponse;
 
 import java.util.Map;
+import java.util.Objects;
 
 public class LambdaApplication {
 
@@ -30,8 +31,13 @@ public class LambdaApplication {
         //处理请求
         while (lambdaEventIterator.hasNext()) {
             Map.Entry<String, LambdaApiGatewayRequest> requestInfo = lambdaEventIterator.next();
-            LambdaApiGatewayResponse apiGatewayResponse = lambdaHandler.doHandle(requestInfo.getValue());
-            lambdaEventIterator.report(apiGatewayResponse, requestInfo.getKey());
+            boolean eventStream = Objects.equals(requestInfo.getValue().getHeaders().get("Accept"), "text/event-stream");
+            if (eventStream) {
+                lambdaHandler.doStreamingHandle(requestInfo.getValue(), requestInfo.getKey(), lambdaEventIterator.getHttpClient());
+            } else {
+                LambdaApiGatewayResponse apiGatewayResponse = lambdaHandler.doHandle(requestInfo.getValue());
+                lambdaEventIterator.report(apiGatewayResponse, requestInfo.getKey());
+            }
         }
     }
 }
