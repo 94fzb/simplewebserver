@@ -23,6 +23,8 @@ public interface HttpResponse {
 
     void renderHtmlStr(String htmlContent);
 
+    void setContentType(String contentType);
+
     void addHeader(String name, String value);
 
     void redirect(String url);

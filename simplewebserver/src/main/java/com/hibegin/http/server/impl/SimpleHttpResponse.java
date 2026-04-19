@@ -229,8 +229,13 @@ public class SimpleHttpResponse implements HttpResponse {
             if (!cType.contains(";") && isTextContent(cType)) {
                 cType = contentType + ";charset=" + responseConfig.getCharSet();
             }
-            putHeader("Content-Type", cType);
+            setContentType(cType);
         }
+    }
+
+    @Override
+    public void setContentType(String contentType) {
+        putHeader("Content-Type", contentType);
     }
 
     private String getHeader(String key) {
@@ -342,7 +347,11 @@ public class SimpleHttpResponse implements HttpResponse {
         if (Objects.isNull(contentType) || contentType.trim().isEmpty()) {
             return false;
         }
-        return responseConfig.getGzipMimeTypes().stream().anyMatch(contentType::contains);
+        // SSE 流绝对不能 Gzip，否则会产生缓冲导致流式失效
+        if (contentType.toLowerCase().contains("text/event-stream")) {
+            return false;
+        }
+        return responseConfig.getGzipMimeTypes().stream().anyMatch(contentType.toLowerCase()::contains);
     }
 
     protected byte[] toChunkedBytes(byte[] inputBytes) throws IOException {
