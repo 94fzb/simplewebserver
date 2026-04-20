@@ -48,8 +48,8 @@ public class LambdaStreamingHttpResponseWrapper extends SimpleHttpResponse {
 
     @Override
     protected boolean needChunked(InputStream inputStream, long bodyLength) {
-        // 始终返回 true 以触发 chunked 写入路径
-        return inputStream != null;
+        // 流式由 Runtime API 连接本身承载，不依赖 SimpleHttpResponse 的 chunked/gzip 路径
+        return false;
     }
 
     @Override
@@ -102,6 +102,7 @@ public class LambdaStreamingHttpResponseWrapper extends SimpleHttpResponse {
     @Override
     protected byte[] wrapperBaseResponseHeader(int statusCode) {
         this.statusCode = statusCode;
+        putHeader("Connection", "close");
         return super.wrapperBaseResponseHeader(statusCode);
     }
 
