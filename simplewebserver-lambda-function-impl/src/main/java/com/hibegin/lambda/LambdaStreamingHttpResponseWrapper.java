@@ -12,8 +12,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -33,10 +33,11 @@ public class LambdaStreamingHttpResponseWrapper extends SimpleHttpResponse {
 
     private final String requestId;
     private final HttpClient httpClient;
-    private int statusCode;
+    private int statusCode = 200;
     private boolean headerSent;
     private OutputStream runtimeOutputStream;
     private java.net.http.HttpResponse<InputStream> runtimeResponse;
+    private Thread senderThread;
 
     public LambdaStreamingHttpResponseWrapper(HttpRequest request, ResponseConfig responseConfig,
                                               String requestId, HttpClient httpClient) {
@@ -47,8 +48,8 @@ public class LambdaStreamingHttpResponseWrapper extends SimpleHttpResponse {
 
     @Override
     protected boolean needChunked(InputStream inputStream, long bodyLength) {
-        // 始终返回 true 以触发 chunked 写入路径
-        return inputStream != null;
+        // 流式由 Runtime API 连接本身承载，不依赖 SimpleHttpResponse 的 chunked/gzip 路径
+        return false;
     }
 
     private String getRuntimeApiBaseUrl() {
@@ -67,7 +68,7 @@ public class LambdaStreamingHttpResponseWrapper extends SimpleHttpResponse {
     @Override
     protected void send(byte[] bytes, boolean body, boolean close) {
         try {
-            if (!headerSent && body) {
+            if (!headerSent && (body || close)) {
                 sendStreamingPrelude();
                 headerSent = true;
             }
@@ -77,6 +78,7 @@ public class LambdaStreamingHttpResponseWrapper extends SimpleHttpResponse {
             }
             if (close && runtimeOutputStream != null) {
                 runtimeOutputStream.close();
+                awaitRuntimeResponse();
             }
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, "Lambda streaming write error: " + e.getMessage());
@@ -87,6 +89,7 @@ public class LambdaStreamingHttpResponseWrapper extends SimpleHttpResponse {
     @Override
     protected byte[] wrapperBaseResponseHeader(int statusCode) {
         this.statusCode = statusCode;
+        putHeader("Connection", "close");
         return super.wrapperBaseResponseHeader(statusCode);
     }
 
@@ -98,7 +101,7 @@ public class LambdaStreamingHttpResponseWrapper extends SimpleHttpResponse {
         StringBuilder jsonPrelude = new StringBuilder();
         jsonPrelude.append("{\"statusCode\":").append(statusCode);
         jsonPrelude.append(",\"headers\":{");
-        Map<String, String> responseHeaders = getHeader();
+        Map<String, String> responseHeaders = filterResponseHeaders(getHeader());
         if (responseHeaders != null && !responseHeaders.isEmpty()) {
             String headersJson = responseHeaders.entrySet().stream()
                     .map(e -> "\"" + escapeJson(e.getKey()) + "\":\"" + escapeJson(e.getValue()) + "\"")
@@ -117,7 +120,7 @@ public class LambdaStreamingHttpResponseWrapper extends SimpleHttpResponse {
         String url = getRuntimeApiBaseUrl() + "/" + requestId + "/response";
 
         // 在后台线程发起 HTTP 请求到 Lambda Runtime API
-        Thread senderThread = new Thread(() -> {
+        senderThread = new Thread(() -> {
             try {
                 java.net.http.HttpRequest runtimeRequest = java.net.http.HttpRequest.newBuilder()
                         .uri(URI.create(url))
@@ -131,7 +134,6 @@ public class LambdaStreamingHttpResponseWrapper extends SimpleHttpResponse {
                 LOGGER.log(Level.WARNING, "Lambda Runtime API streaming request error: " + e.getMessage());
             }
         }, "lambda-streaming-sender");
-        senderThread.setDaemon(true);
         senderThread.start();
 
         // 保存 outputStream 以供后续 send() 调用使用
@@ -154,6 +156,40 @@ public class LambdaStreamingHttpResponseWrapper extends SimpleHttpResponse {
                 runtimeOutputStream.close();
             } catch (IOException ignored) {
             }
+        }
+    }
+
+    private static Map<String, String> filterResponseHeaders(Map<String, String> headers) {
+        if (headers == null || headers.isEmpty()) {
+            return headers;
+        }
+        Map<String, String> targetHeaders = new HashMap<>();
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            String key = entry.getKey();
+            if (key == null) {
+                continue;
+            }
+            String lowerCaseKey = key.toLowerCase();
+            if ("content-length".equals(lowerCaseKey) || "connection".equals(lowerCaseKey) || "transfer-encoding".equals(lowerCaseKey)) {
+                continue;
+            }
+            targetHeaders.put(key, entry.getValue());
+        }
+        return targetHeaders;
+    }
+
+    private void awaitRuntimeResponse() {
+        if (senderThread == null) {
+            return;
+        }
+        try {
+            senderThread.join(3000);
+            if (runtimeResponse != null && runtimeResponse.statusCode() >= 400) {
+                LOGGER.warning("Lambda Runtime API streaming response error: status = " + runtimeResponse.statusCode());
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOGGER.log(Level.WARNING, "Interrupted while waiting runtime response", e);
         }
     }
 
