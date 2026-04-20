@@ -52,6 +52,19 @@ public class LambdaStreamingHttpResponseWrapper extends SimpleHttpResponse {
         return inputStream != null;
     }
 
+    @Override
+    protected byte[] toChunkedBytes(byte[] inputBytes) {
+        // Lambda Runtime API streaming 的 HTTP 分块由底层连接处理，
+        // 这里不应再把业务数据包装成 HTTP chunk 帧（避免双重 chunked）。
+        return inputBytes;
+    }
+
+    @Override
+    protected byte[] toCloseChunkedBytes() {
+        // 结束流通过关闭 runtimeOutputStream 即可，这里不发送额外 chunk 结束帧。
+        return new byte[0];
+    }
+
     private String getRuntimeApiBaseUrl() {
         return "http://" + System.getenv("AWS_LAMBDA_RUNTIME_API") + "/" + LambdaEventIterator.VERSION + "/runtime/invocation";
     }
