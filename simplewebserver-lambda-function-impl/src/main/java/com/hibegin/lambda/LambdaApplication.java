@@ -28,16 +28,21 @@ public class LambdaApplication {
     public static void startHandle(AbstractServerConfig serverConfig) throws Exception {
         LambdaEventIterator lambdaEventIterator = new LambdaEventIterator();
         LambdaHandler lambdaHandler = new LambdaHandler(serverConfig);
+        boolean responseStreamEnabled = isResponseStreamEnabled();
         //处理请求
         while (lambdaEventIterator.hasNext()) {
             Map.Entry<String, LambdaApiGatewayRequest> requestInfo = lambdaEventIterator.next();
-            boolean eventStream = Objects.equals(requestInfo.getValue().getHeaders().get("Accept"), "text/event-stream");
-            if (eventStream) {
+            if (responseStreamEnabled) {
                 lambdaHandler.doStreamingHandle(requestInfo.getValue(), requestInfo.getKey(), lambdaEventIterator.getHttpClient());
             } else {
                 LambdaApiGatewayResponse apiGatewayResponse = lambdaHandler.doHandle(requestInfo.getValue());
                 lambdaEventIterator.report(apiGatewayResponse, requestInfo.getKey());
             }
         }
+    }
+
+    private static boolean isResponseStreamEnabled() {
+        String invokeMode = System.getenv("SWS_LAMBDA_INVOKE_MODE");
+        return Objects.equals("RESPONSE_STREAM", invokeMode);
     }
 }
