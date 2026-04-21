@@ -1,5 +1,6 @@
 package com.hibegin.lambda;
 
+import com.hibegin.common.util.EnvKit;
 import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.common.util.UrlDecodeUtils;
@@ -49,7 +50,7 @@ public class LambdaHttpRequestWrapper extends SimpleHttpRequest {
         }
         //
         ServerConfig serverConfig = super.getServerConfig();
-        serverConfig.setApplicationName("Lambda Function");
+        serverConfig.setApplicationName("Lambda " + (EnvKit.isLambdaResponseStreamEnabled() ? "Response Stream" : "Buffered"));
         serverConfig.setApplicationVersion(LambdaEventIterator.VERSION);
     }
 
