@@ -6,7 +6,6 @@ import com.hibegin.lambda.rest.LambdaApiGatewayRequest;
 import com.hibegin.lambda.rest.LambdaApiGatewayResponse;
 
 import java.util.Map;
-import java.util.Objects;
 
 public class LambdaApplication {
 
@@ -28,7 +27,7 @@ public class LambdaApplication {
     public static void startHandle(AbstractServerConfig serverConfig) throws Exception {
         LambdaEventIterator lambdaEventIterator = new LambdaEventIterator();
         LambdaHandler lambdaHandler = new LambdaHandler(serverConfig);
-        boolean responseStreamEnabled = isResponseStreamEnabled();
+        boolean responseStreamEnabled = EnvKit.isLambdaResponseStreamEnabled();
         //处理请求
         while (lambdaEventIterator.hasNext()) {
             Map.Entry<String, LambdaApiGatewayRequest> requestInfo = lambdaEventIterator.next();
@@ -41,8 +40,4 @@ public class LambdaApplication {
         }
     }
 
-    private static boolean isResponseStreamEnabled() {
-        String invokeMode = System.getenv("SWS_LAMBDA_INVOKE_MODE");
-        return Objects.equals("RESPONSE_STREAM", invokeMode);
-    }
 }

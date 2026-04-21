@@ -41,6 +41,11 @@ public class EnvKit {
         return Objects.nonNull(value);
     }
 
+    public static boolean isLambdaResponseStreamEnabled() {
+        String invokeMode = System.getenv("SWS_LAMBDA_INVOKE_MODE");
+        return Objects.equals("RESPONSE_STREAM", invokeMode);
+    }
+
     public static boolean isFaaSMode() {
         return isLambda();
     }
