@@ -8,6 +8,7 @@ import java.util.Objects;
 public class EnvKit {
 
     private static final boolean ANDROID;
+    private static boolean loggingToFile = false;
 
     static {
         boolean tmpFlag;
@@ -30,6 +31,17 @@ public class EnvKit {
             IOUtil.writeStrToFile(pid + "", file);
             file.deleteOnExit();
         }
+    }
+
+    public static void enableLoggingToFile() {
+        loggingToFile = true;
+    }
+
+    public static boolean isEnableLoggingToFile() {
+        if (loggingToFile) {
+            return true;
+        }
+        return Objects.equals(System.getenv().getOrDefault("ENABLE_LOGGING_TO_FILE", "false"), "true");
     }
 
     public static boolean isAndroid() {
