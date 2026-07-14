@@ -368,7 +368,18 @@ public class ServerConfig {
     }
 
     public ServerConfig addLocalFileStaticResourceMapper(String uriPath, String filePath, boolean autoIndex) {
-        addStaticResourceMapper(uriPath, filePath, new LocalFileStaticResourceLoader(autoIndex, uriPath, filePath, getContextPath()));
+        return addLocalFileStaticResourceMapper(uriPath, filePath, autoIndex, StaticResourceCachePolicy.DISABLED);
+    }
+
+    public ServerConfig addLocalFileStaticResourceMapper(String uriPath, String filePath,
+                                                         StaticResourceCachePolicy cachePolicy) {
+        return addLocalFileStaticResourceMapper(uriPath, filePath, false, cachePolicy);
+    }
+
+    public ServerConfig addLocalFileStaticResourceMapper(String uriPath, String filePath, boolean autoIndex,
+                                                         StaticResourceCachePolicy cachePolicy) {
+        addStaticResourceMapper(uriPath, filePath,
+                new LocalFileStaticResourceLoader(autoIndex, uriPath, filePath, getContextPath(), cachePolicy));
         return this;
     }
 

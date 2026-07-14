@@ -1,6 +1,7 @@
 package com.hibegin.http.server.web;
 
 import com.hibegin.common.util.LoggerUtil;
+import com.hibegin.http.HttpMethod;
 import com.hibegin.http.annotation.ResponseBody;
 import com.hibegin.http.server.api.HttpErrorHandle;
 import com.hibegin.http.server.api.HttpRequest;
@@ -11,6 +12,7 @@ import com.hibegin.http.server.config.StaticResourceLoader;
 import com.hibegin.http.server.execption.ForbiddenException;
 import com.hibegin.http.server.execption.InternalException;
 import com.hibegin.http.server.execption.NotFindResourceException;
+import com.hibegin.http.server.util.HttpCacheUtil;
 import com.hibegin.http.server.util.MimeTypeUtil;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.StatusCodeUtil;
@@ -18,6 +20,7 @@ import com.hibegin.http.server.util.StatusCodeUtil;
 import java.io.File;
 import java.io.InputStream;
 import java.lang.reflect.Method;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Logger;
@@ -70,13 +73,20 @@ public class MethodInterceptor implements Interceptor {
                     LocalFileStaticResourceLoader localFileStaticResourceLoader = (LocalFileStaticResourceLoader) entry.getValue().getValue();
                     String renderPath = entry.getValue().getKey() + path;
                     if (localFileStaticResourceLoader.isDirectory(renderPath) && !localFileStaticResourceLoader.isEnableAutoIndex()) {
-                        inputStream = localFileStaticResourceLoader.getInputStream(renderPath + "/" + request.getServerConfig().getWelcomeFile());
+                        renderPath += "/" + request.getServerConfig().getWelcomeFile();
+                        if (renderNotModified(request, response, localFileStaticResourceLoader, renderPath)) {
+                            return;
+                        }
+                        inputStream = localFileStaticResourceLoader.getInputStream(renderPath);
                         if (Objects.isNull(inputStream)) {
                             doErrorHandle(request, response, 403);
                             return;
                         }
                     }
                     if (Objects.isNull(inputStream)) {
+                        if (renderNotModified(request, response, localFileStaticResourceLoader, renderPath)) {
+                            return;
+                        }
                         inputStream = localFileStaticResourceLoader.getInputStream(renderPath);
                     }
                 }
@@ -110,6 +120,47 @@ public class MethodInterceptor implements Interceptor {
             }
         }
         doErrorHandle(request, response, 404);
+    }
+
+    private boolean renderNotModified(HttpRequest request, HttpResponse response,
+                                      LocalFileStaticResourceLoader resourceLoader, String path) {
+        File file = new File(path);
+        if (file.isFile() && resourceLoader.getCachePolicy().isEnabled()
+                && supportsConditionalRequest(request.getMethod())) {
+            String entityTag = HttpCacheUtil.buildWeakEntityTag(file.lastModified(), file.length());
+            response.addHeader("Cache-Control", resourceLoader.getCachePolicy().getCacheControl());
+            response.addHeader("ETag", entityTag);
+            response.addHeader("Last-Modified", HttpCacheUtil.formatHttpDate(file.lastModified()));
+            addVaryAcceptEncoding(response);
+            if (HttpCacheUtil.isNotModified(
+                    request.getHeader("If-None-Match"), request.getHeader("If-Modified-Since"),
+                    entityTag, file.lastModified())) {
+                response.renderCode(304);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean supportsConditionalRequest(HttpMethod method) {
+        return method == HttpMethod.GET || method == HttpMethod.HEAD;
+    }
+
+    private void addVaryAcceptEncoding(HttpResponse response) {
+        String varyKey = null;
+        String varyValue = null;
+        for (Map.Entry<String, String> header : response.getHeader().entrySet()) {
+            if ("Vary".equalsIgnoreCase(header.getKey())) {
+                varyKey = header.getKey();
+                varyValue = header.getValue();
+                break;
+            }
+        }
+        if (varyValue == null || varyValue.trim().isEmpty()) {
+            response.addHeader("Vary", "Accept-Encoding");
+        } else if (!varyValue.toLowerCase(Locale.ROOT).contains("accept-encoding")) {
+            response.getHeader().put(varyKey, varyValue + ", Accept-Encoding");
+        }
     }
 
     @Override

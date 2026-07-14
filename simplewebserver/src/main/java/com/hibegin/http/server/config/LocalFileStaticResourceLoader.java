@@ -16,6 +16,7 @@ public class LocalFileStaticResourceLoader implements StaticResourceLoader {
     private final String aliasPath;
     private final String location;
     private final String contextPath;
+    private final StaticResourceCachePolicy cachePolicy;
 
 
     private String buildHtmlStr(File file, String basePath) {
@@ -98,14 +99,20 @@ public class LocalFileStaticResourceLoader implements StaticResourceLoader {
     }
 
     public LocalFileStaticResourceLoader(String location, String aliasPath, String contextPath) {
-        this(false, location, aliasPath, contextPath);
+        this(false, location, aliasPath, contextPath, StaticResourceCachePolicy.DISABLED);
     }
 
     public LocalFileStaticResourceLoader(boolean enableAutoIndex, String location, String aliasPath, String contextPath) {
+        this(enableAutoIndex, location, aliasPath, contextPath, StaticResourceCachePolicy.DISABLED);
+    }
+
+    public LocalFileStaticResourceLoader(boolean enableAutoIndex, String location, String aliasPath, String contextPath,
+                                         StaticResourceCachePolicy cachePolicy) {
         this.enableAutoIndex = enableAutoIndex;
         this.aliasPath = new File(changeFileSplitUriPath(aliasPath)).toString();
         this.location = location;
         this.contextPath = contextPath;
+        this.cachePolicy = cachePolicy == null ? StaticResourceCachePolicy.DISABLED : cachePolicy;
     }
 
     public boolean isDirectory(String path) {
@@ -114,6 +121,10 @@ public class LocalFileStaticResourceLoader implements StaticResourceLoader {
 
     public boolean isEnableAutoIndex() {
         return enableAutoIndex;
+    }
+
+    public StaticResourceCachePolicy getCachePolicy() {
+        return cachePolicy;
     }
 
     @Override

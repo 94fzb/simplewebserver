@@ -1,6 +1,7 @@
 package com.hibegin.http.server.impl;
 
 import com.hibegin.common.util.*;
+import com.hibegin.http.HttpMethod;
 import com.hibegin.http.HttpVersion;
 import com.hibegin.http.io.ChunkedOutputStream;
 import com.hibegin.http.io.GzipCompressingInputStream;
@@ -109,7 +110,7 @@ public class SimpleHttpResponse implements HttpResponse {
     }
 
     protected void removeHeader(String key) {
-        header.remove(key);
+        header.keySet().removeIf(headerKey -> headerKey.equalsIgnoreCase(key));
     }
 
     private void send(byte[] bytes) {
@@ -173,15 +174,22 @@ public class SimpleHttpResponse implements HttpResponse {
     private void renderByStatusCode(int errorCode) {
         if (errorCode > 399) {
             renderByMimeType("html", getHtmlStrByStatusCode(errorCode).getBytes(), errorCode);
-        } else if (errorCode > 299) {
-            if (!header.containsKey("Location")) {
+        } else if (isRedirectStatus(errorCode)) {
+            if (getHeader("Location") == null) {
                 String welcomeFile = request.getServerConfig().getWelcomeFile();
                 if (welcomeFile == null || "".equals(welcomeFile.trim())) {
                     putHeader("Location", request.getScheme() + "://" + request.getHeader("Host") + "/" + request.getUri() + welcomeFile);
                 }
             }
             renderByMimeType("", null, errorCode);
+        } else {
+            renderByMimeType("", null, errorCode);
         }
+    }
+
+    private boolean isRedirectStatus(int statusCode) {
+        return statusCode == 301 || statusCode == 302 || statusCode == 303
+                || statusCode == 307 || statusCode == 308;
     }
 
     @Override
@@ -370,6 +378,16 @@ public class SimpleHttpResponse implements HttpResponse {
 
     private void write(InputStream inputStream, int code, long bodyLength) {
         try {
+            if (isBodyForbidden(code)) {
+                removeHeader("Content-Length");
+                removeHeader("Transfer-Encoding");
+                send(wrapperBaseResponseHeader(code), false, false);
+                send(new byte[0]);
+                return;
+            }
+            if (Objects.isNull(inputStream) && bodyLength < 0) {
+                bodyLength = 0;
+            }
             //处理流，避免不传输实际的文件大小
             if (Objects.nonNull(inputStream) && inputStream instanceof FileInputStream) {
                 FileInputStream fin = (FileInputStream) inputStream;
@@ -393,6 +411,10 @@ public class SimpleHttpResponse implements HttpResponse {
                 }
             }
             send(wrapperBaseResponseHeader(code), false, false);
+            if (request.getMethod() == HttpMethod.HEAD) {
+                send(new byte[0]);
+                return;
+            }
             if (inputStream == null) {
                 send(new byte[0]);
                 return;
@@ -422,6 +444,10 @@ public class SimpleHttpResponse implements HttpResponse {
                 }
             }
         }
+    }
+
+    private boolean isBodyForbidden(int statusCode) {
+        return statusCode >= 100 && statusCode < 200 || statusCode == 204 || statusCode == 304;
     }
 
     @Override
