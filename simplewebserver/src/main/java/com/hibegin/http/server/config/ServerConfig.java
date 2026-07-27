@@ -52,6 +52,7 @@ public class ServerConfig {
     private String applicationVersion;
     private boolean disablePrintWebServerInfo;
     private boolean disableSavePidFile;
+    private boolean reusePort;
     private HybridStorage hybridStorage;
     private String pidFilePathEnvKey;
     private String serverPortFilePathEnvKey;
@@ -115,6 +116,15 @@ public class ServerConfig {
 
     public ServerConfig setDisableSavePidFile(boolean disableSavePidFile) {
         this.disableSavePidFile = disableSavePidFile;
+        return this;
+    }
+
+    public boolean isReusePort() {
+        return reusePort;
+    }
+
+    public ServerConfig setReusePort(boolean reusePort) {
+        this.reusePort = reusePort;
         return this;
     }
 

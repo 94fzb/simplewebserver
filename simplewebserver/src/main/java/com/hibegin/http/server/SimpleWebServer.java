@@ -16,6 +16,8 @@ import com.hibegin.http.server.util.ServerInfo;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketOption;
+import java.net.StandardSocketOptions;
 import java.nio.channels.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -183,6 +185,27 @@ public class SimpleWebServer implements ISocketServer, ReadWriteSelectorHandlerB
         }
     }
 
+    public void stopAccepting(String reason) {
+        try {
+            if (Objects.nonNull(serverChannel)) {
+                SelectionKey acceptKey = Objects.isNull(selector)
+                        ? null
+                        : serverChannel.keyFor(selector);
+                if (Objects.nonNull(acceptKey)) {
+                    acceptKey.cancel();
+                }
+                serverChannel.close();
+            }
+            if (Objects.nonNull(selector)) {
+                selector.wakeup();
+            }
+            LOGGER.info(serverConfig.getApplicationName() + " stopped accepting, reason "
+                    + ObjectUtil.requireNonNullElse(reason, ""));
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, serverConfig.getApplicationName() + " stop accepting error", e);
+        }
+    }
+
     @Override
     public boolean create() {
         return create(ObjectUtil.requireNonNullElse(serverConfig.getPort(), ConfigKit.getServerPort()));
@@ -202,6 +225,7 @@ public class SimpleWebServer implements ISocketServer, ReadWriteSelectorHandlerB
     public boolean create(String hostname, int port) {
         try {
             serverChannel = ServerSocketChannel.open();
+            configurePortReuse();
             serverChannel.socket().bind(new InetSocketAddress(hostname, port));
             serverChannel.configureBlocking(false);
             selector = Selector.open();
@@ -235,6 +259,24 @@ public class SimpleWebServer implements ISocketServer, ReadWriteSelectorHandlerB
             LOGGER.log(Level.SEVERE, "Create " + serverConfig.getApplicationName() + " " + port + " error, " + e.getMessage());
             return false;
         }
+    }
+
+    private void configurePortReuse() throws IOException {
+        if (!serverConfig.isReusePort()) {
+            return;
+        }
+        serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
+        for (SocketOption<?> option : serverChannel.supportedOptions()) {
+            if ("SO_REUSEPORT".equals(option.name())) {
+                setBooleanSocketOption(option, true);
+                return;
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void setBooleanSocketOption(SocketOption<?> option, boolean value) throws IOException {
+        serverChannel.setOption((SocketOption<Boolean>) option, value);
     }
 
     private ResponseConfig getDefaultResponseConfig() {
