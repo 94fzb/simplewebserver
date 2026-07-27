@@ -316,8 +316,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
     }
 
     private void dealRequestBodyData() throws IOException {
-        byte[] requestBody = getRequestBodyBytes();
-        if (Objects.isNull(requestBody)) {
+        if (request.method == HttpMethod.CONNECT) {
             return;
         }
         String contentTypeHeader = request.getHeader("Content-Type");
@@ -325,9 +324,17 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             return;
         }
         String contentType = contentTypeHeader.split(";")[0];
+        if (!"multipart/form-data".equals(contentType)
+                && !"application/x-www-form-urlencoded".equals(contentType)) {
+            return;
+        }
+        byte[] requestBody = getRequestBodyBytes();
+        if (Objects.isNull(requestBody)) {
+            return;
+        }
         if ("multipart/form-data".equals(contentType)) {
             request.files = getFiles(request.getServerConfig(), requestBody);
-        } else if ("application/x-www-form-urlencoded".equals(contentType)) {
+        } else {
             request.paramMap.putAll(HttpQueryStringUtils.parseUrlEncodedStrToMap(new String(requestBody)));
         }
     }
