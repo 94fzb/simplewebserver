@@ -3,7 +3,6 @@ package com.hibegin.http.server.impl;
 import com.hibegin.common.io.handler.ReadWriteSelectorHandler;
 import com.hibegin.common.util.*;
 import com.hibegin.http.HttpMethod;
-import com.hibegin.http.io.ChunkedStreamUtils;
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
@@ -16,7 +15,6 @@ import com.hibegin.http.server.util.HttpQueryStringUtils;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.nio.file.NoSuchFileException;
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
@@ -106,7 +104,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             result = saveRequestBodyBytes(requestBody);
         }
         if (Objects.equals(result.getKey(), true)) {
-            dealRequestBodyData();
+            request.decodeRequestBody();
             //处理完成，清空byte[]
             inputBytes = new byte[]{};
         }
@@ -133,7 +131,7 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             if (dataLength > 0) {
                 handleBytes = BytesUtil.subBytes(bytes, 0, (int) dataLength);
             }
-            File tempFile = saveRequestBodyToTempFile(handleBytes);
+            File tempFile = request.appendRequestBody(handleBytes);
             //requestBody full
             if (Objects.nonNull(tempFile) && tempFile.exists() && tempFile.length() == dataLength) {
                 int hasNextData = bytes.length - handleBytes.length;
@@ -150,44 +148,6 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
             if (request.getApplicationContext().getServerConfig().getHttpRequestDecodeListener() != null) {
                 request.getApplicationContext().getServerConfig().getHttpRequestDecodeListener().decodeRequestBodyBytesAfter(request, handleBytes);
             }
-        }
-    }
-
-    private File saveRequestBodyToTempFile(byte[] handleBytes) throws IOException {
-        if (Objects.isNull(request.tmpRequestBodyFile)) {
-            request.tmpRequestBodyFile = FileCacheKit.generatorRequestTempFile(request.getServerConfig().getPort() + "", handleBytes);
-            return request.tmpRequestBodyFile;
-        }
-        try (FileOutputStream fileOutputStream = new FileOutputStream(request.tmpRequestBodyFile, true)) {
-            fileOutputStream.write(handleBytes);
-        }
-        return request.tmpRequestBodyFile;
-    }
-
-    private byte[] getRequestBodyBytes() {
-        File tempFile = request.tmpRequestBodyFile;
-        if (Objects.isNull(tempFile) || !tempFile.exists()) {
-            return null;
-        }
-        try {
-            if (Objects.equals(request.getHeader("Transfer-encoding"), "chunked") && requestConfig.isEnableRequestChunkedStream()) {
-                try (FileInputStream fileInputStream = new FileInputStream(tempFile)) {
-                    try {
-                        return ChunkedStreamUtils.convertChunkedStream(fileInputStream);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return IOUtil.getByteByFile(tempFile);
-        } catch (RuntimeException e) {
-            //read file lost, ignore exception
-            if (Objects.nonNull(e.getCause()) && e.getCause() instanceof NoSuchFileException) {
-                return null;
-            }
-            throw e;
         }
     }
 
@@ -313,30 +273,6 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
 
         fileMap.put(inputKeyName, file);
         return fileMap;
-    }
-
-    private void dealRequestBodyData() throws IOException {
-        if (request.method == HttpMethod.CONNECT) {
-            return;
-        }
-        String contentTypeHeader = request.getHeader("Content-Type");
-        if (Objects.isNull(contentTypeHeader) || contentTypeHeader.trim().isEmpty()) {
-            return;
-        }
-        String contentType = contentTypeHeader.split(";")[0];
-        if (!"multipart/form-data".equals(contentType)
-                && !"application/x-www-form-urlencoded".equals(contentType)) {
-            return;
-        }
-        byte[] requestBody = getRequestBodyBytes();
-        if (Objects.isNull(requestBody)) {
-            return;
-        }
-        if ("multipart/form-data".equals(contentType)) {
-            request.files = getFiles(request.getServerConfig(), requestBody);
-        } else {
-            request.paramMap.putAll(HttpQueryStringUtils.parseUrlEncodedStrToMap(new String(requestBody)));
-        }
     }
 
     @Override

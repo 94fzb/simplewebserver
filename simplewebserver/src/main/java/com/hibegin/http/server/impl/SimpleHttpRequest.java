@@ -8,11 +8,13 @@ import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.HttpVersion;
+import com.hibegin.http.io.ChunkedStreamUtils;
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.util.FileCacheKit;
+import com.hibegin.http.server.util.HttpQueryStringUtils;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.web.cookie.Cookie;
 import com.hibegin.http.server.web.session.HttpSession;
@@ -23,6 +25,7 @@ import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.NoSuchFileException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -242,6 +245,73 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
         return header;
     }
 
+    /** Stores transport body bytes in the same file used by all request readers. */
+    protected File appendRequestBody(byte[] handleBytes) throws IOException {
+        if (handleBytes == null || handleBytes.length == 0) {
+            return tmpRequestBodyFile;
+        }
+        if (Objects.isNull(tmpRequestBodyFile)) {
+            tmpRequestBodyFile = FileCacheKit.generatorRequestTempFile(getServerConfig().getPort() + "", handleBytes);
+            return tmpRequestBodyFile;
+        }
+        try (FileOutputStream fileOutputStream = new FileOutputStream(tmpRequestBodyFile, true)) {
+            fileOutputStream.write(handleBytes);
+        }
+        return tmpRequestBodyFile;
+    }
+
+    private byte[] getRequestBodyBytes() {
+        File tempFile = tmpRequestBodyFile;
+        if (Objects.isNull(tempFile) || !tempFile.exists()) {
+            return null;
+        }
+        try {
+            if (Objects.equals(getHeader("Transfer-encoding"), "chunked") && requestConfig.isEnableRequestChunkedStream()) {
+                try (FileInputStream fileInputStream = new FileInputStream(tempFile)) {
+                    try {
+                        return ChunkedStreamUtils.convertChunkedStream(fileInputStream);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return IOUtil.getByteByFile(tempFile);
+        } catch (RuntimeException e) {
+            //read file lost, ignore exception
+            if (Objects.nonNull(e.getCause()) && e.getCause() instanceof NoSuchFileException) {
+                return null;
+            }
+            throw e;
+        }
+    }
+
+    /** Parses form data once the complete transport body has been stored. */
+    protected void decodeRequestBody() throws IOException {
+        if (method == HttpMethod.CONNECT) {
+            return;
+        }
+        String contentTypeHeader = getHeader("Content-Type");
+        if (Objects.isNull(contentTypeHeader) || contentTypeHeader.trim().isEmpty()) {
+            return;
+        }
+        String contentType = contentTypeHeader.split(";")[0];
+        if (!"multipart/form-data".equals(contentType)
+                && !"application/x-www-form-urlencoded".equals(contentType)) {
+            return;
+        }
+        byte[] requestBody = getRequestBodyBytes();
+        if (Objects.isNull(requestBody)) {
+            return;
+        }
+        if ("multipart/form-data".equals(contentType)) {
+            files = HttpRequestDecoderImpl.getFiles(getServerConfig(), requestBody);
+        } else {
+            paramMap.putAll(HttpQueryStringUtils.parseUrlEncodedStrToMap(new String(requestBody)));
+        }
+    }
+
     @Override
     public InputStream getInputStream() {
         if (inputStream != null) {
@@ -323,10 +393,11 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
     public ByteBuffer getRequestBodyByteBuffer(int offset) {
         lock.lock();
         try {
-            if (tmpRequestBodyFile != null && offset < tmpRequestBodyFile.length()) {
-                FileInputStream fileInputStream = new FileInputStream(tmpRequestBodyFile.toString());
-                fileInputStream.skip(offset);
-                return ByteBuffer.wrap(IOUtil.getByteByInputStream(fileInputStream));
+            if (tmpRequestBodyFile != null && offset >= 0 && offset < tmpRequestBodyFile.length()) {
+                try (FileInputStream fileInputStream = new FileInputStream(tmpRequestBodyFile)) {
+                    fileInputStream.skip(offset);
+                    return ByteBuffer.wrap(IOUtil.getByteByInputStream(fileInputStream));
+                }
             } else {
                 return ByteBuffer.wrap(new byte[0]);
             }
@@ -344,6 +415,15 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
         lock.lock();
         try {
             if (tmpRequestBodyFile != null) {
+                if (inputStream != null) {
+                    try {
+                        inputStream.close();
+                    } catch (IOException e) {
+                        LOGGER.log(Level.WARNING, "Close request body stream error", e);
+                    } finally {
+                        inputStream = null;
+                    }
+                }
                 FileCacheKit.deleteCache(tmpRequestBodyFile);
                 tmpRequestBodyFile = null;
             }
@@ -351,6 +431,7 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
                 for (File file : files.values()) {
                     FileCacheKit.deleteCache(file);
                 }
+                files = null;
             }
         } finally {
             lock.unlock();

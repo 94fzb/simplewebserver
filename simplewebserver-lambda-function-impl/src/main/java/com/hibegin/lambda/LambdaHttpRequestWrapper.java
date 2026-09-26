@@ -1,28 +1,24 @@
 package com.hibegin.lambda;
 
 import com.hibegin.common.util.EnvKit;
-import com.hibegin.common.util.IOUtil;
 import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.common.util.UrlDecodeUtils;
 import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ServerConfig;
-import com.hibegin.http.server.impl.HttpRequestDecoderImpl;
 import com.hibegin.http.server.impl.SimpleHttpRequest;
 import com.hibegin.http.server.util.HttpQueryStringUtils;
 import com.hibegin.lambda.rest.LambdaApiGatewayRequest;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.Objects;
 
 public class LambdaHttpRequestWrapper extends SimpleHttpRequest {
 
     private final LambdaApiGatewayRequest lambdaApiGatewayRequest;
-
 
     protected LambdaHttpRequestWrapper(ApplicationContext applicationContext, RequestConfig requestConfig, LambdaApiGatewayRequest lambdaApiGatewayRequest) {
         super(null, applicationContext, requestConfig);
@@ -34,36 +30,24 @@ public class LambdaHttpRequestWrapper extends SimpleHttpRequest {
         this.paramMap = HttpQueryStringUtils.parseUrlEncodedStrToMap(this.queryStr);
         this.getHeaderMap().put("Host", lambdaApiGatewayRequest.getRequestContext().getDomainName());
         this.uri = UrlDecodeUtils.decodePath(lambdaApiGatewayRequest.getRawPath().substring(getContextPath().length()), requestConfig.getCharSet());
-        if (Objects.nonNull(lambdaApiGatewayRequest.getBody()) && !lambdaApiGatewayRequest.getBody().isEmpty()) {
-            byte[] bytes;
-            if (lambdaApiGatewayRequest.isBase64Encoded()) {
-                bytes = Base64.getDecoder().decode(lambdaApiGatewayRequest.getBody());
-            } else {
-                bytes = lambdaApiGatewayRequest.getBody().getBytes();
+        String body = lambdaApiGatewayRequest.getBody();
+        if (body != null && !body.isEmpty()) {
+            byte[] bytes = lambdaApiGatewayRequest.isBase64Encoded()
+                    ? Base64.getDecoder().decode(body) : body.getBytes(StandardCharsets.UTF_8);
+            try {
+                appendRequestBody(bytes);
+                decodeRequestBody();
+            } catch (IOException e) {
+                deleteTempUploadFiles();
+                throw new UncheckedIOException(e);
+            } catch (RuntimeException e) {
+                deleteTempUploadFiles();
+                throw e;
             }
-            String contentType = getHeader("Content-Type").split("\\?")[0];
-            //handle urlencoded
-            if ("application/x-www-form-urlencoded".equals(contentType)) {
-                paramMap.putAll(HttpQueryStringUtils.parseUrlEncodedStrToMap(new String(bytes)));
-            }
-            this.inputStream = new ByteArrayInputStream(bytes);
         }
-        //
         ServerConfig serverConfig = super.getServerConfig();
         serverConfig.setApplicationName("Lambda " + (EnvKit.isLambdaResponseStreamEnabled() ? "Response Stream" : "Buffered"));
         serverConfig.setApplicationVersion(LambdaEventIterator.VERSION);
-    }
-
-    @Override
-    public File getFile(String key) {
-        if (Objects.isNull(files) || files.isEmpty()) {
-            try {
-                files = HttpRequestDecoderImpl.getFiles(getServerConfig(), IOUtil.getByteByInputStream(inputStream));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return super.getFile(key);
     }
 
     public LambdaApiGatewayRequest getLambdaApiGatewayRequest() {

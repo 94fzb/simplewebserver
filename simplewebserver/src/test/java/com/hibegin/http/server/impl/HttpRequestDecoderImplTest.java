@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class HttpRequestDecoderImplTest {
 
@@ -91,6 +92,45 @@ public class HttpRequestDecoderImplTest {
                         + new String(body, StandardCharsets.UTF_8)).getBytes(StandardCharsets.UTF_8)));
 
         assertFalse(decoder.getRequest().getParamMap().containsKey("name"));
+    }
+
+    @Test
+    public void splitBodyIsStoredCompletelyBeforeFormParsing() throws Exception {
+        HttpRequestDecoderImpl decoder = decoder();
+        byte[] body = "name=value".getBytes(StandardCharsets.UTF_8);
+        assertFalse(decoder.doDecode(ByteBuffer.wrap((
+                "POST /submit HTTP/1.1\r\n"
+                        + "Host: example.com\r\n"
+                        + "Content-Type: application/x-www-form-urlencoded\r\n"
+                        + "Content-Length: " + body.length + "\r\n\r\nname=")
+                .getBytes(StandardCharsets.UTF_8))).getKey());
+        assertFalse(decoder.getRequest().getParamMap().containsKey("name"));
+
+        assertTrue(decoder.doDecode(ByteBuffer.wrap("value".getBytes(StandardCharsets.UTF_8))).getKey());
+        assertArrayEquals(body, decoder.getRequest().getRequestBodyByteBuffer().array());
+        assertEquals("value", decoder.getRequest().getParamMap().get("name")[0]);
+        ((SimpleHttpRequest) decoder.getRequest()).deleteTempUploadFiles();
+    }
+
+    @Test
+    public void chunkedFormParsingKeepsRawBodyReadable() throws Exception {
+        RequestConfig requestConfig = new RequestConfig();
+        requestConfig.setEnableRequestChunkedStream(true);
+        requestConfig.setMaxRequestBodySize(1024 * 1024);
+        HttpRequestDecoderImpl decoder = new HttpRequestDecoderImpl(
+                requestConfig, new ApplicationContext(serverConfig()), null);
+        String body = "a\r\nname=value\r\n0\r\n\r\n";
+        assertTrue(decoder.doDecode(ByteBuffer.wrap((
+                "POST /submit HTTP/1.1\r\n"
+                        + "Host: example.com\r\n"
+                        + "Content-Type: application/x-www-form-urlencoded\r\n"
+                        + "Transfer-Encoding: chunked\r\n\r\n" + body)
+                .getBytes(StandardCharsets.UTF_8))).getKey());
+
+        assertEquals("value", decoder.getRequest().getParamMap().get("name")[0]);
+        assertArrayEquals(body.getBytes(StandardCharsets.UTF_8),
+                decoder.getRequest().getRequestBodyByteBuffer().array());
+        ((SimpleHttpRequest) decoder.getRequest()).deleteTempUploadFiles();
     }
 
     private HttpRequestDecoderImpl decoder() {
