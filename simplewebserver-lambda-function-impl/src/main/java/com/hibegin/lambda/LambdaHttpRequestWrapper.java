@@ -18,12 +18,9 @@ import java.util.Base64;
 
 public class LambdaHttpRequestWrapper extends SimpleHttpRequest {
 
-    private final LambdaApiGatewayRequest lambdaApiGatewayRequest;
-
     protected LambdaHttpRequestWrapper(ApplicationContext applicationContext, RequestConfig requestConfig, LambdaApiGatewayRequest lambdaApiGatewayRequest) {
         super(null, applicationContext, requestConfig);
         this.createTime = System.currentTimeMillis();
-        this.lambdaApiGatewayRequest = lambdaApiGatewayRequest;
         this.queryStr = ObjectUtil.requireNonNullElse(lambdaApiGatewayRequest.getRawQueryString(), "");
         this.method = HttpMethod.valueOf(lambdaApiGatewayRequest.getRequestContext().getHttp().getMethod());
         this.header = lambdaApiGatewayRequest.getHeaders();
@@ -48,9 +45,5 @@ public class LambdaHttpRequestWrapper extends SimpleHttpRequest {
         ServerConfig serverConfig = super.getServerConfig();
         serverConfig.setApplicationName("Lambda " + (EnvKit.isLambdaResponseStreamEnabled() ? "Response Stream" : "Buffered"));
         serverConfig.setApplicationVersion(LambdaEventIterator.VERSION);
-    }
-
-    public LambdaApiGatewayRequest getLambdaApiGatewayRequest() {
-        return lambdaApiGatewayRequest;
     }
 }
