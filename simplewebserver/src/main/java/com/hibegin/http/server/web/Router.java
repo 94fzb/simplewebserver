@@ -13,6 +13,18 @@ public class Router {
 
     private final Map<String, Method> routerMap = new HashMap<>();
 
+    /**
+     * Registers a controller method using the supplied path as-is.
+     * Subclasses can use or override this hook to customize route registration.
+     * A later registration for the same path replaces the previous mapping.
+     *
+     * @param urlPath the request path to register
+     * @param method the controller method to invoke
+     */
+    protected void addMapper(String urlPath, Method method) {
+        getRouterMap().put(urlPath, method);
+    }
+
     public void addMapper(String urlPath, Class<? extends Controller> clazz) {
         if ("/".equals(urlPath)) {
             urlPath = "";
@@ -20,11 +32,11 @@ public class Router {
         Method[] methods = clazz.getDeclaredMethods();
         for (Method method : methods) {
             if (method.getModifiers() == Modifier.PUBLIC) {
-                getRouterMap().put(urlPath + "/" + method.getName(), method);
+                addMapper(urlPath + "/" + method.getName(), method);
             }
             if (Objects.equals(method.getName(), "index")) {
-                getRouterMap().put(urlPath, method);
-                getRouterMap().put(urlPath + "/", method);
+                addMapper(urlPath, method);
+                addMapper(urlPath + "/", method);
             }
         }
     }
@@ -36,7 +48,7 @@ public class Router {
         Method[] methods = clazz.getDeclaredMethods();
         for (Method method : methods) {
             if (Objects.equals(method.getName(), methodName)) {
-                getRouterMap().put(urlPath, method);
+                addMapper(urlPath, method);
             }
         }
     }
