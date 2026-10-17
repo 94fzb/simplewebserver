@@ -270,11 +270,15 @@ public class SimpleHttpResponse implements HttpResponse {
 
     @Override
     public void redirect(String url) {
+        String location = url;
         if (url.startsWith("/")) {
-            putHeader("Location", UrlEncodeUtils.encodeUrl(request.getContextPath() + url));
-        } else {
-            putHeader("Location", UrlEncodeUtils.encodeUrl(url));
+            String contextPath = ObjectUtil.requireNonNullElse(request.getContextPath(), "");
+            location = ("/".equals(contextPath) ? "" : contextPath) + url;
         }
+        if (location.indexOf('\r') >= 0 || location.indexOf('\n') >= 0) {
+            throw new IllegalArgumentException("Redirect URL must not contain CR or LF");
+        }
+        putHeader("Location", location);
         renderByMimeType("", null, 302);
     }
 

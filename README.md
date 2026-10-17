@@ -64,6 +64,18 @@ public class DemoController extends Controller {
 
 然后在浏览器中输入 `http://localhost:6058` 即可访问。
 
+## 重定向 URL 编码
+
+从 `4.1.15` 起，`response.redirect(url)` 直接使用调用方提供的 URL，不再自动进行百分号编码。
+业务代码应在组装 URL 时编码路径片段和查询参数值；已有的 `%HH` 编码会原样保留。
+以 `/` 开头的 URL 仍会加上应用的 context path。`forward(uri)` 同样要求调用方提供已编码的 URI。
+含原始回车或换行符的重定向地址会被拒绝。
+
+```java
+String message = URLEncoder.encode("请求处理失败，请稍后重试", "UTF-8");
+response.redirect("/admin/500?message=" + message);
+```
+
 ## 打包
 
 **推荐使用 maven-assembly-plugin**

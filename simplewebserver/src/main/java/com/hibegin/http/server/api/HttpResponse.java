@@ -27,8 +27,21 @@ public interface HttpResponse {
 
     void addHeader(String name, String value);
 
+    /**
+     * Sends a 302 response using the supplied URL without percent-encoding it.
+     * The caller must encode path segments and query parameter values as needed.
+     * URLs starting with '/' are prefixed with the application context path.
+     *
+     * @param url the redirect URL, already encoded by the caller
+     * @throws IllegalArgumentException if the destination contains CR or LF
+     */
     void redirect(String url);
 
+    /**
+     * Redirects to the supplied URI on the current server.
+     *
+     * @param uri the URI, already encoded by the caller
+     */
     void forward(String uri);
 
     void renderFile(File file);
