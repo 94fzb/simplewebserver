@@ -12,6 +12,7 @@ module hibegin.simplewebserver {
     exports com.hibegin.http.server;
     exports com.hibegin.http.server.api;
     exports com.hibegin.http.server.config;
+    exports com.hibegin.http.server.di;
     exports com.hibegin.http.server.execption;
     exports com.hibegin.http.server.handler;
     exports com.hibegin.http.server.impl;

@@ -4,11 +4,11 @@ import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
 import com.hibegin.http.server.api.Interceptor;
 import com.hibegin.http.server.config.ServerConfig;
+import com.hibegin.http.server.di.ComponentFactory;
 import com.hibegin.http.server.handler.CheckRequestRunnable;
 import com.hibegin.http.server.util.FileCacheKit;
 
 import java.lang.reflect.InvocationTargetException;
-import java.net.Socket;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,23 +66,28 @@ public class ApplicationContext {
         return checkRequestRunnable;
     }
 
-    public void init() {
+    public synchronized void init() {
         if (init) {
             return;
         }
-        checkRequestRunnable = new CheckRequestRunnable(serverConfig, httpDeCoderMap);
-        //清空tmp目录
-        FileCacheKit.cleanByFlag(serverConfig.getPort());
-        init = true;
-        interceptors = new ArrayList<>();
+        ComponentFactory componentFactory = serverConfig.getComponentFactory();
+        List<Interceptor> initializedInterceptors = new ArrayList<>();
         for (Class<? extends Interceptor> interceptorClazz : serverConfig.getInterceptors()) {
             try {
-                Interceptor interceptor = interceptorClazz.getDeclaredConstructor().newInstance();
-                interceptors.add(interceptor);
+                Interceptor interceptor = componentFactory.createInterceptor(interceptorClazz);
+                if (!interceptorClazz.isInstance(interceptor)) {
+                    throw new IllegalStateException("Component factory must return " + interceptorClazz.getName());
+                }
+                initializedInterceptors.add(interceptor);
             } catch (InstantiationException | IllegalAccessException | NoSuchMethodException |
                      InvocationTargetException e) {
                 LOGGER.log(Level.SEVERE, "init interceptor error", e);
             }
         }
+        checkRequestRunnable = new CheckRequestRunnable(serverConfig, httpDeCoderMap);
+        //清空tmp目录
+        FileCacheKit.cleanByFlag(serverConfig.getPort());
+        interceptors = initializedInterceptors;
+        init = true;
     }
 }

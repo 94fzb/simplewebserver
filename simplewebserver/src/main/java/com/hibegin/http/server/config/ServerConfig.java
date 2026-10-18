@@ -1,27 +1,26 @@
 package com.hibegin.http.server.config;
 
 import com.hibegin.common.HybridStorage;
-import com.hibegin.common.util.LoggerUtil;
 import com.hibegin.common.util.ObjectUtil;
 import com.hibegin.http.server.api.HttpErrorHandle;
 import com.hibegin.http.server.api.HttpRequestDecodeListener;
 import com.hibegin.http.server.api.HttpRequestListener;
 import com.hibegin.http.server.api.Interceptor;
+import com.hibegin.http.server.di.ComponentFactory;
+import com.hibegin.http.server.di.SwsBindings;
 import com.hibegin.http.server.util.PathUtil;
 import com.hibegin.http.server.util.ServerInfo;
 import com.hibegin.http.server.web.Router;
 
-import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class ServerConfig {
 
-    private static final Logger LOGGER = LoggerUtil.getLogger(ServerConfig.class);
+    private SwsBindings bindings;
+    private ComponentFactory componentFactory;
     private final Map<String, Map.Entry<String, StaticResourceLoader>> staticResourceMapper = new ConcurrentHashMap<>();
     private final List<Class<? extends Interceptor>> interceptors = new ArrayList<>();
     private final Router router = new Router();
@@ -59,6 +58,34 @@ public class ServerConfig {
 
     private final List<Callable<Void>> onCreateErrorHandles = new CopyOnWriteArrayList<>();
     private final List<Callable<Void>> onCreateSuccessHandles = new CopyOnWriteArrayList<>();
+
+    /** Selects built-in bindings; modules contribute before initialization or the first controller dispatch. */
+    public synchronized SwsBindings getBindings() {
+        if (bindings == null) {
+            if (componentFactory != null) {
+                throw new IllegalStateException("A custom component factory is configured; built-in bindings are unavailable");
+            }
+            bindings = new SwsBindings();
+        }
+        return bindings;
+    }
+
+    /** Freezes the default bindings on first use. Reusing this config also reuses its application services. */
+    public synchronized ComponentFactory getComponentFactory() {
+        if (componentFactory == null) {
+            componentFactory = getBindings().build();
+        }
+        return componentFactory;
+    }
+
+    /** Optional alternative to built-in bindings; configure before getBindings() or initialization. */
+    public synchronized ServerConfig setComponentFactory(ComponentFactory componentFactory) {
+        if (this.componentFactory != null || bindings != null) {
+            throw new IllegalStateException("Built-in bindings or a component factory have already been selected");
+        }
+        this.componentFactory = Objects.requireNonNull(componentFactory, "componentFactory");
+        return this;
+    }
 
     public ServerConfig addCreateErrorHandle(Callable<Void> callable) {
         onCreateErrorHandles.add(callable);
@@ -339,32 +366,14 @@ public class ServerConfig {
     }
 
     public ServerConfig addInterceptor(Class<? extends Interceptor> interceptor) {
-        if (hasNoParameterPublicConstructor(interceptor)) {
-            synchronized (interceptors) {
-                boolean flag = false;
-                for (Class<? extends Interceptor> inter : interceptors) {
-                    if (interceptor.toString().equals(inter.toString())) {
-                        flag = true;
-                        break;
-                    }
-                }
-                if (!flag) {
-                    interceptors.add(interceptor);
-                }
+        Objects.requireNonNull(interceptor, "interceptor");
+        // Constructor selection belongs to the component factory at initialization time.
+        synchronized (interceptors) {
+            if (!interceptors.contains(interceptor)) {
+                interceptors.add(interceptor);
             }
-        } else {
-            LOGGER.log(Level.SEVERE, "the class " + interceptor.getCanonicalName() + " not implements Interceptor");
         }
         return this;
-    }
-
-    private boolean hasNoParameterPublicConstructor(Class<?> clazz) {
-        for (Constructor<?> constructor : clazz.getConstructors()) {
-            if (constructor.getParameterTypes().length == 0) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public ServerConfig addStaticResourceMapper(String uriPath, String locationPath) {
