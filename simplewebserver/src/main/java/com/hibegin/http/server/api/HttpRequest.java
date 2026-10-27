@@ -67,6 +67,15 @@ public interface HttpRequest {
 
     File getFile(String key);
 
+    /**
+     * Returns the received file with multipart metadata, or {@code null} if absent.
+     * Existing request implementations retain file access with unknown metadata.
+     */
+    default UploadedFile getUploadedFile(String key) {
+        File file = getFile(key);
+        return file == null ? null : new UploadedFile(key, null, null, file);
+    }
+
     Map<String, Object> getAttr();
 
     String getScheme();

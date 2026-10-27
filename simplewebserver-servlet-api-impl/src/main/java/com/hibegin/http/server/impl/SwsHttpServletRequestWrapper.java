@@ -99,7 +99,7 @@ public class SwsHttpServletRequestWrapper extends SimpleHttpRequest {
     public File getFile(String key) {
         if (Objects.isNull(files) || files.isEmpty()) {
             try {
-                files = HttpRequestDecoderImpl.getFiles(getServerConfig(), IOUtil.getByteByInputStream(inputStream));
+                decodeMultipartFiles(IOUtil.getByteByInputStream(inputStream));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
