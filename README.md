@@ -42,7 +42,7 @@
 <dependency>
     <groupId>com.hibegin</groupId>
     <artifactId>simplewebserver</artifactId>
-    <version>4.0.107</version>
+    <version>4.1.17</version>
 </dependency>
 ```
 ### 示例代码
@@ -66,7 +66,7 @@ public class DemoController extends Controller {
 
 ## 上传文件
 
-`request.getUploadedFile("file")` 返回 `UploadedFile`，提供表单字段名 `getFieldName()`、
+从 `4.1.17` 起，`request.getUploadedFile("file")` 返回 `UploadedFile`，提供表单字段名 `getFieldName()`、
 客户端原始文件名 `getOriginalFilename()`、声明的类型 `getContentType()`、实际字节数 `getSize()`
 和空文件判断 `isEmpty()`；字段不存在时返回 `null`。Web、Servlet 和 Lambda 使用相同接口。
 

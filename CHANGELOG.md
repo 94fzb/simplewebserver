@@ -1,3 +1,9 @@
+## v4.1.17 (2026-10-27)
+
+### 新特性
+
+- 上传文件可通过 `HttpRequest.getUploadedFile()` 获取表单字段名、原始文件名、Content-Type、实际大小和独立文件流，Web、Servlet 与 Lambda 使用相同接口，兼容原有 `getFile()`
+
 ## v0.3 (2024-10-x)
 
 > Java21 loom + GraalVM Native 让应用有更小的内存占用和更快捷的运行体验
