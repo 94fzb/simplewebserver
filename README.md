@@ -64,6 +64,28 @@ public class DemoController extends Controller {
 
 然后在浏览器中输入 `http://localhost:6058` 即可访问。
 
+## 上传文件
+
+`request.getUploadedFile("file")` 返回 `UploadedFile`，提供表单字段名 `getFieldName()`、
+客户端原始文件名 `getOriginalFilename()`、声明的类型 `getContentType()`、实际字节数 `getSize()`
+和空文件判断 `isEmpty()`；字段不存在时返回 `null`。Web、Servlet 和 Lambda 使用相同接口。
+
+```java
+UploadedFile upload = request.getUploadedFile("file");
+if (upload != null) {
+    try (InputStream input = upload.getInputStream()) {
+        // 在当前请求内读取内容，或保存到业务管理的持久存储。
+    }
+}
+```
+
+`upload.getFile()` 与原有的 `request.getFile("file")` 返回同一个临时文件；
+每次 `getInputStream()` 都从该文件新建独立的文件流，由调用方关闭。
+请求结束后临时文件会被清理，需要保留的内容应在请求结束前保存。
+原始文件名和类型缺失时为 `null`；未选择文件时原始文件名可能为空字符串。
+客户端文件名可能包含路径，只作为元信息使用，存储路径应由业务生成。
+此接口沿用现有单文件上传解析能力，不增加运行时依赖。
+
 ## 手动依赖注入
 
 使用 `serverConfig.getBindings()` 注册应用共享对象和 Controller 工厂，无需新增模块或引入 DI 框架。

@@ -2,6 +2,7 @@ package com.hibegin.lambda;
 
 import com.google.gson.JsonParser;
 import com.hibegin.http.server.ApplicationContext;
+import com.hibegin.http.server.api.UploadedFile;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.impl.HttpRequestDecoderImpl;
@@ -203,6 +204,15 @@ public class LambdaHttpRequestWrapperTest {
                 }
                 assertNotNull(request.getFile("file"));
                 assertArrayEquals(payload, Files.readAllBytes(request.getFile("file").toPath()));
+                UploadedFile upload = request.getUploadedFile("file");
+                assertSame(request.getFile("file"), upload.getFile());
+                assertEquals("file", upload.getFieldName());
+                assertEquals("test.txt", upload.getOriginalFilename());
+                assertEquals("text/plain", upload.getContentType());
+                assertEquals(payload.length, upload.getSize());
+                try (InputStream uploaded = upload.getInputStream()) {
+                    assertArrayEquals(payload, uploaded.readAllBytes());
+                }
                 assertBodyEquals(body, request);
                 if (!streamFirst) {
                     assertArrayEquals(body, request.getInputStream().readAllBytes());
@@ -236,6 +246,7 @@ public class LambdaHttpRequestWrapperTest {
             assertEquals('-', stream.read());
             request.deleteTempUploadFiles();
             assertFalse(upload.exists());
+            assertNull(request.getUploadedFile("file"));
             assertThrows(IOException.class, () -> stream.read());
             assertEquals(-1, request.getInputStream().read());
         }

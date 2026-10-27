@@ -11,6 +11,7 @@ import com.hibegin.http.HttpVersion;
 import com.hibegin.http.io.ChunkedStreamUtils;
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpRequest;
+import com.hibegin.http.server.api.UploadedFile;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ServerConfig;
 import com.hibegin.http.server.util.FileCacheKit;
@@ -43,6 +44,7 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
     protected String queryStr;
     protected HttpMethod method;
     protected Map<String, File> files;
+    private Map<String, UploadedFile> uploadedFiles;
     protected File tmpRequestBodyFile;
     protected String requestHeaderStr;
     protected InputStream inputStream;
@@ -184,6 +186,28 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
     }
 
     @Override
+    public UploadedFile getUploadedFile(String key) {
+        // getFile also performs lazy decoding in the Servlet adapter.
+        File file = getFile(key);
+        if (file == null) {
+            return null;
+        }
+        UploadedFile uploaded = uploadedFiles == null ? null : uploadedFiles.get(key);
+        return uploaded != null && uploaded.getFile().equals(file)
+                ? uploaded : new UploadedFile(key, null, null, file);
+    }
+
+    protected void decodeMultipartFiles(byte[] requestBody) throws IOException {
+        Map<String, UploadedFile> decoded = HttpRequestDecoderImpl.getUploadedFiles(getServerConfig(), requestBody);
+        Map<String, File> decodedFiles = new HashMap<>();
+        for (Map.Entry<String, UploadedFile> entry : decoded.entrySet()) {
+            decodedFiles.put(entry.getKey(), entry.getValue().getFile());
+        }
+        uploadedFiles = decoded;
+        files = decodedFiles;
+    }
+
+    @Override
     public Integer getParaToInt(String key) {
         Map<String, String[]> param = getParamMap();
         String[] values = param.get(key);
@@ -306,7 +330,7 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
             return;
         }
         if ("multipart/form-data".equals(contentType)) {
-            files = HttpRequestDecoderImpl.getFiles(getServerConfig(), requestBody);
+            decodeMultipartFiles(requestBody);
         } else {
             paramMap.putAll(HttpQueryStringUtils.parseUrlEncodedStrToMap(new String(requestBody)));
         }
@@ -433,6 +457,7 @@ public class SimpleHttpRequest extends BaseLockObject implements HttpRequest {
                 }
                 files = null;
             }
+            uploadedFiles = null;
         } finally {
             lock.unlock();
         }

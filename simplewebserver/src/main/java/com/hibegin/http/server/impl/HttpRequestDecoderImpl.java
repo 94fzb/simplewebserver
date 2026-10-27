@@ -6,6 +6,7 @@ import com.hibegin.http.HttpMethod;
 import com.hibegin.http.server.ApplicationContext;
 import com.hibegin.http.server.api.HttpRequest;
 import com.hibegin.http.server.api.HttpRequestDeCoder;
+import com.hibegin.http.server.api.UploadedFile;
 import com.hibegin.http.server.config.ConfigKit;
 import com.hibegin.http.server.config.RequestConfig;
 import com.hibegin.http.server.config.ServerConfig;
@@ -15,18 +16,24 @@ import com.hibegin.http.server.util.HttpQueryStringUtils;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
 
     private static final String CRLF = "\r\n";
     static final String SPLIT = CRLF + CRLF;
     private static final Logger LOGGER = LoggerUtil.getLogger(HttpRequestDecoderImpl.class);
+    private static final Pattern DISPOSITION_PARAMETER = Pattern.compile(
+            "(?:^|;)\\s*([^=;\\s]+)\\s*=\\s*(?:\"((?:\\\\.|[^\"\\\\])*)\"|([^;]*))");
     private SimpleHttpRequest request;
     private byte[] inputBytes = new byte[]{};
     private final RequestConfig requestConfig;
@@ -243,36 +250,63 @@ public class HttpRequestDecoderImpl implements HttpRequestDeCoder {
      * @throws IOException
      */
     public static Map<String, File> getFiles(ServerConfig serverConfig, byte[] requestBody) throws IOException {
+        Map<String, File> files = new HashMap<>();
+        for (Map.Entry<String, UploadedFile> entry : getUploadedFiles(serverConfig, requestBody).entrySet()) {
+            files.put(entry.getKey(), entry.getValue().getFile());
+        }
+        return files;
+    }
+
+    /** Retains metadata from the existing single-file multipart decoder. */
+    public static Map<String, UploadedFile> getUploadedFiles(ServerConfig serverConfig, byte[] requestBody) throws IOException {
         StringBuilder sb = new StringBuilder();
-        Map<String, String> headerMap = new HashMap<>();
-        try (BufferedReader bin = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(requestBody)))) {
+        Map<String, String> headerMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        try (BufferedReader bin = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(requestBody), StandardCharsets.UTF_8))) {
             String headerStr;
             while ((headerStr = bin.readLine()) != null && !headerStr.isEmpty()) {
                 sb.append(headerStr).append(CRLF);
-                headerMap.putAll(dealRequestHeaderString(headerStr));
+                int colon = headerStr.indexOf(':');
+                if (colon > 0) {
+                    headerMap.put(headerStr.substring(0, colon).trim(), headerStr.substring(colon + 1).trim());
+                }
             }
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "", e);
         }
         String contentDisposition = headerMap.get("Content-Disposition");
-        Map<String, File> fileMap = new HashMap<>();
+        Map<String, UploadedFile> fileMap = new HashMap<>();
         if (Objects.isNull(contentDisposition)) {
             return fileMap;
         }
-        String[] kvs = contentDisposition.split(";");
-        String inputKeyName = kvs[1].split("=")[1].replace("\"", "");
-        String ext = null;
-        if (kvs.length == 3) {
-            String inputFileName = kvs[2].split("=")[1].replace("\"", "");
-            ext = getFileExtension(inputFileName);
+        String inputKeyName = dispositionParameter(contentDisposition, "name");
+        if (inputKeyName == null || inputKeyName.isEmpty()) {
+            throw new IOException("Multipart file is missing its field name");
         }
-        int length1 = sb.toString().split(CRLF)[0].getBytes().length + CRLF.getBytes().length;
-        int length2 = sb.toString().getBytes().length + 2;
+        String inputFileName = dispositionParameter(contentDisposition, "filename");
+        String ext = inputFileName == null ? null : getFileExtension(inputFileName);
+        // Keep client paths and other filename characters out of the temporary path.
+        if (ext != null && !ext.matches("[A-Za-z0-9]{1,16}")) {
+            ext = null;
+        }
+        int length1 = sb.toString().split(CRLF)[0].getBytes(StandardCharsets.UTF_8).length + CRLF.length();
+        int length2 = sb.toString().getBytes(StandardCharsets.UTF_8).length + 2;
         int dataLength = requestBody.length - length1 - length2 - SPLIT.getBytes().length;
         File file = FileCacheKit.generatorRequestTempFile(serverConfig.getPort() + (Objects.isNull(ext) ? "" : "." + ext), BytesUtil.subBytes(requestBody, length2, dataLength));
 
-        fileMap.put(inputKeyName, file);
+        fileMap.put(inputKeyName, new UploadedFile(inputKeyName, inputFileName, headerMap.get("Content-Type"), file));
         return fileMap;
+    }
+
+    private static String dispositionParameter(String header, String name) {
+        Matcher matcher = DISPOSITION_PARAMETER.matcher(header);
+        while (matcher.find()) {
+            if (name.equalsIgnoreCase(matcher.group(1))) {
+                String quoted = matcher.group(2);
+                return quoted == null ? matcher.group(3).trim()
+                        : quoted.replace("\\\"", "\"").replace("\\\\", "\\");
+            }
+        }
+        return null;
     }
 
     @Override
